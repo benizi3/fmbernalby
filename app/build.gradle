@@ -36,5 +36,7 @@ dependencies {
     compileOnly 'de.robv.android.xposed:api:82'
 
     implementation 'com.google.guava:guava:23.4-android'
+    implementation 'com.alibaba:fastjson:1.1.67.android'
+    implementation 'commons-io:commons-io:2.6'
     implementation project(':jadb')
 }
