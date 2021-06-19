@@ -6,8 +6,10 @@ import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.google.common.collect.Maps;
+import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 
@@ -20,24 +22,29 @@ import java.util.concurrent.ConcurrentMap;
  */
 
 public class AIDLRegisterService extends Service {
+    private static final String TAG = "AIDLRegisterService";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService = Maps.newConcurrentMap();
     public static RemoteCallbackList<IHookAgentService> mCallbacks = new RemoteCallbackList<>();
 
     private IServiceRegister.Stub binder = new IServiceRegister.Stub() {
         @Override
-        public void registerHookAgent(String key, IHookAgentService hookAgentService) throws RemoteException {
-            if (key == null || hookAgentService == null) {
-                throw new RemoteException("service register, service key and service implement can not be null");
+        public void registerHookAgent(IHookAgentService hookAgentService) throws RemoteException {
+            if (hookAgentService == null) {
+                throw new RemoteException("service register, service implement can not be null");
+            }
+            AgentInfo agentInfo = hookAgentService.ping();
+            if (agentInfo == null) {
+                Log.w(TAG, "service register,ping failed");
+                return;
             }
             mCallbacks.register(hookAgentService);
-            allRemoteHookService.putIfAbsent(key, hookAgentService);
+            allRemoteHookService.putIfAbsent(agentInfo.getServiceAlis(), hookAgentService);
         }
 
         @Override
-        public void unRegisterHookAgent(String key) throws RemoteException {
-            // mCallbacks.unregister()
-            // mCallbacks.
-            //TODO
+        public void unRegisterHookAgent(IHookAgentService hookAgentService) throws RemoteException {
+            mCallbacks.unregister(hookAgentService);
+            allRemoteHookService.remove(hookAgentService.ping().getServiceAlis());
         }
     };
 

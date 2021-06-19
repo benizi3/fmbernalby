@@ -17,6 +17,11 @@ public class AgentInfo implements Parcelable {
         serviceAlis = in.readString();
     }
 
+    public AgentInfo(String packageName, String serviceAlis) {
+        this.packageName = packageName;
+        this.serviceAlis = serviceAlis;
+    }
+
     public static final Creator<AgentInfo> CREATOR = new Creator<AgentInfo>() {
         @Override
         public AgentInfo createFromParcel(Parcel in) {
@@ -38,5 +43,13 @@ public class AgentInfo implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(packageName);
         dest.writeString(serviceAlis);
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public String getServiceAlis() {
+        return serviceAlis;
     }
 }

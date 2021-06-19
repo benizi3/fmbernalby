@@ -3,14 +3,18 @@ package com.virjar.hermes.hermesagent.aidl;
 import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
@@ -29,6 +33,7 @@ public class InvokeResult implements Parcelable {
     private String theData;
     private boolean useFile;
 
+    private static final String TAG = "BinderRPC";
 
     public InvokeResult(Parcel in) {
         status = in.readInt();
@@ -64,7 +69,7 @@ public class InvokeResult implements Parcelable {
 
     @SuppressLint("SetWorldWritable")
     public static InvokeResult success(String body) {
-        boolean useFile = body.length() > 2048;
+        boolean useFile = body.length() > 4096;
         if (!useFile) {
             return new InvokeResult(statusOK, dataTypeString, body, false);
         }
@@ -92,7 +97,7 @@ public class InvokeResult implements Parcelable {
     @SuppressLint("SetWorldWritable")
     public static InvokeResult success(JSONObject jsonObject) {
         String body = jsonObject.toJSONString();
-        boolean useFile = body.length() > 2048;
+        boolean useFile = body.length() > 4096;
         if (!useFile) {
             return new InvokeResult(statusOK, dataTypeJson, body, false);
         }
@@ -119,8 +124,8 @@ public class InvokeResult implements Parcelable {
     }
 
     public static InvokeResult failed(String message) {
-        if (message.length() > 2048) {
-            message = message.substring(0, 2048);
+        if (message.length() > 4096) {
+            message = message.substring(0, 4096);
         }
         return new InvokeResult(statusFailed, dataTypeString, message, false);
     }
@@ -142,10 +147,24 @@ public class InvokeResult implements Parcelable {
     }
 
     public String getTheData() {
-        return theData;
+        if (!useFile) {
+            return theData;
+        }
+        File file = new File(theData);
+        if (!file.exists() || !file.canRead() || !file.isFile()) {
+            throw new IllegalStateException("target file " + file.getAbsolutePath() + " can not be accessed");
+        }
+        try {
+            FileInputStream fileInputStream = new FileInputStream(file);
+            String ret = IOUtils.toString(fileInputStream, Charsets.UTF_8);
+            fileInputStream.close();
+            if (!file.delete()) {
+                Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
+            }
+            return ret;
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
-    public boolean isUseFile() {
-        return useFile;
-    }
 }
