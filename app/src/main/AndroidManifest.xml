@@ -19,7 +19,7 @@
         </activity>
 
         <service
-            android:name="com.virjar.hermes.hermesagent.host.service.AIDLRegisterService"
+            android:name="com.virjar.hermes.hermesagent.host.service.FontService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.virjar.hermes.hermesagent.registerAIDLService" />
