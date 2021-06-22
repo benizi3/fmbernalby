@@ -1,8 +1,11 @@
 package com.virjar.hermes.hermesagent;
 
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+
+import com.virjar.hermes.hermesagent.host.service.FontService;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,6 +22,10 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         TextView tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
+
+
+        Intent intent = new Intent(this, FontService.class);
+        startService(intent);
     }
 
     /**

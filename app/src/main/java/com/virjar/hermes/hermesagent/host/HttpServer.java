@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.host;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -21,24 +22,45 @@ import org.apache.commons.lang3.StringUtils;
 
 public class HttpServer {
 
+    private static final String TAG = "httpServer";
     private static AsyncHttpServer server = null;
     private static AsyncServer mAsyncServer = null;
+    private static HttpServer instance = new HttpServer();
+
+    private HttpServer() {
+    }
+
+    public static HttpServer getInstance() {
+        return instance;
+    }
 
     public void startServer(Context context) {
         if (ping()) {
             return;
         }
-        if (server != null) {
-            server.stop();
-            mAsyncServer.stop();
-        }
-
+        stopServer();
         server = new AsyncHttpServer();
         mAsyncServer = new AsyncServer();
 
         bindPingCommand(server);
         bindStartAppCommand(server, context);
 
+        try {
+            server.listen(mAsyncServer, Constant.httpServerPort);
+            Log.i(TAG, "start server success...");
+        } catch (Exception e) {
+            Log.e(TAG, "startServer error", e);
+        }
+    }
+
+    public synchronized void stopServer() {
+        if (server == null) {
+            return;
+        }
+        server.stop();
+        mAsyncServer.stop();
+        server = null;
+        mAsyncServer = null;
     }
 
     private void bindStartAppCommand(AsyncHttpServer server, final Context context) {

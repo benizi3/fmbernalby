@@ -17,6 +17,8 @@ import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
+import com.virjar.hermes.hermesagent.host.HttpServer;
+import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentMap;
@@ -74,6 +76,11 @@ public class FontService extends Service {
     public void onDestroy() {
         allRemoteHookService.clear();
         mCallbacks.kill();
+        HttpServer.getInstance().stopServer();
+        stopForeground(true);
+
+        Intent intent = new Intent(Constant.fontServiceDestroyAction);
+        sendBroadcast(intent);
         super.onDestroy();
     }
 
@@ -92,7 +99,8 @@ public class FontService extends Service {
         Notification notification = builder.build(); // 获取构建好的Notification
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
-
+        //启动httpServer
+        HttpServer.getInstance().startServer(this);
         return START_STICKY;
     }
 }
