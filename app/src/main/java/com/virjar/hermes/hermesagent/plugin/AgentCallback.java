@@ -35,5 +35,8 @@ public interface AgentCallback {
     InvokeResult invoke(InvokeRequest invokeRequest);
 
 
+    /**
+     * 当xposed启动的时候，执行的钩子挂载逻辑，在这里可以将钩子挂载到目标apk任意代码上，并在invoke的时候得到调用结果
+     */
     void onXposedHotLoad();
 }

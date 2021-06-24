@@ -75,6 +75,8 @@ public class AgentRegister {
         intent.setAction(Constant.serviceRegisterAction);
         intent.setPackage(Constant.packageName);
         application.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+
+        //TODO 探测 agent进程存活，死掉拉起
     }
 
 }
