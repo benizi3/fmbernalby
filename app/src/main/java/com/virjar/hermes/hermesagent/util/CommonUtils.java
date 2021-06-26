@@ -79,4 +79,9 @@ public class CommonUtils {
     public static void sendJSON(AsyncHttpServerResponse response, CommonRes commonRes) {
         response.send(Constant.jsonContentType, JSONObject.toJSONString(commonRes));
     }
+
+    public static boolean pingServer() {
+        String url = "http://" + CommonUtils.getLocalIp() + "：" + Constant.httpServerPort + Constant.httpServerPingPath;
+        return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
+    }
 }

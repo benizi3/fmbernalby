@@ -22,7 +22,7 @@ import com.virjar.hermes.hermesagent.util.Constant;
 public class AgentRegister {
     private static final String TAG = "agent_register";
 
-    static void registerToServer(final AgentCallback agentCallback, final Context application) {
+    public static void registerToServer(final AgentCallback agentCallback, final Context application) {
 
         final IHookAgentService iHookAgentService = new IHookAgentService.Stub() {
             @Override
@@ -75,8 +75,6 @@ public class AgentRegister {
         intent.setAction(Constant.serviceRegisterAction);
         intent.setPackage(Constant.packageName);
         application.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
-
-        //TODO 探测 agent进程存活，死掉拉起
     }
 
 }

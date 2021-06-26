@@ -8,12 +8,14 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Timer;
 
 import javax.annotation.Nullable;
 
@@ -26,6 +28,8 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class HotLoadPackageEntry {
     private static final String TAG = "HotPluginLoader";
+
+    private static Timer heartbeatTimer = new Timer(TAG, true);
 
     @SuppressWarnings("unused")
     public static void entry(Context context, XC_LoadPackage.LoadPackageParam loadPackageParam) {
@@ -45,8 +49,13 @@ public class HotLoadPackageEntry {
             }
             try {
                 XposedBridge.log("执行回调: " + xposedHotLoadCallBack.getClass());
+                //挂载钩子函数
                 xposedHotLoadCallBack.onXposedHotLoad();
+                //将agent注册到server端，让server可以rpc到agent
                 AgentRegister.registerToServer(xposedHotLoadCallBack, context);
+
+                //启动timer，保持和server的心跳，发现server死掉的话，拉起server
+                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 2000);
             } catch (Exception e) {
                 XposedBridge.log(e);
             }

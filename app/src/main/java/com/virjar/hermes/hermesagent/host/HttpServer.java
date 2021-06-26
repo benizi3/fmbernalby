@@ -12,7 +12,6 @@ import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
-import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,7 +34,7 @@ public class HttpServer {
     }
 
     public void startServer(Context context) {
-        if (ping()) {
+        if (CommonUtils.pingServer()) {
             return;
         }
         stopServer();
@@ -85,10 +84,5 @@ public class HttpServer {
                 response.send("true");
             }
         });
-    }
-
-    private boolean ping() {
-        String url = "http://" + CommonUtils.getLocalIp() + "：" + Constant.httpServerPort + Constant.httpServerPingPath;
-        return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
     }
 }
