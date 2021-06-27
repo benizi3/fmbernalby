@@ -11,7 +11,8 @@ import com.virjar.hermes.hermesagent.util.CommonUtils;
 import java.util.TimerTask;
 
 /**
- * Created by virjar on 2018/8/24.
+ * Created by virjar on 2018/8/24.<br>
+ * 保持和server的心跳，发现server挂掉之后，拉起server
  */
 
 public class AgentDaemonTask extends TimerTask {

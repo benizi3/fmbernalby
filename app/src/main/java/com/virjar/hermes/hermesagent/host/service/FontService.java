@@ -12,15 +12,19 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.HttpServer;
+import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.util.Collection;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
@@ -34,6 +38,10 @@ public class FontService extends Service {
     private static final String TAG = "AIDLRegisterService";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService = Maps.newConcurrentMap();
     public static RemoteCallbackList<IHookAgentService> mCallbacks = new RemoteCallbackList<>();
+    public Timer timer = new Timer(TAG, true);
+    private volatile long lastCheckTimerCheck = 0;
+    private static final long aliveCheckDuration = 5000;
+    private static final long timerCheckThreashHold = aliveCheckDuration * 4;
 
     private IServiceRegister.Stub binder = new IServiceRegister.Stub() {
         @Override
@@ -101,6 +109,28 @@ public class FontService extends Service {
         startForeground(110, notification);// 开始前台服务
         //启动httpServer
         HttpServer.getInstance().startServer(this);
+
+        if (lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
+            Log.i(TAG, "timer 假死，重启timer");
+            restartTimer();
+        }
         return START_STICKY;
+    }
+
+    private void restartTimer() {
+        timer.cancel();
+        //之前的time可能死掉了
+        timer = new Timer(TAG, true);
+        //监控所有agent状态
+        timer.scheduleAtFixedRate(new AgentWatchTask(allRemoteHookService, Sets.<String>newConcurrentHashSet(), this), 1000, 2000);
+
+        //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                lastCheckTimerCheck = System.currentTimeMillis();
+            }
+        }, aliveCheckDuration, aliveCheckDuration);
+        lastCheckTimerCheck = System.currentTimeMillis();
     }
 }
