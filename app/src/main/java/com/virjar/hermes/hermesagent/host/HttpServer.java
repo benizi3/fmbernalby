@@ -25,12 +25,17 @@ public class HttpServer {
     private static AsyncHttpServer server = null;
     private static AsyncServer mAsyncServer = null;
     private static HttpServer instance = new HttpServer();
+    private int httpServerPort = 0;
 
     private HttpServer() {
     }
 
     public static HttpServer getInstance() {
         return instance;
+    }
+
+    public int getHttpServerPort() {
+        return httpServerPort;
     }
 
     public void startServer(Context context) {
@@ -45,7 +50,8 @@ public class HttpServer {
         bindStartAppCommand(server, context);
 
         try {
-            server.listen(mAsyncServer, Constant.httpServerPort);
+            httpServerPort = Constant.httpServerPort;
+            server.listen(mAsyncServer, httpServerPort);
             Log.i(TAG, "start server success...");
         } catch (Exception e) {
             Log.e(TAG, "startServer error", e);

@@ -20,4 +20,9 @@ public interface Constant {
     String xposedHotloadEntry = "com.virjar.hermes.hermesagent.plugin.HotLoadPackageEntry";
     String appHookSupperPackage = "com.virjar.hermes.hermesagent.hookagent";
     String serviceRegisterAction = "com.virjar.hermes.hermesagent.aidl.IServiceRegister";
+
+
+    String serverBaseURL = "http://hermas.virjar.com:5598";
+    String reportPath = "/report";
+    String downloadPath = "/downloadAPK";
 }

@@ -10,6 +10,7 @@ import android.util.Log;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
+import com.virjar.hermes.hermesagent.host.service.FontService;
 
 import java.util.Collections;
 import java.util.Set;
@@ -26,8 +27,10 @@ public class AgentWatchTask extends TimerTask {
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService;
     private Set<String> monitorSets = null;
     private Context context;
+    private FontService fontService;
 
-    public AgentWatchTask(ConcurrentMap<String, IHookAgentService> allRemoteHookService, Set<String> monitorSets, Context context) {
+    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Set<String> monitorSets, Context context) {
+        this.fontService = fontService;
         this.allRemoteHookService = allRemoteHookService;
         this.monitorSets = monitorSets;
         this.context = context;
@@ -36,12 +39,15 @@ public class AgentWatchTask extends TimerTask {
     @Override
     public void run() {
         Set<String> needRestartApp = Sets.newConcurrentHashSet(monitorSets);
+        Set<String> onlineServices = Sets.newHashSet();
         for (IHookAgentService entry : allRemoteHookService.values()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry);
             if (agentInfo != null) {
+                onlineServices.add(agentInfo.getPackageName());
                 needRestartApp.remove(agentInfo.getPackageName());
             }
         }
+        fontService.setOnlineServices(onlineServices);
 
         Set<String> needInstallApp = Sets.newCopyOnWriteArraySet(needRestartApp);
         PackageManager packageManager = context.getPackageManager();

@@ -20,9 +20,10 @@ import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
+import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.Constant;
 
-import java.util.Collection;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
@@ -42,6 +43,12 @@ public class FontService extends Service {
     private volatile long lastCheckTimerCheck = 0;
     private static final long aliveCheckDuration = 5000;
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
+    private Set<String> onlineServices = null;
+
+    public void setOnlineServices(Set<String> onlineServices) {
+        this.onlineServices = onlineServices;
+    }
+
 
     private IServiceRegister.Stub binder = new IServiceRegister.Stub() {
         @Override
@@ -70,13 +77,17 @@ public class FontService extends Service {
     }
 
 
-    public Collection<String> onlineAgentServices() {
-        return allRemoteHookService.keySet();
+    public Set<String> onlineAgentServices() {
+        if (onlineServices == null) {
+            return allRemoteHookService.keySet();
+        }
+        return onlineServices;
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        startService();
         return binder;
     }
 
@@ -92,8 +103,7 @@ public class FontService extends Service {
         super.onDestroy();
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    private void startService() {
         Notification.Builder builder = new Notification.Builder(this.getApplicationContext()); //获取一个Notification构造器
         Intent nfIntent = new Intent(this, MainActivity.class);
         // 设置PendingIntent
@@ -111,9 +121,16 @@ public class FontService extends Service {
         HttpServer.getInstance().startServer(this);
 
         if (lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
-            Log.i(TAG, "timer 假死，重启timer");
+            if (lastCheckTimerCheck != 0) {
+                Log.i(TAG, "timer 假死，重启timer");
+            }
             restartTimer();
         }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        startService();
         return START_STICKY;
     }
 
@@ -122,7 +139,7 @@ public class FontService extends Service {
         //之前的time可能死掉了
         timer = new Timer(TAG, true);
         //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(allRemoteHookService, Sets.<String>newConcurrentHashSet(), this), 1000, 2000);
+        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, Sets.<String>newConcurrentHashSet(), this), 1000, 2000);
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -132,5 +149,10 @@ public class FontService extends Service {
             }
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();
+
+        //向服务器上报服务信息
+        timer.scheduleAtFixedRate(new ReportTask(this, this),
+                3000, 3000);
+
     }
 }

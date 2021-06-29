@@ -33,7 +33,7 @@ public class HttpClientUtils {
                 .build();
     }
 
-    private static OkHttpClient getClient() {
+    public static OkHttpClient getClient() {
         if (client != null) {
             return client;
         }
