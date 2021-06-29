@@ -8,6 +8,7 @@ public interface Constant {
     int httpServerPort = 5597;
     String httpServerPingPath = "/ping";
     String startAppPath = "/startApp";
+    String invokePath = "/invoke";
     String jsonContentType = "application/json; charset=utf-8";
 
     String nativeLibName = "native-lib";
@@ -25,4 +26,11 @@ public interface Constant {
     String serverBaseURL = "http://hermas.virjar.com:5598";
     String reportPath = "/report";
     String downloadPath = "/downloadAPK";
+
+    String invokePackage = "invoke_package";
+
+    int status_service_not_available = -2;
+    String serviceNotAvailableMessage = "service not available";
+    int status_need_invoke_package_param = -3;
+    String needInvokePackageParamMessage = "the param {" + invokePackage + "} not present";
 }

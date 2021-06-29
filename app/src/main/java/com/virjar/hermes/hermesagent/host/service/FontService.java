@@ -119,6 +119,7 @@ public class FontService extends Service {
         startForeground(110, notification);// 开始前台服务
         //启动httpServer
         HttpServer.getInstance().startServer(this);
+        HttpServer.getInstance().setFontService(this);
 
         if (lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
             if (lastCheckTimerCheck != 0) {
