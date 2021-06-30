@@ -33,4 +33,6 @@ public interface Constant {
     String serviceNotAvailableMessage = "service not available";
     int status_need_invoke_package_param = -3;
     String needInvokePackageParamMessage = "the param {" + invokePackage + "} not present";
+    int status_rate_limited = -4;
+    String rateLimitedMessage = "rate limited";
 }

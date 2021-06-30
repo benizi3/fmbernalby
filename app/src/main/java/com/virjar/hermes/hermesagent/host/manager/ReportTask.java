@@ -5,7 +5,7 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
-import com.virjar.hermes.hermesagent.host.HttpServer;
+import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
@@ -60,6 +60,7 @@ public class ReportTask extends TimerTask {
             @Override
             public void onFailure(Call call, IOException e) {
                 failedTimes++;
+                rebootIfNeed();
             }
 
             @Override
@@ -76,7 +77,7 @@ public class ReportTask extends TimerTask {
             return;
         }
         JadbConnection jadb = new JadbConnection();
-        List<JadbDevice> devices = null;
+        List<JadbDevice> devices;
         try {
             devices = jadb.getDevices();
         } catch (Exception e) {

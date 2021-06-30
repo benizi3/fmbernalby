@@ -18,7 +18,7 @@ import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
-import com.virjar.hermes.hermesagent.host.HttpServer;
+import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.Constant;

@@ -158,6 +158,8 @@ public class InvokeResult implements Parcelable {
             FileInputStream fileInputStream = new FileInputStream(file);
             String ret = IOUtils.toString(fileInputStream, Charsets.UTF_8);
             fileInputStream.close();
+            theData = ret;
+            useFile = false;
             if (!file.delete()) {
                 Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
             }
