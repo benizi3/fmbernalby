@@ -130,7 +130,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                 if (input == null) {
                     return null;
                 }
-                return input.getName() + "=" + URLEncodeUtil.escape(input.getValue());
+                return URLEncodeUtil.escape(input.getName()) + "=" + URLEncodeUtil.escape(input.getValue());
             }
         }));
 
