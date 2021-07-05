@@ -13,6 +13,7 @@ import android.util.Log;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
@@ -151,9 +152,11 @@ public class FontService extends Service {
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();
 
-        //向服务器上报服务信息
-        timer.scheduleAtFixedRate(new ReportTask(this, this),
-                3000, 3000);
+        if (!BuildConfig.DEBUG) {
+            //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
+            timer.scheduleAtFixedRate(new ReportTask(this, this),
+                    3000, 3000);
+        }
 
     }
 }
