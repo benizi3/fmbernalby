@@ -21,6 +21,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="HermesAgent, a api export framework to support wrap any apk`s any api to be a rpc service API" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="54" />
+
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
