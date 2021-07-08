@@ -3,6 +3,7 @@ package com.virjar.hermes.hermesagent.host.http;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.common.collect.Lists;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -15,6 +16,9 @@ import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -56,7 +60,8 @@ public class HttpServer {
 
         bindPingCommand(server);
         bindStartAppCommand(server, context);
-        bindInvokeCommand(server, context);
+        bindInvokeCommand(server);
+        bindAliveServiceCommand(server);
         try {
             httpServerPort = Constant.httpServerPort;
             server.listen(mAsyncServer, httpServerPort);
@@ -81,8 +86,18 @@ public class HttpServer {
         }
     }
 
-    private void bindInvokeCommand(AsyncHttpServer server, final Context context) {
+    private void bindAliveServiceCommand(AsyncHttpServer server) {
+        server.get(Constant.aliveServicePath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                ArrayList<String> strings = Lists.newArrayList(fontService.onlineAgentServices());
+                Collections.sort(strings);
+                CommonUtils.sendJSON(response, CommonRes.success(strings));
+            }
+        });
+    }
 
+    private void bindInvokeCommand(AsyncHttpServer server) {
         server.get(Constant.invokePath, httpServerRequestCallback);
         server.post(Constant.invokePath, httpServerRequestCallback);
     }

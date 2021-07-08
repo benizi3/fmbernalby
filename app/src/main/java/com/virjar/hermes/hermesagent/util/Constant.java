@@ -9,6 +9,7 @@ public interface Constant {
     String httpServerPingPath = "/ping";
     String startAppPath = "/startApp";
     String invokePath = "/invoke";
+    String aliveServicePath = "/aliveService";
     String jsonContentType = "application/json; charset=utf-8";
 
     String nativeLibName = "native-lib";
