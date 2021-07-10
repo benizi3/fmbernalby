@@ -1,5 +1,7 @@
 package com.virjar.hermes.hermesagent.host.thread;
 
+import android.support.annotation.NonNull;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -19,7 +21,7 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
         boolean consume(T t);
     }
 
-    public ConsumeImmediatelyBlockingQueue(BlockingQueue<T> delegate, ImmediatelyConsumer<T> immediatelyConsumer) {
+    ConsumeImmediatelyBlockingQueue(BlockingQueue<T> delegate, ImmediatelyConsumer<T> immediatelyConsumer) {
         this.delegate = delegate;
         this.immediatelyConsumer = immediatelyConsumer;
     }
@@ -30,7 +32,7 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     @Override
-    public boolean offer(T t) {
+    public boolean offer(@NonNull T t) {
         return immediatelyConsumer.consume(t) || delegate.offer(t);
     }
 
@@ -64,7 +66,7 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
 
 
     @Override
-    public boolean offer(T t, long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean offer(T t, long timeout, @NonNull TimeUnit unit) throws InterruptedException {
         return immediatelyConsumer.consume(t) || delegate.offer(t, timeout, unit);
     }
 
@@ -74,7 +76,7 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     @Override
-    public T poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public T poll(long timeout, @NonNull TimeUnit unit) throws InterruptedException {
         return delegate.poll(timeout, unit);
     }
 
@@ -89,13 +91,13 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     @Override
-    public boolean containsAll(Collection<?> c) {
+    public boolean containsAll(@NonNull Collection<?> c) {
         return delegate.containsAll(c);
     }
 
 
     @Override
-    public boolean addAll(Collection<? extends T> c) {
+    public boolean addAll(@NonNull Collection<? extends T> c) {
         List<T> remain = new LinkedList<>();
         for (T t : c) {
             if (!immediatelyConsumer.consume(t)) {
@@ -106,12 +108,12 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     @Override
-    public boolean removeAll(Collection<?> c) {
+    public boolean removeAll(@NonNull Collection<?> c) {
         return delegate.removeAll(c);
     }
 
     @Override
-    public boolean retainAll(Collection<?> c) {
+    public boolean retainAll(@NonNull Collection<?> c) {
         return delegate.retainAll(c);
     }
 
@@ -136,28 +138,31 @@ public class ConsumeImmediatelyBlockingQueue<T> implements BlockingQueue<T> {
     }
 
 
+    @NonNull
     @Override
     public Iterator<T> iterator() {
         return delegate.iterator();
     }
 
+    @NonNull
     @Override
     public Object[] toArray() {
         return delegate.toArray();
     }
 
+    @NonNull
     @Override
-    public <T1> T1[] toArray(T1[] a) {
+    public <T1> T1[] toArray(@NonNull T1[] a) {
         return delegate.toArray(a);
     }
 
     @Override
-    public int drainTo(Collection<? super T> c) {
+    public int drainTo(@NonNull Collection<? super T> c) {
         return delegate.drainTo(c);
     }
 
     @Override
-    public int drainTo(Collection<? super T> c, int maxElements) {
+    public int drainTo(@NonNull Collection<? super T> c, int maxElements) {
         return delegate.drainTo(c, maxElements);
     }
 }
