@@ -7,16 +7,22 @@ import com.google.common.base.Charsets;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
+import java.util.List;
+
+import se.vidstige.jadb.JadbConnection;
+import se.vidstige.jadb.JadbDevice;
 
 /**
  * Created by virjar on 2018/8/22.
@@ -83,5 +89,55 @@ public class CommonUtils {
     public static boolean pingServer() {
         String url = "http://" + CommonUtils.getLocalIp() + "：" + Constant.httpServerPort + Constant.httpServerPingPath;
         return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
+    }
+
+    public static void restartAndroidSystem() {
+
+        JadbConnection jadb = new JadbConnection();
+        List<JadbDevice> devices;
+        try {
+            devices = jadb.getDevices();
+        } catch (Exception e) {
+            Log.e(TAG, "failed to find adb server", e);
+            return;
+        }
+        if (devices.size() == 0) {
+            Log.e(TAG, "failed to find adb server");
+            return;
+        }
+        for (JadbDevice jadbDevice : devices) {
+            Log.i(TAG, "reboot device:" + jadbDevice.getSerial());
+            try {
+                jadbDevice.execute("reboot");
+            } catch (Exception e) {
+                Log.i(TAG, "device reboot failed");
+            }
+        }
+    }
+
+    public static String execCmd(String cmd) {
+
+        Runtime runtime = Runtime.getRuntime();
+        java.lang.Process proc;
+        OutputStreamWriter osw = null;
+        StringBuilder stdOut = new StringBuilder();
+        StringBuilder stdErr = new StringBuilder();
+
+        try {
+            proc = runtime.exec("su");
+            osw = new OutputStreamWriter(proc.getOutputStream());
+            osw.write(cmd);
+            osw.flush();
+            osw.close();
+            proc.waitFor();
+        } catch (Exception ex) {
+            Log.e(TAG, "exec cmd error", ex);
+            return CommonUtils.getStackTrack(ex);
+        } finally {
+            IOUtils.closeQuietly(osw);
+        }
+        stdOut.append((new InputStreamReader(proc.getInputStream())));
+        stdErr.append(new InputStreamReader(proc.getErrorStream()));
+        return StringUtils.join(new String[]{stdOut.toString(), stdErr.toString()}, "--------------");
     }
 }

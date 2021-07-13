@@ -12,6 +12,7 @@ import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
+import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
@@ -19,6 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -33,6 +37,7 @@ public class HttpServer {
     private int httpServerPort = 0;
     private FontService fontService;
     private RCPInvokeCallback httpServerRequestCallback = null;
+    private J2Executor j2Executor;
 
     public void setFontService(FontService fontService) {
         this.fontService = fontService;
@@ -56,12 +61,20 @@ public class HttpServer {
         stopServer();
         server = new AsyncHttpServer();
         mAsyncServer = new AsyncServer();
-        httpServerRequestCallback = new RCPInvokeCallback(fontService);
+        j2Executor = new J2Executor(
+                new ThreadPoolExecutor(10, 10, 0L,
+                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10))
+        );
+        httpServerRequestCallback = new RCPInvokeCallback(fontService, j2Executor);
 
-        bindPingCommand(server);
-        bindStartAppCommand(server, context);
-        bindInvokeCommand(server);
-        bindAliveServiceCommand(server);
+        bindPingCommand();
+        bindStartAppCommand(context);
+        bindInvokeCommand();
+        bindAliveServiceCommand();
+        bindRestartDeviceCommand();
+        bindExecuteShellCommand();
+        //TODO adb命令，需要维持会话
+
         try {
             httpServerPort = Constant.httpServerPort;
             server.listen(mAsyncServer, httpServerPort);
@@ -79,14 +92,45 @@ public class HttpServer {
         mAsyncServer.stop();
         server = null;
         mAsyncServer = null;
-
-        if (httpServerRequestCallback != null) {
-            httpServerRequestCallback.destroy();
-            httpServerRequestCallback = null;
-        }
+        j2Executor.shutdownAll();
+        j2Executor = null;
     }
 
-    private void bindAliveServiceCommand(AsyncHttpServer server) {
+    private void bindExecuteShellCommand() {
+        server.get(Constant.executeShellCommandPath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                final String cmd = request.getQuery().getString("cmd");
+                if (StringUtils.isBlank(cmd)) {
+                    CommonUtils.sendJSON(response, CommonRes.failed("parameter {cmd} not present!!"));
+                    return;
+                }
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        CommonUtils.sendJSON(response, CommonRes.success(CommonUtils.execCmd(cmd)));
+                    }
+                }, response).run();
+            }
+        });
+    }
+
+    private void bindRestartDeviceCommand() {
+        server.get(Constant.restartDevicePath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        CommonUtils.sendJSON(response, CommonRes.success("command accepted"));
+                        CommonUtils.restartAndroidSystem();
+                    }
+                }, response).run();
+            }
+        });
+    }
+
+    private void bindAliveServiceCommand() {
         server.get(Constant.aliveServicePath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
@@ -97,12 +141,12 @@ public class HttpServer {
         });
     }
 
-    private void bindInvokeCommand(AsyncHttpServer server) {
+    private void bindInvokeCommand() {
         server.get(Constant.invokePath, httpServerRequestCallback);
         server.post(Constant.invokePath, httpServerRequestCallback);
     }
 
-    private void bindStartAppCommand(AsyncHttpServer server, final Context context) {
+    private void bindStartAppCommand(final Context context) {
         server.get(Constant.startAppPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
@@ -117,7 +161,7 @@ public class HttpServer {
     }
 
 
-    private void bindPingCommand(AsyncHttpServer server) {
+    private void bindPingCommand() {
         server.get(Constant.httpServerPingPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {

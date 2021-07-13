@@ -28,11 +28,6 @@ import com.virjar.hermes.hermesagent.util.URLEncodeUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 /**
@@ -43,16 +38,9 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
     private FontService fontService;
     private J2Executor j2Executor;
 
-    RCPInvokeCallback(FontService fontService) {
+    RCPInvokeCallback(FontService fontService, J2Executor j2Executor) {
         this.fontService = fontService;
-        this.j2Executor = new J2Executor(
-                new ThreadPoolExecutor(10, 10, 0L,
-                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10))
-        );
-    }
-
-    void destroy() {
-        j2Executor.shutdownAll();
+        this.j2Executor = j2Executor;
     }
 
     @Override
@@ -73,29 +61,26 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
             CommonUtils.sendJSON(response, CommonRes.failed("unknown request data format"));
             return;
         }
-        try {
-            j2Executor.getOrCreate(invokePackage, 2, 4).execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        InvokeResult invokeResult = hookAgent.invoke(invokeRequest);
-                        if (invokeResult.getStatus() != InvokeResult.statusOK) {
-                            CommonUtils.sendJSON(response, CommonRes.failed(invokeResult.getStatus(), invokeResult.getTheData()));
-                            return;
+        new J2ExecutorWrapper(j2Executor.getOrCreate(invokePackage, 2, 4),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            InvokeResult invokeResult = hookAgent.invoke(invokeRequest);
+                            if (invokeResult.getStatus() != InvokeResult.statusOK) {
+                                CommonUtils.sendJSON(response, CommonRes.failed(invokeResult.getStatus(), invokeResult.getTheData()));
+                                return;
+                            }
+                            if (invokeResult.getDataType() == InvokeResult.dataTypeJson) {
+                                CommonUtils.sendJSON(response, CommonRes.success(com.alibaba.fastjson.JSON.parse(invokeResult.getTheData())));
+                            } else {
+                                CommonUtils.sendJSON(response, CommonRes.success(invokeResult.getTheData()));
+                            }
+                        } catch (RemoteException e) {
+                            CommonUtils.sendJSON(response, CommonRes.failed(e));
                         }
-                        if (invokeResult.getDataType() == InvokeResult.dataTypeJson) {
-                            CommonUtils.sendJSON(response, CommonRes.success(com.alibaba.fastjson.JSON.parse(invokeResult.getTheData())));
-                        } else {
-                            CommonUtils.sendJSON(response, CommonRes.success(invokeResult.getTheData()));
-                        }
-                    } catch (RemoteException e) {
-                        CommonUtils.sendJSON(response, CommonRes.failed(e));
                     }
-                }
-            });
-        } catch (RejectedExecutionException e) {
-            CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_rate_limited, Constant.rateLimitedMessage));
-        }
+                }, response).run();
 
     }
 

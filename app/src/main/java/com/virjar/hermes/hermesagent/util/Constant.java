@@ -10,6 +10,8 @@ public interface Constant {
     String startAppPath = "/startApp";
     String invokePath = "/invoke";
     String aliveServicePath = "/aliveService";
+    String restartDevicePath = "/restartDevice";
+    String executeShellCommandPath = "/executeCommand";
     String jsonContentType = "application/json; charset=utf-8";
 
     String nativeLibName = "native-lib";
