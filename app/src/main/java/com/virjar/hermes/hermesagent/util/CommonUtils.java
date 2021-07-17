@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 
@@ -139,5 +140,14 @@ public class CommonUtils {
         stdOut.append((new InputStreamReader(proc.getInputStream())));
         stdErr.append(new InputStreamReader(proc.getErrorStream()));
         return StringUtils.join(new String[]{stdOut.toString(), stdErr.toString()}, "--------------");
+    }
+
+    public static Multimap parseUrlEncoded(String query) {
+        return Multimap.parse(query, "&", false, new Multimap.StringDecoder() {
+            @Override
+            public String decode(String s) {
+                return URLEncodeUtil.unescape(s);
+            }
+        });
     }
 }
