@@ -69,7 +69,7 @@ public class J2Executor {
                     }
                     RejectedMonitorRunnable rejectedMonitorRunnable = new RejectedMonitorRunnable(runnable);
                     parentThreadPoolExecutor.execute(rejectedMonitorRunnable);
-                    return !rejectedMonitorRunnable.rejected;
+                    return !rejectedMonitorRunnable.isRejected();
                 }
             }));
         }
@@ -105,7 +105,7 @@ public class J2Executor {
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
             if (r instanceof RejectedMonitorRunnable) {
-                ((RejectedMonitorRunnable) r).rejected = true;
+                ((RejectedMonitorRunnable) r).setRejected(true);
                 return;
             }
             originRejectExecutionHandler.rejectedExecution(r, executor);
@@ -118,6 +118,14 @@ public class J2Executor {
 
         RejectedMonitorRunnable(Runnable delegate) {
             this.delegate = delegate;
+        }
+
+        public void setRejected(boolean rejected) {
+            this.rejected = rejected;
+        }
+
+        public boolean isRejected() {
+            return rejected;
         }
 
         @Override
