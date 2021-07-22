@@ -174,7 +174,7 @@ public class WeiShiAgent implements AgentCallback {
                             }
                             param.setResult(true);
                             queryResult.put(uniqueID, jceStruct);
-                            Object lock = lockes.get(uniqueID);
+                            Object lock = lockes.remove(uniqueID);
                             if (lock == null) {
                                 return;
                             }
@@ -196,7 +196,7 @@ public class WeiShiAgent implements AgentCallback {
                             }
                             param.setResult(false);
                             queryResult.put(uniqueID, errorMessage);
-                            lockes.get(uniqueID).notify();
+                            lockes.remove(uniqueID).notify();
                         }
                     });
 
