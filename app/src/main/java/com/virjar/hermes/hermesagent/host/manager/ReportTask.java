@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.host.manager;
 
 import android.content.Context;
+import android.os.Build;
 
 import com.alibaba.fastjson.JSONObject;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
@@ -47,6 +48,9 @@ public class ReportTask extends TimerTask {
         reportModel.setOnlineServices(fontService.onlineAgentServices());
         reportModel.setCpuLoader(SamplerUtils.sampleCPU());
         reportModel.setMemoryInfo(SamplerUtils.sampleMemory(context));
+        reportModel.setMac(CommonUtils.deviceID(context));
+        reportModel.setBrand(Build.BRAND);
+        reportModel.setSystemVersion(Build.VERSION.SDK);
 
         final Request request = new Request.Builder()
                 .url(Constant.serverBaseURL + Constant.reportPath)

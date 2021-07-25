@@ -11,6 +11,9 @@ public class ReportModel {
     private int agentServerPort;
     private double cpuLoader;
     private double memoryInfo;
+    private String mac;
+    private String brand;
+    private String systemVersion;
 
     private Collection<String> onlineServices;
 
@@ -52,5 +55,29 @@ public class ReportModel {
 
     public void setOnlineServices(Collection<String> onlineServices) {
         this.onlineServices = onlineServices;
+    }
+
+    public String getMac() {
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public String getSystemVersion() {
+        return systemVersion;
+    }
+
+    public void setSystemVersion(String systemVersion) {
+        this.systemVersion = systemVersion;
     }
 }
