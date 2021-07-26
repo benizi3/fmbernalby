@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.aidl;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
@@ -68,12 +69,12 @@ public class InvokeResult implements Parcelable {
     };
 
     @SuppressLint("SetWorldWritable")
-    public static InvokeResult success(String body) {
+    public static InvokeResult success(String body, Context context) {
         boolean useFile = body.length() > 4096;
         if (!useFile) {
             return new InvokeResult(statusOK, dataTypeString, body, false);
         }
-        File file = CommonUtils.genTempFile();
+        File file = CommonUtils.genTempFile(context);
         try {
             if (!file.createNewFile()) {
                 if (!file.setWritable(true, false)) {
@@ -95,13 +96,13 @@ public class InvokeResult implements Parcelable {
     }
 
     @SuppressLint("SetWorldWritable")
-    public static InvokeResult success(JSONObject jsonObject) {
+    public static InvokeResult success(JSONObject jsonObject, Context context) {
         String body = jsonObject.toJSONString();
         boolean useFile = body.length() > 4096;
         if (!useFile) {
             return new InvokeResult(statusOK, dataTypeJson, body, false);
         }
-        File file = CommonUtils.genTempFile();
+        File file = CommonUtils.genTempFile(context);
         try {
             if (!file.createNewFile()) {
                 if (!file.setWritable(true, false)) {

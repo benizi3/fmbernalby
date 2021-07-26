@@ -13,5 +13,5 @@ interface IHookAgentService {
     */
     AgentInfo ping();
 
-    InvokeResult invoke(in InvokeRequest param);
+    InvokeResult invoke(inout InvokeRequest param);
 }

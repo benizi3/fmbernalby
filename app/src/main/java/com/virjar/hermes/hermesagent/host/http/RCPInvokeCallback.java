@@ -123,25 +123,25 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     private InvokeRequest buildInvokeRequest(AsyncHttpServerRequest request) {
         if ("get".equalsIgnoreCase(request.getMethod())) {
-            return new InvokeRequest(joinParam(request.getQuery()));
+            return new InvokeRequest(joinParam(request.getQuery()), fontService);
         }
 
         AsyncHttpRequestBody requestBody = request.getBody();
         if (requestBody instanceof UrlEncodedFormBody) {
             return new InvokeRequest(joiner.join(joinParam(request.getQuery()),
-                    joinParam(((UrlEncodedFormBody) requestBody).get())));
+                    joinParam(((UrlEncodedFormBody) requestBody).get())), fontService);
         }
         if (requestBody instanceof StringBody) {
-            return new InvokeRequest(((StringBody) requestBody).get());
+            return new InvokeRequest(((StringBody) requestBody).get(), fontService);
         }
         if (requestBody instanceof JSONObjectBody) {
             JSONObjectBody jsonObjectBody = (JSONObjectBody) requestBody;
             JSONObject jsonObject = jsonObjectBody.get();
-            return new InvokeRequest(jsonObject.toString());
+            return new InvokeRequest(jsonObject.toString(), fontService);
         }
 
         if (request instanceof JSONArrayBody) {
-            return new InvokeRequest(((JSONArrayBody) request).get().toString());
+            return new InvokeRequest(((JSONArrayBody) request).get().toString(), fontService);
         }
         return null;
     }

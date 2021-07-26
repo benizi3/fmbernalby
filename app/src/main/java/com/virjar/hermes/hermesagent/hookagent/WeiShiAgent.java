@@ -66,18 +66,16 @@ public class WeiShiAgent implements AgentCallback {
                 lock.wait(5000);
                 Object remove = queryResult.remove(uniqueID);
                 if (remove instanceof String) {
-                    return InvokeResult.success((String) remove);
-
+                    return InvokeResult.success((String) remove, SharedObject.context);
                 } else if (remove instanceof JSONObject) {
-                    InvokeResult.success((JSONObject) remove);
+                    return InvokeResult.success((JSONObject) remove, SharedObject.context);
                 } else {
-                    return InvokeResult.success((com.alibaba.fastjson.JSONObject.toJSONString(remove)));
+                    return InvokeResult.success((com.alibaba.fastjson.JSONObject.toJSONString(remove)), SharedObject.context);
                 }
             }
         } catch (InterruptedException e) {
             return InvokeResult.failed("timeOut");
         }
-        return null;
     }
 
     @Override

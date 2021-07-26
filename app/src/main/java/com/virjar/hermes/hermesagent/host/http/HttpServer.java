@@ -1,6 +1,10 @@
 package com.virjar.hermes.hermesagent.host.http;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.common.collect.Lists;
@@ -13,16 +17,26 @@ import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
+import com.virjar.hermes.hermesagent.plugin.ReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -38,6 +52,22 @@ public class HttpServer {
     private FontService fontService;
     private RCPInvokeCallback httpServerRequestCallback = null;
     private J2Executor j2Executor;
+    private StartServiceHandler handler = new StartServiceHandler(Looper.getMainLooper(), this);
+
+    private static class StartServiceHandler extends Handler {
+        private HttpServer httpServer;
+
+        StartServiceHandler(Looper looper, HttpServer httpServer) {
+            super(looper);
+            this.httpServer = httpServer;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            //super.handleMessage(msg);
+            httpServer.startServerInternal((Context) msg.obj);
+        }
+    }
 
     public void setFontService(FontService fontService) {
         this.fontService = fontService;
@@ -54,10 +84,7 @@ public class HttpServer {
         return httpServerPort;
     }
 
-    public void startServer(Context context) {
-        if (CommonUtils.pingServer()) {
-            return;
-        }
+    private void startServerInternal(Context context) {
         stopServer();
         server = new AsyncHttpServer();
         mAsyncServer = new AsyncServer();
@@ -67,6 +94,7 @@ public class HttpServer {
         );
         httpServerRequestCallback = new RCPInvokeCallback(fontService, j2Executor);
 
+        bindRootCommand();
         bindPingCommand();
         bindStartAppCommand(context);
         bindInvokeCommand();
@@ -79,9 +107,40 @@ public class HttpServer {
             httpServerPort = Constant.httpServerPort;
             server.listen(mAsyncServer, httpServerPort);
             Log.i(TAG, "start server success...");
+            Log.i(TAG, "server running on: " + CommonUtils.localServerBaseURL());
         } catch (Exception e) {
             Log.e(TAG, "startServer error", e);
         }
+    }
+
+    public void startServer(final Context context) {
+
+        HttpClientUtils.getClient().newCall(CommonUtils.pingServerRequest()).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Message obtain = Message.obtain();
+                obtain.obj = context;
+                handler.sendMessage(obtain);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    ResponseBody body = response.body();
+                    if (body != null) {
+                        if (body.string().equalsIgnoreCase("true")) {
+                            Log.i(TAG, "ping http server success");
+                            return;
+                        }
+                    }
+                }
+                Message obtain = Message.obtain();
+                obtain.obj = context;
+                handler.sendMessage(obtain);
+            }
+        });
+
+
     }
 
     public synchronized void stopServer() {
@@ -94,6 +153,36 @@ public class HttpServer {
         mAsyncServer = null;
         j2Executor.shutdownAll();
         j2Executor = null;
+    }
+
+    private void bindRootCommand() {
+        server.get("/", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                String baseURL = CommonUtils.localServerBaseURL();
+                Hashtable<String, ArrayList<Object>> actions = ReflectUtil.getFieldValue(server, "mActions");
+                StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>服务列表</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermesagent\">https://gitee.com/virjar/hermesagent</a></p>");
+                html.append("<p>服务地址：").append(baseURL).append("</p>");
+                for (Hashtable.Entry<String, ArrayList<Object>> entry : actions.entrySet()) {
+                    html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
+                    html.append("<ul>");
+                    for (Object object : entry.getValue()) {
+                        Pattern pattern = ReflectUtil.getFieldValue(object, "regex");
+                        html.append("<li>");
+                        if (StringUtils.equalsIgnoreCase(entry.getKey(), "get")) {
+                            html.append("<a href=\"").append(baseURL).append(pattern.pattern().substring(1)).append("\">")
+                                    .append(baseURL).append(pattern.pattern().substring(1)).append("</a>");
+                        } else {
+                            html.append(baseURL).append(pattern.pattern().substring(1));
+                        }
+                        html.append("</li>");
+                    }
+                    html.append("</ul>");
+                }
+                html.append("</body></html>");
+                response.send("text/html", html.toString());
+            }
+        });
     }
 
     private void bindExecuteShellCommand() {

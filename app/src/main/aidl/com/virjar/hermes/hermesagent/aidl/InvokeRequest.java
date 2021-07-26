@@ -1,5 +1,6 @@
 package com.virjar.hermes.hermesagent.aidl;
 
+import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
@@ -30,11 +31,11 @@ public class InvokeRequest implements Parcelable {
         useFile = in.readByte() != 0;
     }
 
-    public InvokeRequest(String paramContent) {
+    public InvokeRequest(String paramContent, Context context) {
         if (paramContent.length() < 4096) {
             this.paramContent = paramContent;
         } else {
-            File file = CommonUtils.genTempFile();
+            File file = CommonUtils.genTempFile(context);
             try {
                 if (!file.createNewFile()) {
                     if (!file.setWritable(true, false)) {
@@ -99,5 +100,10 @@ public class InvokeRequest implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(paramContent);
         dest.writeByte((byte) (useFile ? 1 : 0));
+    }
+
+    public void readFromParcel(Parcel reply) {
+        paramContent = reply.readString();
+        useFile = reply.readByte() != 0;
     }
 }

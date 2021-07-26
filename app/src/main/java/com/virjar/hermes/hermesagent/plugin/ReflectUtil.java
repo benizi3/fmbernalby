@@ -84,6 +84,7 @@ public class ReflectUtil {
      * @param name  希望被监控的方法名称
      */
     public static void monitorMethodCall(Class clazz, String name) {
+        initXposedVar();
         Method[] declaredMethods = clazz.getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (method.getName().equals(name)) {
@@ -92,12 +93,20 @@ public class ReflectUtil {
         }
     }
 
-    private static SingletonXC_MethodHook methodCallPrintHook = new SingletonXC_MethodHook() {
-        @Override
-        protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
-            Log.i("methodCall", "the method: " + param.method);
+    private static void initXposedVar() {
+        //在host端，无法初始化xposed相关class，所以懒加载避免在host侧出现问题
+        if (methodCallPrintHook == null) {
+            return;
         }
-    };
+        methodCallPrintHook = new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
+                Log.i("methodCall", "the method: " + param.method);
+            }
+        };
+    }
+
+    private static SingletonXC_MethodHook methodCallPrintHook;
 
     @SuppressLint("PrivateApi")
     public static Application getApplicationUsingReflection() throws Exception {

@@ -31,7 +31,9 @@ import java.net.NetworkInterface;
 import java.security.MessageDigest;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
+import okhttp3.Request;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
 
@@ -44,8 +46,11 @@ import static android.content.Context.TELEPHONY_SERVICE;
 public class CommonUtils {
     private static String TAG = "common_util";
 
-    public static File genTempFile() {
-        return null;
+    private static AtomicLong fileSequence = new AtomicLong(1);
+
+    public static File genTempFile(Context context) {
+        File cacheDir = context.getCacheDir();
+        return new File(cacheDir, System.currentTimeMillis() + "_" + fileSequence.incrementAndGet());
     }
 
 
@@ -99,9 +104,12 @@ public class CommonUtils {
         response.send(Constant.jsonContentType, JSONObject.toJSONString(commonRes));
     }
 
-    public static boolean pingServer() {
-        String url = "http://" + CommonUtils.getLocalIp() + "：" + Constant.httpServerPort + Constant.httpServerPingPath;
-        return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
+    public static Request pingServerRequest() {
+        String url = "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort + Constant.httpServerPingPath;
+        return new Request.Builder()
+                .get()
+                .url(url)
+                .build();
     }
 
     public static void restartAndroidSystem() {
@@ -231,4 +239,17 @@ public class CommonUtils {
         return MD5(data);
     }
 
+    public static boolean pingServer() {
+        String url = localServerBaseURL() + Constant.httpServerPingPath;
+        try {
+            return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
+        } catch (Exception e) {
+            Log.i(TAG, "ping server failed", e);
+            return false;
+        }
+    }
+
+    public static String localServerBaseURL() {
+        return "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
+    }
 }
