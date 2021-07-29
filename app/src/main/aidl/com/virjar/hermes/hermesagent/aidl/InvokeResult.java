@@ -1,6 +1,5 @@
 package com.virjar.hermes.hermesagent.aidl;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -68,61 +67,34 @@ public class InvokeResult implements Parcelable {
         }
     };
 
-    @SuppressLint("SetWorldWritable")
-    public static InvokeResult success(String body, Context context) {
+
+    public static InvokeResult success(Object body, Context context) {
+        if (body instanceof JSONObject) {
+            return success(((JSONObject) body).toJSONString(), context, dataTypeJson);
+        }
+        if (body instanceof String) {
+            return success((String) body, context, dataTypeString);
+        }
+        return success(com.alibaba.fastjson.JSONObject.toJSONString(body), context, dataTypeJson);
+    }
+
+
+    public static InvokeResult success(String body, Context context, int dataType) {
         boolean useFile = body.length() > 4096;
         if (!useFile) {
-            return new InvokeResult(statusOK, dataTypeString, body, false);
+            return new InvokeResult(statusOK, dataType, body, false);
         }
         File file = CommonUtils.genTempFile(context);
-        try {
-            if (!file.createNewFile()) {
-                if (!file.setWritable(true, false)) {
-                    return failed("change temp file permisson failed " + file.getAbsolutePath());
-                }
-            }
-        } catch (IOException e) {
-            return failed("failed to create a temp file " + file.getAbsolutePath());
-        }
-
         try {
             BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
             bufferedWriter.write(body);
             bufferedWriter.close();
-            return new InvokeResult(statusOK, dataTypeString, file.getAbsolutePath(), true);
+            return new InvokeResult(statusOK, dataType, file.getAbsolutePath(), true);
         } catch (IOException e) {
             return failed("failed to save data to file" + e.getMessage());
         }
     }
 
-    @SuppressLint("SetWorldWritable")
-    public static InvokeResult success(JSONObject jsonObject, Context context) {
-        String body = jsonObject.toJSONString();
-        boolean useFile = body.length() > 4096;
-        if (!useFile) {
-            return new InvokeResult(statusOK, dataTypeJson, body, false);
-        }
-        File file = CommonUtils.genTempFile(context);
-        try {
-            if (!file.createNewFile()) {
-                if (!file.setWritable(true, false)) {
-                    return failed("change temp file permisson failed " + file.getAbsolutePath());
-                }
-            }
-        } catch (IOException e) {
-            return failed("failed to create a temp file " + file.getAbsolutePath());
-        }
-
-        try {
-            BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
-            bufferedWriter.write(body);
-            bufferedWriter.close();
-            return new InvokeResult(statusOK, dataTypeJson, file.getAbsolutePath(), true);
-        } catch (IOException e) {
-            return failed("failed to save data to file" + e.getMessage());
-        }
-
-    }
 
     public static InvokeResult failed(String message) {
         if (message.length() > 4096) {

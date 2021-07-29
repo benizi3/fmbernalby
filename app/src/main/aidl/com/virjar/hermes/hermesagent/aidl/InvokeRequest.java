@@ -37,16 +37,6 @@ public class InvokeRequest implements Parcelable {
         } else {
             File file = CommonUtils.genTempFile(context);
             try {
-                if (!file.createNewFile()) {
-                    if (!file.setWritable(true, false)) {
-                        throw new IllegalStateException("failed to create a temp file " + file.getAbsolutePath());
-                    }
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException("failed to create a temp file " + file.getAbsolutePath(), e);
-            }
-
-            try {
                 BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
                 bufferedWriter.write(paramContent);
                 bufferedWriter.close();

@@ -62,6 +62,7 @@ public class FontService extends Service {
                 Log.w(TAG, "service register,ping failed");
                 return;
             }
+            Log.i(TAG, "service " + agentInfo.getPackageName() + " register success");
             mCallbacks.register(hookAgentService);
             allRemoteHookService.putIfAbsent(agentInfo.getServiceAlis(), hookAgentService);
         }

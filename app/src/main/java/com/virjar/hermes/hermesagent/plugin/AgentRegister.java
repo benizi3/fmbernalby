@@ -13,6 +13,7 @@ import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.aidl.InvokeResult;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 /**
@@ -32,7 +33,12 @@ public class AgentRegister {
 
             @Override
             public InvokeResult invoke(InvokeRequest param) throws RemoteException {
-                return agentCallback.invoke(param);
+                try {
+                    return agentCallback.invoke(param);
+                } catch (Exception e) {
+                    Log.e(TAG, "invoke callback failed", e);
+                    return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(e));
+                }
             }
         };
 

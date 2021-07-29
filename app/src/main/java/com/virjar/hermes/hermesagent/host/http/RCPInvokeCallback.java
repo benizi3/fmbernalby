@@ -67,6 +67,10 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                     public void run() {
                         try {
                             InvokeResult invokeResult = hookAgent.invoke(invokeRequest);
+                            if (invokeResult == null) {
+                                CommonUtils.sendJSON(response, CommonRes.failed("agent return null object"));
+                                return;
+                            }
                             if (invokeResult.getStatus() != InvokeResult.statusOK) {
                                 CommonUtils.sendJSON(response, CommonRes.failed(invokeResult.getStatus(), invokeResult.getTheData()));
                                 return;

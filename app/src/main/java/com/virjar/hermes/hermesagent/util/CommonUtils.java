@@ -20,6 +20,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -50,7 +51,27 @@ public class CommonUtils {
 
     public static File genTempFile(Context context) {
         File cacheDir = context.getCacheDir();
-        return new File(cacheDir, System.currentTimeMillis() + "_" + fileSequence.incrementAndGet());
+        File retFile = new File(cacheDir, System.currentTimeMillis() + "_" + fileSequence.incrementAndGet());
+        try {
+            if (!retFile.createNewFile()) {
+                throw new IllegalStateException("failed to create temp file :" + retFile.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        makeFileRW(retFile);
+        return retFile;
+    }
+
+    public static void makeFileRW(File file) {
+        try {
+            int returnCode = Runtime.getRuntime().exec("chmod 666 " + file.getAbsolutePath()).waitFor();
+            if (returnCode != 0) {
+                throw new IllegalStateException("failed to change temp file mode");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

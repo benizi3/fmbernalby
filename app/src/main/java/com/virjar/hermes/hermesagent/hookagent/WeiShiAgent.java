@@ -65,13 +65,7 @@ public class WeiShiAgent implements AgentCallback {
                 //微视本身是一个异步请求，这里等待5s，等待异步的结果，异步转同步
                 lock.wait(5000);
                 Object remove = queryResult.remove(uniqueID);
-                if (remove instanceof String) {
-                    return InvokeResult.success((String) remove, SharedObject.context);
-                } else if (remove instanceof JSONObject) {
-                    return InvokeResult.success((JSONObject) remove, SharedObject.context);
-                } else {
-                    return InvokeResult.success((com.alibaba.fastjson.JSONObject.toJSONString(remove)), SharedObject.context);
-                }
+                return InvokeResult.success(remove, SharedObject.context);
             }
         } catch (InterruptedException e) {
             return InvokeResult.failed("timeOut");
