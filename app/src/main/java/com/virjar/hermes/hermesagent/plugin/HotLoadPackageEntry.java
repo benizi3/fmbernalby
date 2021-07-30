@@ -55,7 +55,7 @@ public class HotLoadPackageEntry {
                 AgentRegister.registerToServer(xposedHotLoadCallBack, context);
 
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
-                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 2000);
+                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 4000);
             } catch (Exception e) {
                 XposedBridge.log(e);
             }
@@ -80,7 +80,9 @@ public class HotLoadPackageEntry {
         }), new Predicate<AgentCallback>() {
             @Override
             public boolean apply(@Nullable AgentCallback input) {
-                return input != null && input.needHook(SharedObject.loadPackageParam);
+                return input != null
+                        && input.needHook(SharedObject.loadPackageParam)
+                        && StringUtils.equalsIgnoreCase(input.targetPackageName(), SharedObject.loadPackageParam.packageName);
             }
         }));
     }

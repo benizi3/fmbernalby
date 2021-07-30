@@ -69,8 +69,8 @@ public class FontService extends Service {
 
         @Override
         public void unRegisterHookAgent(IHookAgentService hookAgentService) throws RemoteException {
-            mCallbacks.unregister(hookAgentService);
             allRemoteHookService.remove(hookAgentService.ping().getServiceAlis());
+            mCallbacks.unregister(hookAgentService);
         }
     };
 
@@ -78,6 +78,9 @@ public class FontService extends Service {
         return allRemoteHookService.get(serviceName);
     }
 
+    public void releaseDeadAgent(String serviceName) {
+        allRemoteHookService.remove(serviceName);
+    }
 
     public Set<String> onlineAgentServices() {
         if (onlineServices == null) {

@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
@@ -161,8 +162,8 @@ public class HttpServer {
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String baseURL = CommonUtils.localServerBaseURL();
                 Hashtable<String, ArrayList<Object>> actions = ReflectUtil.getFieldValue(server, "mActions");
-                StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>服务列表</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermesagent\">https://gitee.com/virjar/hermesagent</a></p>");
-                html.append("<p>服务地址：").append(baseURL).append("</p>");
+                StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>Hermes</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermesagent\">https://gitee.com/virjar/hermesagent</a></p>");
+                html.append("<p>服务base地址：").append(baseURL).append("</p>");
                 for (Hashtable.Entry<String, ArrayList<Object>> entry : actions.entrySet()) {
                     html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
                     html.append("<ul>");
@@ -254,6 +255,16 @@ public class HttpServer {
         server.get(Constant.httpServerPingPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                String sourcePackage = request.getQuery().getString("source_package");
+                if (StringUtils.isBlank(sourcePackage)) {
+                    response.send("true");
+                    return;
+                }
+                IHookAgentService hookAgent = fontService.findHookAgent(sourcePackage);
+                if (hookAgent == null) {
+                    response.send(Constant.rebind);
+                    return;
+                }
                 response.send("true");
             }
         });

@@ -38,4 +38,7 @@ public interface Constant {
     String needInvokePackageParamMessage = "the param {" + invokePackage + "} not present";
     int status_rate_limited = -4;
     String rateLimitedMessage = "rate limited";
+    String rebind = "rebind";
+    String restartServer = "restartServer";
+    String unknown = "unknown";
 }

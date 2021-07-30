@@ -260,13 +260,16 @@ public class CommonUtils {
         return MD5(data);
     }
 
-    public static boolean pingServer() {
-        String url = localServerBaseURL() + Constant.httpServerPingPath;
+    public static String pingServer(String sourcePackage) {
+        String url = localServerBaseURL() + Constant.httpServerPingPath + "?source_package=" + URLEncodeUtil.escape(sourcePackage);
         try {
-            return StringUtils.equalsIgnoreCase(HttpClientUtils.getRequest(url), "true");
+            Log.i(TAG, "ping hermes server:" + url);
+            String pingResponse = HttpClientUtils.getRequest(url);
+            Log.i(TAG, "ping hermes server response: " + pingResponse);
+            return pingResponse;
         } catch (Exception e) {
             Log.i(TAG, "ping server failed", e);
-            return false;
+            return Constant.unknown;
         }
     }
 

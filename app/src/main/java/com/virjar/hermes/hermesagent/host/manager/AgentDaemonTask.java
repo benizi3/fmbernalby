@@ -2,11 +2,15 @@ package com.virjar.hermes.hermesagent.host.manager;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
 import com.virjar.hermes.hermesagent.plugin.AgentRegister;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
+import com.virjar.hermes.hermesagent.util.Constant;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.TimerTask;
 
@@ -16,6 +20,7 @@ import java.util.TimerTask;
  */
 
 public class AgentDaemonTask extends TimerTask {
+    private static final String TAG = "AgentDaemonTask";
     private Context context;
     private AgentCallback agentCallback;
 
@@ -26,17 +31,21 @@ public class AgentDaemonTask extends TimerTask {
 
     @Override
     public void run() {
-        if (CommonUtils.pingServer()) {
+        String pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
+        if (StringUtils.equalsIgnoreCase(pingResponse, Constant.rebind)) {
+            Log.i(TAG, "rebind service");
+            AgentRegister.registerToServer(agentCallback, context);
+            return;
+        }
+        if (StringUtils.equalsIgnoreCase(pingResponse, "true")) {
             return;
         }
 
-        if (CommonUtils.pingServer()) {
-            return;
+        pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
+        if (StringUtils.equalsIgnoreCase(pingResponse, Constant.unknown)) {
+            Intent service = new Intent(context, FontService.class);
+            context.startService(service);
         }
 
-        Intent service = new Intent(context, FontService.class);
-        context.startService(service);
-
-        AgentRegister.registerToServer(agentCallback, context);
     }
 }

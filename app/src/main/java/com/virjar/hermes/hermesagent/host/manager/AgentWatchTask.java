@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.DeadObjectException;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -13,6 +14,7 @@ import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
@@ -40,8 +42,8 @@ public class AgentWatchTask extends TimerTask {
     public void run() {
         Set<String> needRestartApp = Sets.newConcurrentHashSet(monitorSets);
         Set<String> onlineServices = Sets.newHashSet();
-        for (IHookAgentService entry : allRemoteHookService.values()) {
-            AgentInfo agentInfo = handleAgentHeartBeat(entry);
+        for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
+            AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
             if (agentInfo != null) {
                 onlineServices.add(agentInfo.getPackageName());
                 needRestartApp.remove(agentInfo.getPackageName());
@@ -87,12 +89,15 @@ public class AgentWatchTask extends TimerTask {
         return ret;
     }
 
-    private AgentInfo handleAgentHeartBeat(IHookAgentService hookAgentService) {
+    private AgentInfo handleAgentHeartBeat(String targetPackageName, IHookAgentService hookAgentService) {
         try {
             return hookAgentService.ping();
+        } catch (DeadObjectException deadObjectException) {
+            Log.e(TAG, "remote service dead,wait for re register");
+            fontService.releaseDeadAgent(targetPackageName);
         } catch (RemoteException e) {
             Log.e(TAG, "failed to ping agent", e);
-            return null;
         }
+        return null;
     }
 }
