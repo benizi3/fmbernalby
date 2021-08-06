@@ -8,6 +8,7 @@ hermesagent是hermes系统的客户端模块，也是系统最核心的模块了
 
 #### 软件架构
 软件架构说明
+[termesAgent](termesAgent.png)
 
 
 #### 安装教程
