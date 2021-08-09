@@ -8,7 +8,7 @@ hermesagent是hermes系统的客户端模块，也是系统最核心的模块了
 
 #### 软件架构
 软件架构说明
-![termesAgent](termesAgent.png)
+![termesAgent](img/termesAgent.png)
 
 
 #### 安装教程
@@ -24,9 +24,25 @@ hermesagent是hermes系统的客户端模块，也是系统最核心的模块了
 
 #### 使用说明
 
-1. xxxx
-2. xxxx
-3. xxxx
+1. 要安装xposed
+2. xposed启用本模块之后，第一次需要重启，后续不需要重启了
+3. 钩子函数写到com.virjar.hermes.hermesagent.hookagent路径下，能够被框架自动识别，其他地方不会识别
+4. agent必须提供空参构造（我们是类扫描机制实现的）
+5. 开启网络访问权限，有些手机在后台运行之后，将会禁止后台访问网络。请放开这个配置
+
+### 演示
+1. 查看首页，观察可以提供的接口
+![index.png](img/index.png)
+
+2.观察已经注册成功，可以提供调用的服务
+![servicelist.png](img/servicelist.png)
+
+3.调用目标接口
+![invoke.png](img/invoke.png)
+
+其中，本demo提供了微视的话题搜索接口破解，可以通过一个关键字搜索微视的视频数据。微视demo的地址为：
+
+https://gitee.com/virjar/hermesagent/blob/master/app/src/main/java/com/virjar/hermes/hermesagent/hookagent/WeiShiAgent.java
 
 #### 参与贡献
 
