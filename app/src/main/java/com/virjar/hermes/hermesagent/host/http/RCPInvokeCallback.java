@@ -1,6 +1,8 @@
 package com.virjar.hermes.hermesagent.host.http;
 
+import android.os.DeadObjectException;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -80,6 +82,10 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                             } else {
                                 CommonUtils.sendJSON(response, CommonRes.success(invokeResult.getTheData()));
                             }
+                        } catch (DeadObjectException e) {
+                            Log.e("rpcInvoke", "service " + invokePackage + " dead ,offline it", e);
+                            fontService.releaseDeadAgent(invokePackage);
+                            CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_service_not_available, Constant.serviceNotAvailableMessage));
                         } catch (RemoteException e) {
                             CommonUtils.sendJSON(response, CommonRes.failed(e));
                         }
