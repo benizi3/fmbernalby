@@ -97,17 +97,18 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
     private String determineInvokeTarget(AsyncHttpServerRequest request) {
         Multimap query = request.getQuery();
         String invokePackage = query.getString(Constant.invokePackage);
-        if (StringUtils.isBlank(invokePackage)) {
-            Object o = request.getBody().get();
-            if (o instanceof JSONObject) {
-                invokePackage = ((JSONObject) o).optString(Constant.invokePackage);
-            } else if (o instanceof String) {
-                try {
-                    com.alibaba.fastjson.JSONObject jsonObject = com.alibaba.fastjson.JSONObject.parseObject((String) o);
-                    invokePackage = jsonObject.getString(Constant.invokePackage);
-                } catch (com.alibaba.fastjson.JSONException e) {
-                    //ignore
-                }
+        if (StringUtils.isNotBlank(invokePackage)) {
+            return invokePackage;
+        }
+        Object o = request.getBody().get();
+        if (o instanceof JSONObject) {
+            invokePackage = ((JSONObject) o).optString(Constant.invokePackage);
+        } else if (o instanceof String) {
+            try {
+                com.alibaba.fastjson.JSONObject jsonObject = com.alibaba.fastjson.JSONObject.parseObject((String) o);
+                invokePackage = jsonObject.getString(Constant.invokePackage);
+            } catch (com.alibaba.fastjson.JSONException e) {
+                //ignore
             }
         }
         return invokePackage;
