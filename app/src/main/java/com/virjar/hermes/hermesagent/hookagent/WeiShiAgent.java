@@ -9,7 +9,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.virjar.hermes.hermesagent.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
-import com.virjar.hermes.hermesagent.plugin.ReflectUtil;
+import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.plugin.SharedObject;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 
@@ -149,7 +149,7 @@ public class WeiShiAgent implements AgentCallback {
                             break;
                         }
                     }
-                    ReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onReply", new XC_MethodHook() {
+                    XposedReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onReply", new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             Object requestBean = param.args[0];
@@ -176,7 +176,7 @@ public class WeiShiAgent implements AgentCallback {
                         }
                     });
 
-                    ReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onError", new XC_MethodHook() {
+                    XposedReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onError", new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             Object requestBean = param.args[0];

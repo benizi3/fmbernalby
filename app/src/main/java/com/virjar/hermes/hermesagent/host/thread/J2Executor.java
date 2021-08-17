@@ -1,7 +1,7 @@
 package com.virjar.hermes.hermesagent.host.thread;
 
 import com.google.common.collect.Maps;
-import com.virjar.hermes.hermesagent.plugin.ReflectUtil;
+import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
 
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -59,7 +59,7 @@ public class J2Executor {
         BlockingQueue<Runnable> blockingQueue = threadPoolExecutor.getQueue();
         if (!(blockingQueue instanceof ConsumeImmediatelyBlockingQueue)) {
             // 对线程池任务队列功能增强
-            ReflectUtil.setFieldValue(threadPoolExecutor, "workQueue", new ConsumeImmediatelyBlockingQueue<>(
+            XposedReflectUtil.setFieldValue(threadPoolExecutor, "workQueue", new ConsumeImmediatelyBlockingQueue<>(
                     blockingQueue, new ConsumeImmediatelyBlockingQueue.ImmediatelyConsumer<Runnable>() {
                 @Override
                 public boolean consume(Runnable runnable) {

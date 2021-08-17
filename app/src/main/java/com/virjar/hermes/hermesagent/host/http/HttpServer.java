@@ -18,10 +18,11 @@ import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
-import com.virjar.hermes.hermesagent.plugin.ReflectUtil;
+import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
+import com.virjar.hermes.hermesagent.util.ReflectUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,7 +41,8 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 /**
- * Created by virjar on 2018/8/23.
+ * Created by virjar on 2018/8/23.<br>
+ * http 服务器相关实现
  */
 
 public class HttpServer {
@@ -168,7 +170,7 @@ public class HttpServer {
                     html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
                     html.append("<ul>");
                     for (Object object : entry.getValue()) {
-                        Pattern pattern = ReflectUtil.getFieldValue(object, "regex");
+                        Pattern pattern = XposedReflectUtil.getFieldValue(object, "regex");
                         html.append("<li>");
                         if (StringUtils.equalsIgnoreCase(entry.getKey(), "get")) {
                             html.append("<a href=\"").append(baseURL).append(pattern.pattern().substring(1)).append("\">")
