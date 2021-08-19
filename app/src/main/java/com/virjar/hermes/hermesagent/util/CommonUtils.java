@@ -21,7 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
@@ -32,6 +31,7 @@ import java.net.NetworkInterface;
 import java.security.MessageDigest;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import okhttp3.Request;
@@ -110,10 +110,11 @@ public class CommonUtils {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(byteArrayOutputStream));
         throwable.printStackTrace(printWriter);
+        printWriter.close();
         return byteArrayOutputStream.toString(Charsets.UTF_8);
     }
 
-    public static String translateSimpleExceptionMessage(Exception exception) {
+    public static String translateSimpleExceptionMessage(Throwable exception) {
         String message = exception.getMessage();
         if (StringUtils.isBlank(message)) {
             message = exception.getClass().getName();
@@ -157,30 +158,43 @@ public class CommonUtils {
         }
     }
 
-    public static String execCmd(String cmd) {
-
+    public static String execCmd(String cmd, boolean useRoot) {
+        Log.i(TAG, "execute command:{" + cmd + "} useRoot:" + useRoot);
         Runtime runtime = Runtime.getRuntime();
-        java.lang.Process proc;
+        Process proc;
         OutputStreamWriter osw = null;
         StringBuilder stdOut = new StringBuilder();
         StringBuilder stdErr = new StringBuilder();
-
         try {
-            proc = runtime.exec("su");
-            osw = new OutputStreamWriter(proc.getOutputStream());
-            osw.write(cmd);
-            osw.flush();
-            osw.close();
-            proc.waitFor();
+            if (useRoot) {
+                proc = runtime.exec("su");
+                osw = new OutputStreamWriter(proc.getOutputStream());
+                osw.write(cmd);
+                osw.close();
+            } else {
+                proc = runtime.exec(cmd);
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                proc.waitFor(10, TimeUnit.SECONDS);
+            } else {
+                proc.waitFor();
+            }
+            stdOut.append(IOUtils.toString(proc.getInputStream(), Charsets.UTF_8));
+            stdErr.append(IOUtils.toString(proc.getErrorStream(), Charsets.UTF_8));
+            String result = StringUtils.join(new String[]{stdOut.toString(), stdErr.toString()}, "\r\n");
+            Log.i(TAG, "command execute result:" + result);
+            return result;
+        } catch (InterruptedException e) {
+            return "timeOut";
         } catch (Exception ex) {
-            Log.e(TAG, "exec cmd error", ex);
-            return CommonUtils.getStackTrack(ex);
+            String stackTrack = CommonUtils.getStackTrack(ex);
+            Log.e(TAG, "exec cmd error" + stackTrack);
+            return stackTrack;
         } finally {
             IOUtils.closeQuietly(osw);
         }
-        stdOut.append((new InputStreamReader(proc.getInputStream())));
-        stdErr.append(new InputStreamReader(proc.getErrorStream()));
-        return StringUtils.join(new String[]{stdOut.toString(), stdErr.toString()}, "--------------");
+
+
     }
 
     public static Multimap parseUrlEncoded(String query) {

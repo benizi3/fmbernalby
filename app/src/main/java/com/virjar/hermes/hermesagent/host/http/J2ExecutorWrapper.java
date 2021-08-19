@@ -1,5 +1,7 @@
 package com.virjar.hermes.hermesagent.host.http;
 
+import android.util.Log;
+
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -24,6 +26,13 @@ public class J2ExecutorWrapper {
     }
 
     public void run() {
+        Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                Log.w("HermesAgent", "request process failed, ", e);
+                CommonUtils.sendJSON(response, CommonRes.failed(CommonUtils.translateSimpleExceptionMessage(e)));
+            }
+        });
         try {
             threadPoolExecutor.execute(runnable);
         } catch (RejectedExecutionException e) {

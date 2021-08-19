@@ -9,6 +9,7 @@ import android.util.Log;
 
 import com.google.common.collect.Lists;
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -18,7 +19,6 @@ import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
-import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
@@ -170,7 +170,7 @@ public class HttpServer {
                     html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
                     html.append("<ul>");
                     for (Object object : entry.getValue()) {
-                        Pattern pattern = XposedReflectUtil.getFieldValue(object, "regex");
+                        Pattern pattern = ReflectUtil.getFieldValue(object, "regex");
                         html.append("<li>");
                         if (StringUtils.equalsIgnoreCase(entry.getKey(), "get")) {
                             html.append("<a href=\"").append(baseURL).append(pattern.pattern().substring(1)).append("\">")
@@ -192,17 +192,24 @@ public class HttpServer {
         server.get(Constant.executeShellCommandPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                final String cmd = request.getQuery().getString("cmd");
+                Multimap query = request.getQuery();
+                final String cmd = query.getString("cmd");
                 if (StringUtils.isBlank(cmd)) {
                     CommonUtils.sendJSON(response, CommonRes.failed("parameter {cmd} not present!!"));
                     return;
                 }
+                //TODO org.apache.commons.lang3.BooleanUtils.toBooleanObject(java.lang.String) 在这里对卡死线程，具体原因待分析
+                final boolean useRoot = StringUtils.equalsIgnoreCase(query.getString("useRoot"), "true");
                 new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
                     @Override
                     public void run() {
-                        CommonUtils.sendJSON(response, CommonRes.success(CommonUtils.execCmd(cmd)));
+                        CommonUtils.sendJSON(response, CommonRes.success(CommonUtils.execCmd(cmd, useRoot)));
                     }
                 }, response).run();
+                if (StringUtils.trimToEmpty(cmd).equalsIgnoreCase("reboot")) {
+                    //reboot 命令，需要直接返回响应，因为reboot执行之后，手机已经关机了，请求端无法再收到server的响应了
+                    CommonUtils.sendJSON(response, CommonRes.success("reboot command accepted"));
+                }
             }
         });
     }
@@ -214,8 +221,10 @@ public class HttpServer {
                 new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
                     @Override
                     public void run() {
-                        CommonUtils.sendJSON(response, CommonRes.success("command accepted"));
-                        CommonUtils.restartAndroidSystem();
+                        //CommonUtils.sendJSON(response, CommonRes.success("command accepted"));
+                        //CommonUtils.restartAndroidSystem();
+                        //shell无启动权限，adb通过网络直连，adb远程服务默认关闭，目前无法再不获取root权限的情况下重启系统
+                        CommonUtils.sendJSON(response, CommonRes.failed("not implement"));
                     }
                 }, response).run();
             }
