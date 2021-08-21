@@ -22,8 +22,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import de.robv.android.xposed.XposedHelpers;
-
 
 
 /*
@@ -139,11 +137,11 @@ public class ClassScanner {
     }
 
     private static DexBackedDexFile createDexFile() {
-        Object dex = XposedHelpers.callMethod(ClassScanner.class, "getDex");
+        Object dex = ReflectUtil.callMethod(ClassScanner.class, "getDex");
         if (dex == null) {
             return null;
         }
-        byte[] buffer = (byte[]) XposedHelpers.callMethod(dex, "getBytes");
+        byte[] buffer = (byte[]) ReflectUtil.callMethod(dex, "getBytes");
 
         if (HeaderItem.verifyMagic(buffer, 0)) {
             return new DexBackedDexFile(Opcodes.forApi(Build.VERSION.SDK_INT), buffer);

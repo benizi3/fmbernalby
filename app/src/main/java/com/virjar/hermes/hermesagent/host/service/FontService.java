@@ -11,6 +11,10 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.BuildConfig;
@@ -22,7 +26,11 @@ import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
+import com.virjar.hermes.hermesagent.plugin.AgentCallback;
+import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.Constant;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Set;
 import java.util.Timer;
@@ -45,6 +53,37 @@ public class FontService extends Service {
     private static final long aliveCheckDuration = 5000;
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
     private Set<String> onlineServices = null;
+
+    private Set<String> allCallback = null;
+
+    @SuppressWarnings("unchecked")
+    private void scanCallBack() {
+        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage));
+
+        allCallback = Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
+            @javax.annotation.Nullable
+            @Override
+            public String apply(@javax.annotation.Nullable Class<? extends AgentCallback> input) {
+                if (input == null) {
+                    return null;
+                }
+                try {
+                    return input.newInstance().targetPackageName();
+                } catch (InstantiationException | IllegalAccessException e) {
+                    Log.e("weijia", "failed to load create plugin", e);
+                }
+                return null;
+            }
+        }), new Predicate<String>() {
+            @Override
+            public boolean apply(@javax.annotation.Nullable String input) {
+                return StringUtils.isNotBlank(input);
+            }
+        }));
+
+    }
+
 
     public void setOnlineServices(Set<String> onlineServices) {
         this.onlineServices = onlineServices;
@@ -122,6 +161,11 @@ public class FontService extends Service {
         Notification notification = builder.build(); // 获取构建好的Notification
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
+
+        if (allCallback == null) {
+            scanCallBack();
+        }
+
         //启动httpServer
         HttpServer.getInstance().startServer(this);
         HttpServer.getInstance().setFontService(this);
@@ -145,7 +189,7 @@ public class FontService extends Service {
         //之前的time可能死掉了
         timer = new Timer(TAG, true);
         //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, Sets.<String>newConcurrentHashSet(), this), 1000, 2000);
+        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {
