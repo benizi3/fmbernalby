@@ -9,6 +9,8 @@ import android.util.Log;
 import com.google.common.collect.Maps;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ConcurrentMap;
 
@@ -30,6 +32,9 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        if (StringUtils.equalsIgnoreCase(lpparam.packageName, Constant.packageName)) {
+            return;
+        }
         if (hooked) {
             return;
         }

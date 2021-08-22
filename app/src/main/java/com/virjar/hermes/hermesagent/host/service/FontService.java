@@ -128,12 +128,15 @@ public class FontService extends Service {
         return onlineServices;
     }
 
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         startService();
         return binder;
     }
+
+
 
     @Override
     public void onDestroy() {

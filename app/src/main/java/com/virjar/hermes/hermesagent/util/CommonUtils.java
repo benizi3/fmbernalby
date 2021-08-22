@@ -281,7 +281,7 @@ public class CommonUtils {
             String pingResponse = HttpClientUtils.getRequest(url);
             Log.i(TAG, "ping hermes server response: " + pingResponse);
             return pingResponse;
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.i(TAG, "ping server failed", e);
             return Constant.unknown;
         }

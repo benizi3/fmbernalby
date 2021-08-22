@@ -47,7 +47,7 @@ public class HttpClientUtils {
 
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    public static String getRequest(String url) {
+    public static String getRequest(String url) throws IOException {
 
         Request request = new Request.Builder()
                 .get()
@@ -64,9 +64,6 @@ public class HttpClientUtils {
                 }
                 return responseBody.string();
             }
-            return null;
-        } catch (IOException e) {
-            Log.e("httpclient", "getRequest failed", e);
             return null;
         } finally {
             IOUtils.closeQuietly(response);

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
 import com.virjar.hermes.hermesagent.plugin.AgentRegister;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -37,14 +36,21 @@ public class AgentDaemonTask extends TimerTask {
             AgentRegister.registerToServer(agentCallback, context);
             return;
         }
+
         if (StringUtils.equalsIgnoreCase(pingResponse, "true")) {
             return;
         }
 
         pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
         if (StringUtils.equalsIgnoreCase(pingResponse, Constant.unknown)) {
-            Intent service = new Intent(context, FontService.class);
-            context.startService(service);
+            Log.i(TAG, "HermesAgent dead, restart it");
+            Intent broadcast = new Intent();
+            broadcast.setPackage(Constant.packageName);
+            broadcast.setAction("com.virjar.hermes.hermesagent.fontServiceDestroy");
+          //  broadcast.
+            //这里不能直接start，只能发广播的方式
+            context.sendBroadcast(broadcast);
+
         }
 
     }
