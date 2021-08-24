@@ -46,8 +46,9 @@ public class AgentDaemonTask extends TimerTask {
             Log.i(TAG, "HermesAgent dead, restart it");
             Intent broadcast = new Intent();
             broadcast.setPackage(Constant.packageName);
+            broadcast.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
             broadcast.setAction("com.virjar.hermes.hermesagent.fontServiceDestroy");
-          //  broadcast.
+            //  broadcast.
             //这里不能直接start，只能发广播的方式
             context.sendBroadcast(broadcast);
 
