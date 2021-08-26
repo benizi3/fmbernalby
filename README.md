@@ -39,6 +39,11 @@ hermesagent是hermes系统的客户端模块，也是系统最核心的模块了
      4、默认是标准,在屏保后4分钟左右会限制后台应用的网络功能
 ```
 
+6. 允许程序开机自启
+为了让app全自动提供服务，需要让手机开机便启动agent，有些系统会禁止该行为。如果你的手机有存在该行为的话，请放开自启动限制
+[stackoverflow](https://stackoverflow.com/questions/32032329/process-is-not-permitted-to-autostart-boot-complete-broadcast-receiver)
+
+
 ### 演示
 1. 查看首页，观察可以提供的接口
 ![index.png](img/index.png)
