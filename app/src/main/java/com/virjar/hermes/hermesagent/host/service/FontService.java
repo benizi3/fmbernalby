@@ -170,8 +170,8 @@ public class FontService extends Service {
         }
 
         //启动httpServer
-        HttpServer.getInstance().startServer(this);
         HttpServer.getInstance().setFontService(this);
+        HttpServer.getInstance().startServer(this);
 
         if (lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
             if (lastCheckTimerCheck != 0) {
