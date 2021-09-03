@@ -69,8 +69,6 @@ public class XposedInit implements IXposedHookLoadPackage {
     private static ClassLoader replaceClassloader(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
         ClassLoader classLoader = XposedInit.class.getClassLoader();
 
-        String packageName = Constant.packageName;
-
         //find real apk location by package name
         PackageManager packageManager = context.getPackageManager();
         if (packageManager == null) {
@@ -80,12 +78,12 @@ public class XposedInit implements IXposedHookLoadPackage {
 
         PackageInfo packageInfo = null;
         try {
-            packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_META_DATA);
+            packageInfo = packageManager.getPackageInfo(Constant.packageName, PackageManager.GET_META_DATA);
         } catch (PackageManager.NameNotFoundException e) {
             //ignore
         }
         if (packageInfo == null) {
-            XposedBridge.log("can not find plugin install location for plugin: " + packageName);
+            XposedBridge.log("can not find plugin install location for plugin: " + Constant.packageName);
             return classLoader;
         }
 
