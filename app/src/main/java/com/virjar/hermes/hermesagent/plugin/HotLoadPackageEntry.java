@@ -1,6 +1,11 @@
 package com.virjar.hermes.hermesagent.plugin;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.Uri;
+import android.os.Process;
 import android.util.Log;
 
 import com.google.common.base.Function;
@@ -56,10 +61,48 @@ public class HotLoadPackageEntry {
 
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
                 heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 4000);
+
+                exitIfMasterReInstall(context, loadPackageParam.packageName);
             } catch (Exception e) {
                 XposedBridge.log(e);
             }
         }
+    }
+
+    private static void exitIfMasterReInstall(Context context, final String slavePackageName) {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        // intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intentFilter.addDataScheme("package");
+
+        context.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (StringUtils.isBlank(action)) {
+                    return;
+                }
+                String packageName = getPackageName(intent);
+                if (packageName == null)
+                    return;
+                if (!StringUtils.equalsIgnoreCase(packageName, Constant.packageName)) {
+                    return;
+                }
+                Log.i(TAG, "master 重新安装，重启slave 进程");
+                context.unregisterReceiver(this);
+
+                //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
+                Process.killProcess(Process.myPid());
+                System.exit(0);
+            }
+
+            private String getPackageName(Intent intent) {
+                Uri uri = intent.getData();
+                return (uri != null) ? uri.getSchemeSpecificPart() : null;
+            }
+
+        }, intentFilter);
     }
 
     @SuppressWarnings("unchecked")
