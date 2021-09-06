@@ -70,3 +70,8 @@ https://gitee.com/virjar/hermesagent/blob/master/app/src/main/java/com/virjar/he
 开源即免费，我不限制你们拿去搞事情，但是开源并不代表义务解答问题。如果你发现了有意思的bug，或者有建设性意见，我乐意参与讨论。
 如果你想寻求解决方案，但是又没有能力驾驭这个项目，欢迎走商务合作通道。联系qq：819154316，或者加群：569543649。
 拒绝回答常见问题！！！
+
+
+#### 捐赠
+如果你觉得作者辛苦了，可以的话请我喝杯咖啡
+![alipay](img/weijia_donate.png)
