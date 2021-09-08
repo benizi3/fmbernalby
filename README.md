@@ -74,4 +74,4 @@ https://gitee.com/virjar/hermesagent/blob/master/app/src/main/java/com/virjar/he
 
 #### 捐赠
 如果你觉得作者辛苦了，可以的话请我喝杯咖啡
-![alipay](img/weijia_donate.png)
+![alipay](img/reward.jpg)
