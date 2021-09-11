@@ -25,6 +25,7 @@ import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
+import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
@@ -137,7 +138,6 @@ public class FontService extends Service {
     }
 
 
-
     @Override
     public void onDestroy() {
         allRemoteHookService.clear();
@@ -207,6 +207,8 @@ public class FontService extends Service {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             timer.scheduleAtFixedRate(new ReportTask(this, this),
                     3000, 3000);
+            //每隔2分钟拉取一次配置
+            timer.scheduleAtFixedRate(new RefreshConfigTask(), 120000, 120000);
         }
 
     }

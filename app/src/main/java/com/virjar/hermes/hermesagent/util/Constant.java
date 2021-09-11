@@ -26,8 +26,9 @@ public interface Constant {
     String serviceRegisterAction = "com.virjar.hermes.hermesagent.aidl.IServiceRegister";
 
 
-    String serverBaseURL = "http://hermas.virjar.com:5598";
-    String reportPath = "/report";
+    String serverBaseURL = "http://hermesadmin.virjar.com:5597";
+    String reportPath = "/device/report";
+    String getConfigPath = "/device/deviceConfig";
     String downloadPath = "/downloadAPK";
 
     String invokePackage = "invoke_package";
@@ -41,4 +42,9 @@ public interface Constant {
     String rebind = "rebind";
     String restartServer = "restartServer";
     String unknown = "unknown";
+
+    int serviceStatusOnline = 0;
+    int serviceStatusOffline = 1;
+    int serviceStatusInstalling = 3;
+    int serviceStatusUnInstall = 4;
 }

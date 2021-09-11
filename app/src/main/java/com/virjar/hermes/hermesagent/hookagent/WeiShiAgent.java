@@ -48,6 +48,7 @@ public class WeiShiAgent implements AgentCallback {
         String paramContent = invokeRequest.getParamContent();
         Multimap nameValuePairs = CommonUtils.parseUrlEncoded(paramContent);
         String key = nameValuePairs.getString("key");
+
         if (StringUtils.isBlank(key)) {
             return InvokeResult.failed("the param {key} not presented");
         }
