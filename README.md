@@ -6,6 +6,11 @@ android群控系统，使用xposed+RPC实现方法级别的群控
 hermesagent是hermes系统的客户端模块，也是系统最核心的模块了，他是种植在手机里面的一个agent，同时他也是一个xposed的模块插件，agent本身启动了一个service，agent插件模块将会自动注册钩子函数，并且和service通信。Android设备外部请求可以通过暴露在agent上面的一个http端口，和agent通信，然后agent和目标apkRPC。
 如此实现外部请求到任何一个app的任何功能的外部调用
 
+
+#### 关联项目
+HermesAdmin ：https://gitee.com/virjar/hermesadmin
+hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent运维工作
+
 #### 软件架构
 软件架构说明
 ![termesAgent](img/termesAgent.png)
