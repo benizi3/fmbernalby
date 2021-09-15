@@ -2,6 +2,8 @@ package com.virjar.hermes.hermesagent.host.manager;
 
 import android.content.Context;
 import android.os.Build;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
@@ -58,13 +60,14 @@ public class ReportTask extends TimerTask {
                 .build();
         HttpClientUtils.getClient().newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 failedTimes++;
+                Log.e(tag, "report failed ", e);
                 rebootIfNeed();
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 failedTimes = 0;
             }
         });

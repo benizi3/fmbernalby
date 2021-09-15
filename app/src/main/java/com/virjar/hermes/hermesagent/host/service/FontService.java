@@ -17,7 +17,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
@@ -29,6 +28,7 @@ import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import org.apache.commons.lang3.StringUtils;
@@ -204,7 +204,7 @@ public class FontService extends Service {
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();
 
-        if (!BuildConfig.DEBUG) {
+        if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             timer.scheduleAtFixedRate(new ReportTask(this, this),
                     3000, 3000);

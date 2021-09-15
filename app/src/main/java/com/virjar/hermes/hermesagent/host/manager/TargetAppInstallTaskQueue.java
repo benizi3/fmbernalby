@@ -12,7 +12,7 @@ import android.widget.Toast;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.virjar.hermes.hermesagent.BuildConfig;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.URLEncodeUtil;
 
@@ -37,7 +37,7 @@ public class TargetAppInstallTaskQueue {
     }
 
     public void install(final String targetAppPackage, Context context) {
-        if (BuildConfig.DEBUG) {
+        if (CommonUtils.isLocalTest()) {
             return;
         }
         File dir = new File(context.getFilesDir(), "agentApk");

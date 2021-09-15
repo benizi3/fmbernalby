@@ -1,11 +1,14 @@
 package com.virjar.hermes.hermesagent.util;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
@@ -206,26 +209,33 @@ public class CommonUtils {
         });
     }
 
-    @SuppressLint({"HardwareIds", "MissingPermission"})
+    @SuppressLint("HardwareIds")
     public static String deviceID(Context context) {
         TelephonyManager telephonyMgr = (TelephonyManager) context.getApplicationContext().getSystemService(TELEPHONY_SERVICE);
         if (telephonyMgr != null) {
-            return telephonyMgr.getDeviceId();
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                return telephonyMgr.getDeviceId();
+            }
+
         }
         WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wm != null) {
-            return wm.getConnectionInfo().getMacAddress();
+            String mac = wm.getConnectionInfo().getMacAddress();
+            if (!StringUtils.equalsIgnoreCase("02:00:00:00:00:00", mac)) {
+                return mac;
+            }
         }
 
         BluetoothAdapter m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         String m_szBTMAC = m_BluetoothAdapter.getAddress();
-        if (m_szBTMAC != null) {
+        if (m_szBTMAC != null && !StringUtils.equalsIgnoreCase("02:00:00:00:00:00", m_szBTMAC)) {
             return m_szBTMAC;
         }
 
         String m_szAndroidID = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         if (StringUtils.isNotBlank(m_szAndroidID)) {
+            Log.i(TAG, "m_szAndroidID");
             return m_szAndroidID;
         }
 
@@ -289,5 +299,10 @@ public class CommonUtils {
 
     public static String localServerBaseURL() {
         return "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
+    }
+
+    public static boolean isLocalTest() {
+        // return BuildConfig.DEBUG;
+        return false;
     }
 }
