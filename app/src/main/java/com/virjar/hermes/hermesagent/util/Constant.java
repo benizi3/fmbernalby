@@ -29,7 +29,7 @@ public interface Constant {
     String serverBaseURL = "http://hermesadmin.virjar.com:5597";
     String reportPath = "/device/report";
     String getConfigPath = "/device/deviceConfig";
-    String downloadPath = "/downloadAPK";
+    String downloadPath = "/targetApp/download";
 
     String invokePackage = "invoke_package";
 

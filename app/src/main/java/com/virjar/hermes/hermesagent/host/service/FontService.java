@@ -55,6 +55,7 @@ public class FontService extends Service {
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
     private Set<String> onlineServices = null;
 
+    //TODO 这个需要热发，和watch dog隔离
     private Set<String> allCallback = null;
 
     @SuppressWarnings("unchecked")
@@ -192,7 +193,7 @@ public class FontService extends Service {
         //之前的time可能死掉了
         timer = new Timer(TAG, true);
         //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
+        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, this), 1000, 2000);
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -208,7 +209,7 @@ public class FontService extends Service {
             timer.scheduleAtFixedRate(new ReportTask(this, this),
                     3000, 3000);
             //每隔2分钟拉取一次配置
-            timer.scheduleAtFixedRate(new RefreshConfigTask(), 120000, 120000);
+            timer.scheduleAtFixedRate(new RefreshConfigTask(this), 120000, 120000);
         }
 
     }

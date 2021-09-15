@@ -8,16 +8,25 @@ import android.os.DeadObjectException;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.raizlabs.android.dbflow.sql.language.SQLite;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
+import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.service.FontService;
+import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.Nullable;
 
 /**
  * Created by virjar on 2018/8/24.<br>
@@ -27,20 +36,31 @@ import java.util.concurrent.ConcurrentMap;
 public class AgentWatchTask extends TimerTask {
     private String TAG = "agent_watch_task";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService;
-    private Set<String> monitorSets = null;
     private Context context;
     private FontService fontService;
 
-    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Set<String> monitorSets, Context context) {
+    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Context context) {
         this.fontService = fontService;
         this.allRemoteHookService = allRemoteHookService;
-        this.monitorSets = monitorSets;
         this.context = context;
     }
 
     @Override
     public void run() {
-        Set<String> needRestartApp = Sets.newConcurrentHashSet(monitorSets);
+        List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
+        Set<String> needRestartApp = Sets.newConcurrentHashSet(Iterables.transform(Iterables.filter(serviceModels, new Predicate<ServiceModel>() {
+            @Override
+            public boolean apply(@Nullable ServiceModel input) {
+                return input != null && input.getStatus() != Constant.serviceStatusUnInstall;
+            }
+        }), new Function<ServiceModel, String>() {
+            @Nullable
+            @Override
+            public String apply(ServiceModel input) {
+                return input.getAppPackage();
+            }
+        }));
+
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
@@ -73,8 +93,9 @@ public class AgentWatchTask extends TimerTask {
             }
         }
 
-        //TODO 文件下载
-
+        for (String needInstall : needInstallApp) {
+            TargetAppInstallTaskQueue.getInstance().install(needInstall, context);
+        }
     }
 
     private Set<String> runningProcess(Context context) {
