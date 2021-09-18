@@ -51,11 +51,13 @@ dependencies {
     implementation 'com.google.guava:guava:23.4-android'
     implementation 'com.alibaba:fastjson:1.1.67.android'
     implementation 'commons-io:commons-io:2.6'
+    //源码似乎有bug，无法接受post的url-form-encode request
     implementation 'com.koushikdutta.async:androidasync:2.2.1'
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     implementation 'org.apache.commons:commons-lang3:3.7'
     implementation project(':jadb')
     implementation project(':baksmali')
+    // implementation project(':AndroidAsync')
 
     //for dbflow
     def dbflow_version = "4.2.4"

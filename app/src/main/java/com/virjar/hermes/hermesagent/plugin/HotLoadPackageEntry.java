@@ -75,7 +75,7 @@ public class HotLoadPackageEntry {
         intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         // intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         intentFilter.addDataScheme("package");
-
+        final Context finalContext = context;
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -90,7 +90,8 @@ public class HotLoadPackageEntry {
                     return;
                 }
                 Log.i(TAG, "master 重新安装，重启slave 进程");
-                context.unregisterReceiver(this);
+
+                finalContext.unregisterReceiver(this);
 
                 //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
                 Process.killProcess(Process.myPid());
