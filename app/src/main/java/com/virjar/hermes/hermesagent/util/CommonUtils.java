@@ -235,7 +235,6 @@ public class CommonUtils {
         String m_szAndroidID = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         if (StringUtils.isNotBlank(m_szAndroidID)) {
-            Log.i(TAG, "m_szAndroidID");
             return m_szAndroidID;
         }
 

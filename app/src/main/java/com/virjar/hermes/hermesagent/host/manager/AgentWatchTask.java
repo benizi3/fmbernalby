@@ -81,7 +81,7 @@ public class AgentWatchTask extends TimerTask {
                 needInstallApp.remove(packageName);
 
                 if (runningProcess.contains(packageName)) {
-                    Log.w(TAG, "app :" + packageName + " 正常运行，但是agent没有正常注册");
+                    Log.w(TAG, "app :" + packageName + " 正常运行，但是agent没有正常注册,请检查xposed模块加载是否失败（日志中显示file not exist，在高版本Android中容易出现）");
                     continue;
                 }
 

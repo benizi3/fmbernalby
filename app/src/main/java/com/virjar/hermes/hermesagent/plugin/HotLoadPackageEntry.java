@@ -75,7 +75,7 @@ public class HotLoadPackageEntry {
         intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         // intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         intentFilter.addDataScheme("package");
-        final Context finalContext = context;
+        //final Context finalContext = context;
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -91,9 +91,11 @@ public class HotLoadPackageEntry {
                 }
                 Log.i(TAG, "master 重新安装，重启slave 进程");
 
-                finalContext.unregisterReceiver(this);
+                //似乎不需要取消注册
+                // finalContext.unregisterReceiver(this);
 
                 //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
+                //重启自身的原因，是因为目前挂钩代码寄生在master的apk包里面的，未来将挂钩代码迁移到slave之后，便不需要重启自身了
                 Process.killProcess(Process.myPid());
                 System.exit(0);
             }

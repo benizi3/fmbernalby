@@ -63,16 +63,17 @@ public class AgentRegister {
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
-                if (mService == null) {
-                    return;
-                }
-                try {
-                    mService.unRegisterHookAgent(iHookAgentService);
-                    mService = null;
-                    Log.i(TAG, " unregister callback" + iHookAgentService.ping().getPackageName());
-                } catch (RemoteException e) {
-                    Log.e(TAG, " unregister callback error", e);
-                }
+                //这个调不得，再看看
+//                if (mService == null) {
+//                    return;
+//                }
+//                try {
+//                    mService.unRegisterHookAgent(iHookAgentService);
+//                    mService = null;
+//                    Log.i(TAG, " unregister callback" + iHookAgentService.ping().getPackageName());
+//                } catch (RemoteException e) {
+//                    Log.e(TAG, " unregister callback error", e);
+//                }
             }
         };
 
