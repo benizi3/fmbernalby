@@ -16,6 +16,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 
 import org.apache.commons.io.IOUtils;
@@ -301,7 +302,7 @@ public class CommonUtils {
     }
 
     public static boolean isLocalTest() {
-        // return BuildConfig.DEBUG;
-        return false;
+        return BuildConfig.DEBUG;
+        //   return false;
     }
 }
