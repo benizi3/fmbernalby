@@ -17,6 +17,7 @@ import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.service.FontService;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.util.Collections;
@@ -36,31 +37,40 @@ import javax.annotation.Nullable;
 public class AgentWatchTask extends TimerTask {
     private String TAG = "agent_watch_task";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService;
+    private Set<String> allCallback;
     private Context context;
     private FontService fontService;
 
-    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Context context) {
+    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Set<String> allCallback, Context context) {
         this.fontService = fontService;
         this.allRemoteHookService = allRemoteHookService;
         this.context = context;
+        this.allCallback = allCallback;
     }
 
     @Override
     public void run() {
-        List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
-        Set<String> needRestartApp = Sets.newConcurrentHashSet(Iterables.transform(Iterables.filter(serviceModels, new Predicate<ServiceModel>() {
-            @Override
-            public boolean apply(@Nullable ServiceModel input) {
-                return input != null && input.getStatus() != Constant.serviceStatusUnInstall;
-            }
-        }), new Function<ServiceModel, String>() {
-            @Nullable
-            @Override
-            public String apply(ServiceModel input) {
-                return input.getAppPackage();
-            }
-        }));
+        Set<String> needRestartApp;
+        if (CommonUtils.isLocalTest()) {
+            //本地测试模式，监控所有agent，死亡拉起
+            needRestartApp = allCallback;
+        } else {
+            List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
+            needRestartApp =
+                    Sets.newConcurrentHashSet(Iterables.transform(Iterables.filter(serviceModels, new Predicate<ServiceModel>() {
+                        @Override
+                        public boolean apply(@Nullable ServiceModel input) {
+                            return input != null && input.getStatus() != Constant.serviceStatusUnInstall;
+                        }
+                    }), new Function<ServiceModel, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(ServiceModel input) {
+                            return input.getAppPackage();
+                        }
+                    }));
 
+        }
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());

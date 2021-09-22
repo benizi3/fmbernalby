@@ -5,6 +5,12 @@ import android.util.Log;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.ConnectionPool;
@@ -30,6 +36,18 @@ public class HttpClientUtils {
                 .writeTimeout(2, TimeUnit.SECONDS)
                 .connectionPool(connectionPool)
                 .retryOnConnectionFailure(false)
+                .proxySelector(new ProxySelector() {
+                    @Override
+                    public List<Proxy> select(URI uri) {
+                        //避免代理导致接口api通信失败
+                        return Collections.emptyList();
+                    }
+
+                    @Override
+                    public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+
+                    }
+                })
                 .build();
     }
 

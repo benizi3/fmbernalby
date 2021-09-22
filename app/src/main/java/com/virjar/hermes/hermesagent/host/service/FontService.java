@@ -193,7 +193,7 @@ public class FontService extends Service {
         //之前的time可能死掉了
         timer = new Timer(TAG, true);
         //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, this), 1000, 2000);
+        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService,allCallback, this), 1000, 2000);
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {
