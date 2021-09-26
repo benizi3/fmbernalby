@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
 import com.virjar.hermes.hermesagent.host.service.FontService;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,14 +20,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        TextView tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText("test");
-
-
         Intent intent = new Intent(this, FontService.class);
         startService(intent);
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Example of a call to a native method
+        TextView tv = (TextView) findViewById(R.id.sample_text);
+        tv.setText("接口地址：" + CommonUtils.localServerBaseURL());
+    }
+
 //
 //    /**
 //     * A native method that is implemented by the 'native-lib' native library,
