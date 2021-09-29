@@ -9,7 +9,6 @@ import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +39,8 @@ public class HttpClientUtils {
                     @Override
                     public List<Proxy> select(URI uri) {
                         //避免代理导致接口api通信失败
-                        return Collections.emptyList();
+                        //return Collections.emptyList();
+                        return null;
                     }
 
                     @Override

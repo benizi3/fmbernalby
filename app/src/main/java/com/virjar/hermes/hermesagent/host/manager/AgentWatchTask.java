@@ -53,7 +53,7 @@ public class AgentWatchTask extends TimerTask {
         Set<String> needRestartApp;
         if (CommonUtils.isLocalTest()) {
             //本地测试模式，监控所有agent，死亡拉起
-            needRestartApp = allCallback;
+            needRestartApp = Sets.newConcurrentHashSet(allCallback);
         } else {
             List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
             needRestartApp =

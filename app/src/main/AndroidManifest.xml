@@ -68,7 +68,7 @@
                 <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
                 <action android:name="android.intent.action.MEDIA_EJECT" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:priority="1000">
                 <action android:name="com.virjar.hermes.hermesagent.fontServiceDestroy" />
             </intent-filter>
         </receiver>
