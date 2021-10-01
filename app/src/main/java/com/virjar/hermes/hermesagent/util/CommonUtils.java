@@ -131,7 +131,7 @@ public class CommonUtils {
     }
 
     public static Request pingServerRequest() {
-        String url = "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort + Constant.httpServerPingPath;
+        String url = "http://127.0.0.1:" + Constant.httpServerPort + Constant.httpServerPingPath;
         return new Request.Builder()
                 .get()
                 .url(url)

@@ -124,7 +124,10 @@ public class AgentWatchTask extends TimerTask {
         Set<String> ret = Sets.newHashSet();
         for (AndroidAppProcess process : processes) {
             // Get some information about the process
-            ret.add(process.getPackageName());
+            //Log.i("weijia", process.name);
+            //ret.add(process.getPackageName());
+            //只关心前台进程，所以这里放全称
+            ret.add(process.name);
         }
         return ret;
     }
