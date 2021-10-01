@@ -1,6 +1,5 @@
 package com.virjar.hermes.hermesagent.host.manager;
 
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,6 +11,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.jaredrummler.android.processes.AndroidProcesses;
+import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.raizlabs.android.dbflow.sql.language.SQLite;
 import com.virjar.hermes.hermesagent.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
@@ -20,7 +21,6 @@ import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,13 +109,22 @@ public class AgentWatchTask extends TimerTask {
     }
 
     private Set<String> runningProcess(Context context) {
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (am == null) {
-            return Collections.emptySet();
-        }
+//        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+//        if (am == null) {
+//            return Collections.emptySet();
+//        }
+//        Set<String> ret = Sets.newHashSet();
+//        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : am.getRunningAppProcesses()) {
+//            ret.add(runningAppProcessInfo.processName);
+//        }
+//        return ret;
+        //高版本api中，Android api对该权限收紧，不允许直接获取其他app的运行状态
+        // Get a list of running apps
+        List<AndroidAppProcess> processes = AndroidProcesses.getRunningAppProcesses();
         Set<String> ret = Sets.newHashSet();
-        for (ActivityManager.RunningAppProcessInfo runningAppProcessInfo : am.getRunningAppProcesses()) {
-            ret.add(runningAppProcessInfo.processName);
+        for (AndroidAppProcess process : processes) {
+            // Get some information about the process
+            ret.add(process.getPackageName());
         }
         return ret;
     }

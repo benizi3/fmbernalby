@@ -285,7 +285,8 @@ public class CommonUtils {
     }
 
     public static String pingServer(String sourcePackage) {
-        String url = localServerBaseURL() + Constant.httpServerPingPath + "?source_package=" + URLEncodeUtil.escape(sourcePackage);
+        //TODO 挂代理之后，收到代理影响，导致链路不通，考虑如果排除代理干扰
+        String url = "http://127.0.0.1:5597" + Constant.httpServerPingPath + "?source_package=" + URLEncodeUtil.escape(sourcePackage);
         try {
             Log.i(TAG, "ping hermes server:" + url);
             String pingResponse = HttpClientUtils.getRequest(url);

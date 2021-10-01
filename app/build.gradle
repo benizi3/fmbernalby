@@ -58,6 +58,7 @@ dependencies {
     implementation project(':jadb')
     implementation project(':baksmali')
     // implementation project(':AndroidAsync')
+    implementation 'com.jaredrummler:android-processes:1.1.1'
 
     //for dbflow
     def dbflow_version = "4.2.4"
