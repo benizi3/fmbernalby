@@ -88,6 +88,10 @@ public class CommonUtils {
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
                 NetworkInterface intf = en.nextElement();
+                //这个好像是没法用的ip
+                if (StringUtils.startsWithIgnoreCase(intf.getName(), "usbnet")) {
+                    continue;
+                }
                 for (Enumeration<InetAddress> ipAddr = intf.getInetAddresses(); ipAddr.hasMoreElements(); ) {
                     InetAddress inetAddress = ipAddr.nextElement();
                     if (inetAddress.isLoopbackAddress()) {
@@ -96,13 +100,15 @@ public class CommonUtils {
                     }
                     if (inetAddress instanceof Inet4Address) {
                         return inetAddress.getHostAddress();
+                    } else {
+                        ipV6Ip = inetAddress.getHostAddress();
                     }
-                    ipV6Ip = inetAddress.getHostAddress();
                 }
             }
         } catch (Exception e) {
             Log.w(TAG, "query local ip failed", e);
         }
+
 
         if (lookUpIP != null) {
             return lookUpIP;
