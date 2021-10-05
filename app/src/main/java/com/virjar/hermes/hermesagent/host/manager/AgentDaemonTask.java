@@ -48,10 +48,9 @@ public class AgentDaemonTask extends TimerTask {
             broadcast.setPackage(Constant.packageName);
             broadcast.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
             broadcast.setAction("com.virjar.hermes.hermesagent.fontServiceDestroy");
-            //  broadcast.
             //这里不能直接start，只能发广播的方式
+            //请注意，这里需要放开自启动限制，否则广播可能被系统拦截
             context.sendBroadcast(broadcast);
-
         }
 
     }

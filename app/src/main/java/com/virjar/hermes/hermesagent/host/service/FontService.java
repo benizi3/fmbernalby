@@ -11,6 +11,7 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.MainActivity;
@@ -25,6 +26,7 @@ import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -107,6 +109,11 @@ public class FontService extends Service {
         public void unRegisterHookAgent(IHookAgentService hookAgentService) throws RemoteException {
             allRemoteHookService.remove(hookAgentService.ping().getServiceAlis());
             mCallbacks.unregister(hookAgentService);
+        }
+
+        @Override
+        public List<String> onlineService() throws RemoteException {
+            return Lists.newArrayList(onlineAgentServices());
         }
     };
 

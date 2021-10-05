@@ -1,14 +1,43 @@
 package com.virjar.hermes.hermesagent;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
+import com.google.common.base.Joiner;
+import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
+import com.virjar.hermes.hermesagent.util.Constant;
 
 public class MainActivity extends AppCompatActivity {
+    private IServiceRegister mService = null;
+
+    private ServiceConnection fontServiceConnection = new ServiceConnection() {
+
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mService = IServiceRegister.Stub.asInterface(service);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    updateStatus();
+                }
+            });
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mService = null;
+        }
+    };
 
 //    // Used to load the 'native-lib' library on application startup.
 //    static {
@@ -22,14 +51,47 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, FontService.class);
         startService(intent);
+
+        intent = new Intent();
+        intent.setAction(Constant.serviceRegisterAction);
+        intent.setPackage(Constant.packageName);
+        bindService(intent, fontServiceConnection, Context.BIND_AUTO_CREATE);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Example of a call to a native method
-        TextView tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText("接口地址：" + CommonUtils.localServerBaseURL());
+        updateStatus();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Intent intent = new Intent();
+        intent.setAction(Constant.serviceRegisterAction);
+        intent.setPackage(Constant.packageName);
+        this.unbindService(fontServiceConnection);
+    }
+
+
+    public void updateStatus() {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView tv = findViewById(R.id.sample_text);
+                String text = "接口地址：" + CommonUtils.localServerBaseURL();
+                if (mService != null) {
+                    try {
+                        text += "\n\n在线服务列表:\n"
+                                + Joiner.on("\n").join(mService.onlineService());
+                    } catch (RemoteException e) {
+                        text += "获取服务列表失败";
+                    }
+                }
+                tv.setText(text);
+            }
+        });
     }
 
 //

@@ -7,4 +7,5 @@ import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
 interface IServiceRegister {
     void registerHookAgent(IHookAgentService hookAgentService);
     void unRegisterHookAgent(IHookAgentService hookAgentService);
+    List<String> onlineService();
 }
