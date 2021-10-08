@@ -2,6 +2,8 @@ package com.virjar.hermes.hermesagent.util;
 
 import android.util.Log;
 
+import com.google.common.collect.Lists;
+
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
@@ -39,8 +41,7 @@ public class HttpClientUtils {
                     @Override
                     public List<Proxy> select(URI uri) {
                         //避免代理导致接口api通信失败
-                        //return Collections.emptyList();
-                        return null;
+                        return Lists.newArrayList(Proxy.NO_PROXY);
                     }
 
                     @Override
