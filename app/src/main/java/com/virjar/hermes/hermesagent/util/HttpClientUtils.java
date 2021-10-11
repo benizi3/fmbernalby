@@ -30,7 +30,8 @@ public class HttpClientUtils {
     private static OkHttpClient client;
 
     private HttpClientUtils() {
-        ConnectionPool connectionPool = new ConnectionPool(3, 3, TimeUnit.SECONDS);
+        //由于大量请求都是心跳请求，需要心跳keepAlive，同时考虑心跳时间间隔来确定链接存活时长
+        ConnectionPool connectionPool = new ConnectionPool(5, 30, TimeUnit.SECONDS);
         client = new OkHttpClient.Builder()
                 .readTimeout(2, TimeUnit.SECONDS)
                 .connectTimeout(4, TimeUnit.SECONDS)

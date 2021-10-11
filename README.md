@@ -64,6 +64,15 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
 
 https://gitee.com/virjar/hermesagent/blob/master/app/src/main/java/com/virjar/hermes/hermesagent/hookagent/WeiShiAgent.java
 
+### 运维相关
+Q: agent意外死掉，但是没有自动被拉起
+A: 大多数情况是没有放弃自启动限制导致的，在小米系统上面，将会限制app被广播启动的功能，此时app启动广播将会被操作系统拦截。
+极少可能是Hermes系统所有节点在同一时刻被杀死，此时系统进程之间无法实现多进程相互守护了。
+
+Q: 手机运行一段时间之后，突然请求卡顿，接口请求全部超时
+A: 观察系统日志，系统内部master和slave可以正常通信，此时可能是你没有开启后台的网络权限。一样操作系统可能在app被切到后台之后，禁止网络通信
+
+
 #### 参与贡献
 
 1. Fork 本项目

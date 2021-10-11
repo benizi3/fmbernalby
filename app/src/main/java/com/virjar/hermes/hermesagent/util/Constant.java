@@ -47,4 +47,7 @@ public interface Constant {
     int serviceStatusOffline = 1;
     int serviceStatusInstalling = 3;
     int serviceStatusUnInstall = 4;
+
+    //http的server，使用NIO模式，单线程事件驱动，请注意不要在server逻辑里面执行耗时任务
+    String httpServerLooperThreadName = "httpServerLooper";
 }

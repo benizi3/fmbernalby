@@ -90,7 +90,7 @@ public class HttpServer {
     private void startServerInternal(Context context) {
         stopServer();
         server = new AsyncHttpServer();
-        mAsyncServer = new AsyncServer();
+        mAsyncServer = new AsyncServer(Constant.httpServerLooperThreadName);
         j2Executor = new J2Executor(
                 new ThreadPoolExecutor(10, 10, 0L,
                         TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10))

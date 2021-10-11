@@ -80,6 +80,9 @@ public class AgentWatchTask extends TimerTask {
             }
         }
         fontService.setOnlineServices(onlineServices);
+        if (needRestartApp.size() == 0) {
+            return;
+        }
 
         Set<String> needInstallApp = Sets.newCopyOnWriteArraySet(needRestartApp);
         PackageManager packageManager = context.getPackageManager();
