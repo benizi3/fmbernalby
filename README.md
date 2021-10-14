@@ -65,14 +65,14 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
 https://gitee.com/virjar/hermesagent/blob/master/app/src/main/java/com/virjar/hermes/hermesagent/hookagent/WeiShiAgent.java
 
 ### 运维相关
-Q: agent意外死掉，但是没有自动被拉起
+Q: agent意外死掉，但是没有自动被拉起   
 A: 大多数情况是没有放弃自启动限制导致的，在小米系统上面，将会限制app被广播启动的功能，此时app启动广播将会被操作系统拦截。
 极少可能是Hermes系统所有节点在同一时刻被杀死，此时系统进程之间无法实现多进程相互守护了。
 
-Q: 手机运行一段时间之后，突然请求卡顿，接口请求全部超时
+Q: 手机运行一段时间之后，突然请求卡顿，接口请求全部超时   
 A: 观察系统日志，系统内部master和slave可以正常通信，此时可能是你没有开启后台的网络权限。一样操作系统可能在app被切到后台之后，禁止网络通信
 
-Q:master和slave都正常运行，但是在agent上面查看服务列表，对应服务一直不在服务列表中
+Q:master和slave都正常运行，但是在agent上面查看服务列表，对应服务一直不在服务列表中   
 A:服务注册的原理是，在slave中注入钩子代码，驱动slave主动注册service到master。一般注册不成功的原因是钩子代码注入失败
 我们使用xposed作为代码注入的base lib，可以观察是否xposed本身模块启动失败。1.xposed未安装完整；2.xposed中没有开启本插件；3.高版本中，xposed存在一个bug，导致在Android启动的时候，使用错误的插件apk地址进行加载，进而无法加载到插件代码（同一个apk，覆盖安装，系统重启之后，apk代码地址将会被系统整理而改变路径，xposed模块管理使用的整理之前的apk地址）
 解决办法：，1.在xposed中，关闭HermesAgent的model。2.重启手机。3.从新安装HermesAgent，并在xposed中开启本model。4.再次重启apk
