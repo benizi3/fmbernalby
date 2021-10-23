@@ -39,10 +39,12 @@ public class HttpClientUtils {
                 .connectionPool(connectionPool)
                 .retryOnConnectionFailure(false)
                 .proxySelector(new ProxySelector() {
+                    private List<Proxy> noProxyList = Lists.newArrayList(Proxy.NO_PROXY);
+
                     @Override
                     public List<Proxy> select(URI uri) {
                         //避免代理导致接口api通信失败
-                        return Lists.newArrayList(Proxy.NO_PROXY);
+                        return noProxyList;
                     }
 
                     @Override
