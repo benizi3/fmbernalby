@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.virjar.hermes.hermesagent">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -54,7 +55,7 @@
         </service>
 
         <receiver
-            android:name=".host.broadcast.StartFontServiceBroadcastReceiver"
+            android:name=".host.broadcast.StartOnBootBroadcastReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter android:priority="1000">
@@ -68,10 +69,18 @@
                 <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
                 <action android:name="android.intent.action.MEDIA_EJECT" />
             </intent-filter>
-            <intent-filter android:priority="1000">
+
+        </receiver>
+        <receiver
+            android:name=".host.broadcast.StartBySlaveBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
                 <action android:name="com.virjar.hermes.hermesagent.fontServiceDestroy" />
             </intent-filter>
         </receiver>
+
         <receiver android:name=".host.broadcast.DownLoadCompleteReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />

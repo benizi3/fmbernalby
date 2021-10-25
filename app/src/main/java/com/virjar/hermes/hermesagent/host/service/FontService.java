@@ -43,7 +43,7 @@ public class FontService extends Service {
     private static final String TAG = "AIDLRegisterService";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService = Maps.newConcurrentMap();
     public static RemoteCallbackList<IHookAgentService> mCallbacks = new RemoteCallbackList<>();
-    public Timer timer = new Timer(TAG, true);
+    public Timer timer = null;
     private volatile long lastCheckTimerCheck = 0;
     private static final long aliveCheckDuration = 5000;
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
@@ -191,9 +191,11 @@ public class FontService extends Service {
     }
 
     private void restartTimer() {
-        timer.cancel();
+        if (timer != null) {
+            timer.cancel();
+        }
         //之前的time可能死掉了
-        timer = new Timer(TAG, true);
+        timer = new Timer("FontServiceTimer", true);
         //监控所有agent状态
         timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
 

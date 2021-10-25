@@ -2,6 +2,7 @@ package com.virjar.hermes.hermesagent.host.manager;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
 import com.virjar.hermes.hermesagent.plugin.AgentCallback;
@@ -22,6 +23,7 @@ public class AgentDaemonTask extends TimerTask {
     private static final String TAG = "AgentDaemonTask";
     private Context context;
     private AgentCallback agentCallback;
+    private int retryTimes = 0;
 
     public AgentDaemonTask(Context context, AgentCallback agentCallback) {
         this.context = context;
@@ -38,19 +40,28 @@ public class AgentDaemonTask extends TimerTask {
         }
 
         if (StringUtils.equalsIgnoreCase(pingResponse, "true")) {
+            retryTimes = 0;
             return;
         }
 
         pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
         if (StringUtils.equalsIgnoreCase(pingResponse, Constant.unknown)) {
-            Log.i(TAG, "HermesAgent dead, restart it");
-            Intent broadcast = new Intent();
-            broadcast.setPackage(Constant.packageName);
-            broadcast.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
-            broadcast.setAction("com.virjar.hermes.hermesagent.fontServiceDestroy");
-            //这里不能直接start，只能发广播的方式
-            //请注意，这里需要放开自启动限制，否则广播可能被系统拦截
-            context.sendBroadcast(broadcast);
+            Log.i(TAG, "HermesAgent dead, restart it，retryTimes：" + retryTimes);
+            if (retryTimes > 8) {
+                //如果广播方案被禁止，那么尝试显示的启动Hermes进程
+                PackageManager packageManager = context.getPackageManager();
+                Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(Constant.packageName);
+                context.startActivity(launchIntentForPackage);
+            } else {
+                retryTimes++;
+                Intent broadcast = new Intent();
+                broadcast.setPackage(Constant.packageName);
+                broadcast.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                broadcast.setAction("com.virjar.hermes.hermesagent.fontServiceDestroy");
+                //这里不能直接start，只能发广播的方式
+                //请注意，这里需要放开自启动限制，否则广播可能被系统拦截
+                context.sendBroadcast(broadcast);
+            }
         }
 
     }
