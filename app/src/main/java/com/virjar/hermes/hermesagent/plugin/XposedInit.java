@@ -2,6 +2,7 @@ package com.virjar.hermes.hermesagent.plugin;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.util.Log;
@@ -11,7 +12,6 @@ import com.virjar.hermes.hermesagent.util.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ConcurrentMap;
 
 import dalvik.system.PathClassLoader;
@@ -35,6 +35,15 @@ public class XposedInit implements IXposedHookLoadPackage {
         if (StringUtils.equalsIgnoreCase(lpparam.packageName, Constant.packageName)) {
             return;
         }
+        if (StringUtils.equalsIgnoreCase(lpparam.packageName, "de.robv.android.xposed.installer")) {
+            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    fixXposedInstallerAppUpdate((Context) param.args[0], lpparam);
+                }
+            });
+
+        }
         if (hooked) {
             return;
         }
@@ -47,19 +56,54 @@ public class XposedInit implements IXposedHookLoadPackage {
         });
     }
 
+    private void fixXposedInstallerAppUpdate(final Context context, XC_LoadPackage.LoadPackageParam lpparam) {
+        XC_MethodHook forceUpdateHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                Intent intent = (Intent) param.args[1];
+                String action = intent.getAction();
+                XposedBridge.log("收到模块更新消息:" + action);
+                if (action != null && action.equals(Intent.ACTION_PACKAGE_REMOVED) && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                    // Ignore existing packages being removed in order to be updated
+                    // package update ,the apk file location maybe changed,so can not ignore this message
+                    Intent newIntent = new Intent(intent);
+                    newIntent.putExtra(Intent.EXTRA_REPLACING, false);
+                    param.args[1] = newIntent;
+
+                    XposedBridge.log("xposed installer 强刷配置");
+                }
+            }
+        };
+
+        Class<?> packageChangeReceiverClass = XposedHelpers.findClassIfExists("de.robv.android.xposed.installer.receivers.PackageChangeReceiver", lpparam.classLoader);
+
+        if (packageChangeReceiverClass != null) {
+            XposedHelpers.findAndHookMethod(packageChangeReceiverClass, "onReceive", Context.class, Intent.class, forceUpdateHook);
+        }
+        packageChangeReceiverClass = XposedHelpers.findClassIfExists("de.robv.android.xposed.installer.PackageChangeReceiver", lpparam.classLoader);
+        if (packageChangeReceiverClass != null) {
+            XposedHelpers.findAndHookMethod(packageChangeReceiverClass, "onReceive", Context.class, Intent.class, forceUpdateHook);
+        }
+
+    }
+
     private void hotLoadPlugin(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
         ClassLoader hotClassLoader = replaceClassloader(context, lpparam);
 
+        Class<?> aClass = null;
         try {
-            Class<?> aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
+            aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "do you not disable Instant Runt for Android studio?");
+            try {
+                aClass = XposedInit.class.getClassLoader().loadClass(Constant.xposedHotloadEntry);
+            } catch (ClassNotFoundException e1) {
+                throw new IllegalStateException(e1);
+            }
+        }
+        try {
             aClass.getMethod("entry", Context.class, XC_LoadPackage.LoadPackageParam.class)
                     .invoke(null, context, lpparam);
-        } catch (ClassNotFoundException | NoSuchMethodException | SecurityException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException e) {
-            if (e instanceof ClassNotFoundException) {
-                Log.e(TAG, "do you not disable Instant Runt for Android studio?");
-            }
-            HotLoadPackageEntry.entry(context, lpparam);
         } catch (Exception e) {
             Log.e(TAG, "invoke hotload class failed", e);
         }

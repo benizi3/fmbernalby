@@ -47,7 +47,8 @@
         <service
             android:name="com.virjar.hermes.hermesagent.host.service.FontService"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            tools:ignore="ExportedService">
             <intent-filter android:priority="1000">
                 <action android:name="com.virjar.hermes.hermesagent.aidl.IServiceRegister" />
                 <category android:name="android.intent.category.DEFAULT" />
