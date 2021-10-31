@@ -23,7 +23,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -36,7 +35,6 @@ import java.security.MessageDigest;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import okhttp3.Request;
 import se.vidstige.jadb.JadbConnection;
@@ -50,34 +48,6 @@ import static android.content.Context.TELEPHONY_SERVICE;
 
 public class CommonUtils {
     private static String TAG = "common_util";
-
-    private static AtomicLong fileSequence = new AtomicLong(1);
-
-    public static File genTempFile(Context context) {
-        File cacheDir = context.getCacheDir();
-        File retFile = new File(cacheDir, System.currentTimeMillis() + "_" + fileSequence.incrementAndGet());
-        try {
-            if (!retFile.createNewFile()) {
-                throw new IllegalStateException("failed to create temp file :" + retFile.getAbsolutePath());
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        makeFileRW(retFile);
-        return retFile;
-    }
-
-    public static void makeFileRW(File file) {
-        try {
-            int returnCode = Runtime.getRuntime().exec("chmod 666 " + file.getAbsolutePath()).waitFor();
-            if (returnCode != 0) {
-                throw new IllegalStateException("failed to change temp file mode");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 
     /**
      * 获取本机IP

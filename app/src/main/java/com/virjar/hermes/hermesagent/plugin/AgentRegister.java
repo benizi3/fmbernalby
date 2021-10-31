@@ -8,11 +8,12 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.virjar.hermes.hermesagent.aidl.AgentInfo;
-import com.virjar.hermes.hermesagent.aidl.IHookAgentService;
-import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
-import com.virjar.hermes.hermesagent.aidl.InvokeRequest;
-import com.virjar.hermes.hermesagent.aidl.InvokeResult;
+import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
