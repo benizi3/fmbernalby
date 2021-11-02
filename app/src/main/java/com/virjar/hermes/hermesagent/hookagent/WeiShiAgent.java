@@ -6,11 +6,11 @@ import android.util.Log;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.koushikdutta.async.http.Multimap;
-import com.virjar.hermes.hermesagent.aidl.InvokeRequest;
-import com.virjar.hermes.hermesagent.aidl.InvokeResult;
-import com.virjar.hermes.hermesagent.plugin.AgentCallback;
-import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
+import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.plugin.SharedObject;
+import com.virjar.hermes.hermesagent.plugin.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 
 import org.apache.commons.lang3.StringUtils;

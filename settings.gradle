@@ -1,1 +1,1 @@
-include ':app', ':jadb', ':baksmali', ':wapper-weishi', ':hermes-api'
+include ':hermes-api', ':baksmali', ':app', ':wapper-weishi'
