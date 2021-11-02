@@ -1,9 +1,14 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
+import android.net.Uri;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**

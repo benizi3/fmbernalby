@@ -1,4 +1,4 @@
-package com.virjar.hermes.hermesagent.plugin;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.annotation.SuppressLint;
 import android.app.Application;

@@ -1,11 +1,11 @@
-package com.virjar.hermes.hermesagent.plugin;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
 
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * Created by virjar on 2018/8/23.
+ * Created by virjar on 2018/9/14.
  */
 
 public class SharedObject {

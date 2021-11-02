@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
-import com.virjar.hermes.hermesagent.plugin.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.plugin.AgentRegister;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;

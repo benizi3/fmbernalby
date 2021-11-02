@@ -5,10 +5,14 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.Multimap;
+import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
+import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -19,7 +23,8 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * Created by virjar on 2018/9/13.
+ * Created by virjar on 2018/9/13.<br>
+ * wrapper demo示例
  */
 
 public class WeishiAgentWrapper implements AgentCallback {
@@ -40,7 +45,7 @@ public class WeishiAgentWrapper implements AgentCallback {
     @Override
     public InvokeResult invoke(InvokeRequest invokeRequest) {
         String paramContent = invokeRequest.getParamContent();
-        Multimap nameValuePairs = CommonUtils.parseUrlEncoded(paramContent);
+        Multimap nameValuePairs = Multimap.parseUrlEncoded(paramContent);
         String key = nameValuePairs.getString("key");
 
         if (StringUtils.isBlank(key)) {
@@ -110,7 +115,7 @@ public class WeishiAgentWrapper implements AgentCallback {
 
     private long nextUniueID() {
         if (generateUniqueIdMethod == null) {
-            synchronized (WeiShiAgent.class) {
+            synchronized (WeishiAgentWrapper.class) {
                 if (generateUniqueIdMethod == null) {
                     Class<?> aClassUtils = XposedHelpers.findClass("com.tencent.ttpic.util.Utils", hostClassLoader);
                     generateUniqueIdMethod = XposedHelpers.findMethodBestMatch(aClassUtils, "generateUniqueId");

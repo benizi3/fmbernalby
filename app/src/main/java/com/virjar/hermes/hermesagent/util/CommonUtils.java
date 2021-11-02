@@ -14,7 +14,6 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
-import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
@@ -33,12 +32,9 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.security.MessageDigest;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Request;
-import se.vidstige.jadb.JadbConnection;
-import se.vidstige.jadb.JadbDevice;
 
 import static android.content.Context.TELEPHONY_SERVICE;
 
@@ -114,29 +110,6 @@ public class CommonUtils {
                 .build();
     }
 
-    public static void restartAndroidSystem() {
-
-        JadbConnection jadb = new JadbConnection();
-        List<JadbDevice> devices;
-        try {
-            devices = jadb.getDevices();
-        } catch (Exception e) {
-            Log.e(TAG, "failed to find adb server", e);
-            return;
-        }
-        if (devices.size() == 0) {
-            Log.e(TAG, "failed to find adb server");
-            return;
-        }
-        for (JadbDevice jadbDevice : devices) {
-            Log.i(TAG, "reboot device:" + jadbDevice.getSerial());
-            try {
-                jadbDevice.execute("reboot");
-            } catch (Exception e) {
-                Log.i(TAG, "device reboot failed");
-            }
-        }
-    }
 
     public static String execCmd(String cmd, boolean useRoot) {
         Log.i(TAG, "execute command:{" + cmd + "} useRoot:" + useRoot);
@@ -177,14 +150,6 @@ public class CommonUtils {
 
     }
 
-    public static Multimap parseUrlEncoded(String query) {
-        return Multimap.parse(query, "&", false, new Multimap.StringDecoder() {
-            @Override
-            public String decode(String s) {
-                return URLEncodeUtil.unescape(s);
-            }
-        });
-    }
 
     @SuppressLint("HardwareIds")
     public static String deviceID(Context context) {

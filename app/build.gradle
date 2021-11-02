@@ -60,10 +60,11 @@ dependencies {
     compileOnly 'de.robv.android.xposed:api:82'
     implementation 'com.alibaba:fastjson:1.1.67.android'
     implementation 'commons-io:commons-io:2.6'
+    implementation 'com.google.guava:guava:23.4-android'
 
     //for dbflow
     def dbflow_version = "4.2.4"
     annotationProcessor "com.github.Raizlabs.DBFlow:dbflow-processor:${dbflow_version}"
-    compile "com.github.Raizlabs.DBFlow:dbflow-core:${dbflow_version}"
-    compile "com.github.Raizlabs.DBFlow:dbflow:${dbflow_version}"
+    implementation "com.github.Raizlabs.DBFlow:dbflow-core:${dbflow_version}"
+    implementation "com.github.Raizlabs.DBFlow:dbflow:${dbflow_version}"
 }

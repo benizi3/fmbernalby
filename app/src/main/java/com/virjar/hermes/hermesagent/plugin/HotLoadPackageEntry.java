@@ -13,6 +13,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.Constant;

@@ -1,4 +1,4 @@
-package com.virjar.hermes.hermesagent.plugin;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import de.robv.android.xposed.XC_MethodHook;
 
