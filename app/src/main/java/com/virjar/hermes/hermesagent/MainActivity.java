@@ -11,7 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
 import com.google.common.base.Joiner;
-import com.virjar.hermes.hermesagent.aidl.IServiceRegister;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
