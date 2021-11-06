@@ -18,10 +18,14 @@ import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 
+import net.dongliu.apk.parser.ApkFile;
+import net.dongliu.apk.parser.bean.ApkMeta;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -245,5 +249,14 @@ public class CommonUtils {
     public static boolean isLocalTest() {
         return BuildConfig.DEBUG;
         //   return false;
+    }
+
+    public static ApkMeta parseApk(File file) {
+        //now parse the file
+        try (ApkFile apkFile = new ApkFile(file)) {
+            return apkFile.getApkMeta();
+        } catch (IOException e) {
+            throw new IllegalStateException("the filed not a apk filed format", e);
+        }
     }
 }

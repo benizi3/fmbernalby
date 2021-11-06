@@ -3,24 +3,32 @@ package com.virjar.hermes.hermesagent.util;
 import android.os.Build;
 import android.util.Log;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.virjar.baksmalisrc.dexlib2.Opcodes;
+import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedClassDef;
 import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedDexFile;
 import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedOdexFile;
 import com.virjar.baksmalisrc.dexlib2.dexbacked.raw.HeaderItem;
 import com.virjar.baksmalisrc.dexlib2.dexbacked.raw.OdexHeaderItem;
-import com.virjar.baksmalisrc.dexlib2.iface.ClassDef;
 import com.virjar.baksmalisrc.dexlib2.util.DexUtil;
 
+import net.dongliu.apk.parser.ApkFile;
+import net.dongliu.apk.parser.bean.DexClass;
+
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import dalvik.system.PathClassLoader;
 
 
 
@@ -38,16 +46,16 @@ public class ClassScanner {
     }
 
     public static <T> void scan(ClassVisitor<T> subClassVisitor) {
-        scan(subClassVisitor, Lists.<String>newArrayList());
+        scan(subClassVisitor, Lists.<String>newArrayList(), null);
     }
 
-    public static <T> void scan(ClassVisitor<T> subClassVisitor, Collection<String> basePackages) {
+    public static <T> void scan(ClassVisitor<T> subClassVisitor, Collection<String> basePackages, File sourceLocation) {
 
         PackageSearchNode packageSearchNode = new PackageSearchNode();
         for (String packageName : basePackages) {
             packageSearchNode.addToTree(packageName);
         }
-        scan(subClassVisitor, packageSearchNode);
+        scan(subClassVisitor, packageSearchNode, sourceLocation);
     }
 
     public interface ClassVisitor<T> {
@@ -169,15 +177,35 @@ public class ClassScanner {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> void scan(ClassVisitor<T> classVisitor, PackageSearchNode packageSearchNode) {
-        DexBackedDexFile dexFile = createDexFile();
-        if (dexFile == null) {
-            Log.e("weijia", "无法定位dex文件，无法读取class列表");
-            return;
+    public static <T> void scan(ClassVisitor<T> classVisitor, PackageSearchNode packageSearchNode, File sourceLocation) {
+        ClassLoader classLoader;
+        Iterable<String> classes;
+        if (sourceLocation == null) {
+            DexBackedDexFile dexFile = createDexFile();
+            if (dexFile == null) {
+                Log.e("weijia", "无法定位dex文件，无法读取class列表");
+                return;
+            }
+            classes = Iterables.transform(dexFile.getClasses(), new Function<DexBackedClassDef, String>() {
+                @Override
+                public String apply(DexBackedClassDef input) {
+                    return descriptorToDot(input.getType());
+                }
+            });
+            classLoader = ClassScanner.class.getClassLoader();
+        } else {
+            try (ApkFile apkFile = new ApkFile(sourceLocation)) {
+                List<String> theClasses = Lists.newArrayListWithExpectedSize(apkFile.getDexClasses().length);
+                for (DexClass dexClass : apkFile.getDexClasses()) {
+                    theClasses.add(descriptorToDot(dexClass.getClassType()));
+                }
+                classes = theClasses;
+                classLoader = new PathClassLoader(sourceLocation.getAbsolutePath(), ClassScanner.class.getClassLoader());
+            } catch (IOException e) {
+                throw new IllegalStateException("the filed not a apk filed format", e);
+            }
         }
-        ClassLoader classLoader = ClassScanner.class.getClassLoader();
-        for (ClassDef classDef : dexFile.getClasses()) {
-            String className = descriptorToDot(classDef.getType());
+        for (String className : classes) {
             if (className.contains("$")) {
                 //忽略内部类
                 continue;

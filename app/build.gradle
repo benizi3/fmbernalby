@@ -61,6 +61,7 @@ dependencies {
     implementation 'com.alibaba:fastjson:1.1.67.android'
     implementation 'commons-io:commons-io:2.6'
     implementation 'com.google.guava:guava:23.4-android'
+    implementation 'net.dongliu:apk-parser:2.6.2'
 
     //for dbflow
     def dbflow_version = "4.2.4"

@@ -17,11 +17,17 @@ import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
+import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+
+import net.dongliu.apk.parser.bean.ApkMeta;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Collections;
+import java.util.Set;
 import java.util.Timer;
 
 import javax.annotation.Nullable;
@@ -32,7 +38,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 /**
  * Created by virjar on 2017/12/21.<br/>插件热加载器
  */
-
+@SuppressWarnings("unused")
 public class HotLoadPackageEntry {
     private static final String TAG = "HotPluginLoader";
 
@@ -40,16 +46,14 @@ public class HotLoadPackageEntry {
 
     @SuppressWarnings("unused")
     public static void entry(Context context, XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        if (StringUtils.equalsIgnoreCase(loadPackageParam.packageName, Constant.packageName)) {
-            return;
-        }
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
-
-        // context.get
         //执行所有自定义的回调钩子函数
-        List<AgentCallback> allCallBack = findAllCallBackV2();
+        Set<AgentCallback> allCallBack = findEmbedCallBack();
+        //安装在容器中的扩展代码，优先级比内嵌的模块高
+        allCallBack.addAll(findExternalCallBack());
+
         for (AgentCallback xposedHotLoadCallBack : allCallBack) {
             if (xposedHotLoadCallBack == null) {
                 continue;
@@ -63,12 +67,11 @@ public class HotLoadPackageEntry {
 
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
                 heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 4000);
-
-                exitIfMasterReInstall(context, loadPackageParam.packageName);
             } catch (Exception e) {
                 XposedBridge.log(e);
             }
         }
+        exitIfMasterReInstall(context, loadPackageParam.packageName);
     }
 
     private static void exitIfMasterReInstall(Context context, final String slavePackageName) {
@@ -93,9 +96,6 @@ public class HotLoadPackageEntry {
                 }
                 Log.i(TAG, "master 重新安装，重启slave 进程");
 
-                //似乎不需要取消注册
-                // finalContext.unregisterReceiver(this);
-
                 //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
                 //重启自身的原因，是因为目前挂钩代码寄生在master的apk包里面的，未来将挂钩代码迁移到slave之后，便不需要重启自身了
                 Process.killProcess(Process.myPid());
@@ -111,10 +111,33 @@ public class HotLoadPackageEntry {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<AgentCallback> findAllCallBackV2() {
-        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
-        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage));
-        return Lists.newArrayList(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, AgentCallback>() {
+    private static Set<AgentCallback> findExternalCallBack() {
+        File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
+        if (!modulesDir.exists()) {
+            return Collections.emptySet();
+        }
+        Set<AgentCallback> ret = Sets.newHashSet();
+        for (File apkFile : modulesDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return StringUtils.equalsIgnoreCase(name, ".apk");
+            }
+        })) {
+            try {
+                ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
+                String packageName = apkMeta.getPackageName();
+                ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+                ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFile);
+                ret.addAll(filter(subClassVisitor));
+            } catch (Exception e) {
+                Log.e("weijia", "failed to load hermes-wrapper module", e);
+            }
+        }
+        return ret;
+    }
+
+    private static Set<AgentCallback> filter(ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor) {
+        return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, AgentCallback>() {
             @Nullable
             @Override
             public AgentCallback apply(Class<? extends AgentCallback> input) {
@@ -133,5 +156,16 @@ public class HotLoadPackageEntry {
                         && StringUtils.equalsIgnoreCase(input.targetPackageName(), SharedObject.loadPackageParam.packageName);
             }
         }));
+    }
+
+
+    /**
+     * 在HermesAgent中内置的HermesWrapper实现
+     */
+    @SuppressWarnings("unchecked")
+    private static Set<AgentCallback> findEmbedCallBack() {
+        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), null);
+        return filter(subClassVisitor);
     }
 }
