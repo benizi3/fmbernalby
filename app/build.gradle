@@ -15,12 +15,25 @@ android {
             }
         }
     }
+
+    signingConfigs {
+        release {
+            storeFile rootProject.file('hermes_key')
+            storePassword "hermes"
+            keyAlias "hermes"
+            keyPassword "hermes"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
+
+
     sourceSets {
         main {
             manifest.srcFile 'src/main/AndroidManifest.xml'
@@ -33,6 +46,7 @@ android {
 
         }
     }
+
 //    externalNativeBuild {
 //        cmake {
 //            path "CMakeLists.txt"
@@ -51,7 +65,7 @@ dependencies {
     implementation 'com.koushikdutta.async:androidasync:2.2.1'
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     implementation 'org.apache.commons:commons-lang3:3.7'
-   // implementation project(':jadb')
+    // implementation project(':jadb')
     implementation project(':baksmali')
     implementation project(':hermes-api')
     // implementation project(':AndroidAsync')

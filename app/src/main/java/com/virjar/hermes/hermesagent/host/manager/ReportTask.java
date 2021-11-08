@@ -79,7 +79,7 @@ public class ReportTask extends TimerTask {
         if (failedTimes < 15) {
             return;
         }
-        CommonUtils.restartAndroidSystem();
+        //CommonUtils.restartAndroidSystem();
 
     }
 }

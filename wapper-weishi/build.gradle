@@ -15,13 +15,23 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
+    signingConfigs {
+        release {
+            storeFile rootProject.file('hermes_key')
+            storePassword "hermes"
+            keyAlias "hermes"
+            keyPassword "hermes"
+        }
+    }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
+
 
 }
 
@@ -37,4 +47,12 @@ dependencies {
     implementation 'com.google.guava:guava:23.4-android'
     implementation 'com.alibaba:fastjson:1.1.67.android'
     implementation 'org.apache.commons:commons-lang3:3.7'
+}
+
+task deployWrapper {
+    dependsOn 'assembleRelease'
+}
+
+deployWrapper.doLast {
+    print 'test2'
 }

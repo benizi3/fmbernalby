@@ -54,24 +54,27 @@ public class HotLoadPackageEntry {
         //安装在容器中的扩展代码，优先级比内嵌的模块高
         allCallBack.addAll(findExternalCallBack());
 
-        for (AgentCallback xposedHotLoadCallBack : allCallBack) {
-            if (xposedHotLoadCallBack == null) {
+        boolean hint = false;
+        for (AgentCallback agentCallback : allCallBack) {
+            if (agentCallback == null) {
                 continue;
             }
             try {
-                XposedBridge.log("执行回调: " + xposedHotLoadCallBack.getClass());
+                XposedBridge.log("执行回调: " + agentCallback.getClass());
                 //挂载钩子函数
-                xposedHotLoadCallBack.onXposedHotLoad();
+                agentCallback.onXposedHotLoad();
                 //将agent注册到server端，让server可以rpc到agent
-                AgentRegister.registerToServer(xposedHotLoadCallBack, context);
-
+                AgentRegister.registerToServer(agentCallback, context);
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
-                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, xposedHotLoadCallBack), 1000, 4000);
+                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
+                hint = true;
             } catch (Exception e) {
                 XposedBridge.log(e);
             }
         }
-        exitIfMasterReInstall(context, loadPackageParam.packageName);
+        if (hint) {
+            exitIfMasterReInstall(context, loadPackageParam.packageName);
+        }
     }
 
     private static void exitIfMasterReInstall(Context context, final String slavePackageName) {
@@ -113,7 +116,7 @@ public class HotLoadPackageEntry {
     @SuppressWarnings("unchecked")
     private static Set<AgentCallback> findExternalCallBack() {
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
-        if (!modulesDir.exists()) {
+        if (!modulesDir.exists() || !modulesDir.canRead()) {
             return Collections.emptySet();
         }
         Set<AgentCallback> ret = Sets.newHashSet();
