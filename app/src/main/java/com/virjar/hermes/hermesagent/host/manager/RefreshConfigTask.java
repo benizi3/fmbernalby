@@ -13,7 +13,7 @@ import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
-import com.virjar.hermes.hermesagent.util.URLEncodeUtil;
+import com.virjar.hermes.hermesagent.util.EscapeUtil;
 
 import java.io.IOException;
 import java.util.TimerTask;
@@ -39,7 +39,7 @@ public class RefreshConfigTask extends TimerTask {
     @Override
     public void run() {
         String deviceID = CommonUtils.deviceID(context);
-        String requestURL = Constant.serverBaseURL + Constant.getConfigPath + "?mac=" + URLEncodeUtil.escape(deviceID);
+        String requestURL = Constant.serverBaseURL + Constant.getConfigPath + "?mac=" + EscapeUtil.escape(deviceID);
         Request request = new Request.Builder()
                 .get()
                 .url(requestURL)

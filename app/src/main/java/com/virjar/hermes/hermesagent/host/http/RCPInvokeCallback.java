@@ -25,10 +25,11 @@ import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
-import com.virjar.hermes.hermesagent.util.URLEncodeUtil;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
+
+import java.net.URLEncoder;
 
 import javax.annotation.Nullable;
 
@@ -126,7 +127,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                 if (input == null) {
                     return null;
                 }
-                return URLEncodeUtil.escape(input.getName()) + "=" + URLEncodeUtil.escape(input.getValue());
+                return URLEncoder.encode(input.getName()) + "=" + URLEncoder.encode(input.getValue());
             }
         }));
 

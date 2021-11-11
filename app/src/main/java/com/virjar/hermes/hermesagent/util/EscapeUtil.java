@@ -8,7 +8,7 @@ import java.util.Set;
  * Created by virjar on 2018/8/24.
  */
 
-public class URLEncodeUtil {
+public class EscapeUtil {
     private static Set<Integer> unEncodeCharacters = Sets.newHashSet();
 
     static {

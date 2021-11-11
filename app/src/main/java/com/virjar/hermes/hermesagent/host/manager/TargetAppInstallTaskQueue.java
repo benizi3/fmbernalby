@@ -14,7 +14,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
-import com.virjar.hermes.hermesagent.util.URLEncodeUtil;
+import com.virjar.hermes.hermesagent.util.EscapeUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -66,7 +66,7 @@ public class TargetAppInstallTaskQueue {
         }
         doingSet.add(targetAppPackage);
         //download
-        String url = Constant.serverBaseURL + Constant.downloadPath + "?package=" + URLEncodeUtil.escape(targetAppPackage);
+        String url = Constant.serverBaseURL + Constant.downloadPath + "?package=" + EscapeUtil.escape(targetAppPackage);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
         request.setTitle("hermesAgent自动下载");

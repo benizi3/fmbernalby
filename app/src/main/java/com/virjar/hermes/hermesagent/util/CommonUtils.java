@@ -230,7 +230,7 @@ public class CommonUtils {
     }
 
     public static String pingServer(String sourcePackage) {
-        String url = localServerBaseURL() + Constant.httpServerPingPath + "?source_package=" + URLEncodeUtil.escape(sourcePackage);
+        String url = localServerBaseURL() + Constant.httpServerPingPath + "?source_package=" + EscapeUtil.escape(sourcePackage);
         try {
             Log.i(TAG, "ping hermes server:" + url);
             String pingResponse = HttpClientUtils.getRequest(url);
