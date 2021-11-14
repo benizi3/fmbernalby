@@ -1,4 +1,4 @@
-package com.virjar.hermes.wapper_weishi;
+package com.virjar.hermes.wrapper_weishi;
 
 import android.app.Activity;
 import android.util.Log;
