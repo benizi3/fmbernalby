@@ -95,7 +95,7 @@ public class XposedInit implements IXposedHookLoadPackage {
         try {
             aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
         } catch (ClassNotFoundException e) {
-            Log.e(TAG, "do you not disable Instant Runt for Android studio?");
+            Log.e(TAG, "do you not disable Instant Runt for Android studio?", e);
             try {
                 aClass = XposedInit.class.getClassLoader().loadClass(Constant.xposedHotloadEntry);
             } catch (ClassNotFoundException e1) {

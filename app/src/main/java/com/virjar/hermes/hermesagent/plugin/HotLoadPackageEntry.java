@@ -12,6 +12,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
@@ -27,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 
@@ -49,13 +51,23 @@ public class HotLoadPackageEntry {
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
+        Map<String, AgentCallback> callbackMap = Maps.newHashMap();
         //执行所有自定义的回调钩子函数
         Set<AgentCallback> allCallBack = findEmbedCallBack();
+        for (AgentCallback agentCallback : allCallBack) {
+            callbackMap.put(agentCallback.targetPackageName(), agentCallback);
+        }
         //安装在容器中的扩展代码，优先级比内嵌的模块高
-        allCallBack.addAll(findExternalCallBack());
+        allCallBack = findExternalCallBack();
+        for (AgentCallback agentCallback : allCallBack) {
+            AgentCallback old = callbackMap.put(agentCallback.targetPackageName(), agentCallback);
+            if (old != null) {
+                Log.w(TAG, "duplicate hermes wrapper found , hermes agent only load single one hermes wrapper");
+            }
+        }
 
         boolean hint = false;
-        for (AgentCallback agentCallback : allCallBack) {
+        for (AgentCallback agentCallback : callbackMap.values()) {
             if (agentCallback == null) {
                 continue;
             }
@@ -73,7 +85,9 @@ public class HotLoadPackageEntry {
             }
         }
         if (hint) {
-            exitIfMasterReInstall(context, loadPackageParam.packageName);
+            //先不实现这个功能，对于外置apk的方案，如果Hermes-wrapper有新发布，由hermes-agent发送IPC命令过来重启。
+            //Hermes-Agent主动更新认为是框架更新，只要是IPC protocol没有发生更新，无需重启Slave
+            //exitIfMasterReInstall(context, loadPackageParam.packageName);
         }
     }
 
@@ -99,10 +113,22 @@ public class HotLoadPackageEntry {
                 }
                 Log.i(TAG, "master 重新安装，重启slave 进程");
 
-                //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
-                //重启自身的原因，是因为目前挂钩代码寄生在master的apk包里面的，未来将挂钩代码迁移到slave之后，便不需要重启自身了
-                Process.killProcess(Process.myPid());
-                System.exit(0);
+                new Thread("kill-self-thread") {
+                    @Override
+                    public void run() {
+                        //不能马上自杀，这可能会触发slave进程去更新master的代码dex-cache。但是由于权限问题无法remove历史版本的apk代码缓存，进而热加载失败
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            return;
+                        }
+                        //自杀后，自然有其他守护进程拉起，无需考虑死后重启问题
+                        //重启自身的原因，是因为目前挂钩代码寄生在master的apk包里面的，未来将挂钩代码迁移到slave之后，便不需要重启自身了
+                        Process.killProcess(Process.myPid());
+                        System.exit(0);
+                    }
+                }.start();
+
             }
 
             private String getPackageName(Intent intent) {

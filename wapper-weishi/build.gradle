@@ -17,7 +17,7 @@ android {
     }
     signingConfigs {
         release {
-            storeFile rootProject.file('hermes_key')
+            storeFile rootProject.file('deploy/hermes_key')
             storePassword "hermes"
             keyAlias "hermes"
             keyPassword "hermes"
@@ -31,8 +31,6 @@ android {
             signingConfig signingConfigs.release
         }
     }
-
-
 }
 
 dependencies {
@@ -49,10 +47,18 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.7'
 }
 
-task deployWrapper {
-    dependsOn 'assembleRelease'
-}
-
-deployWrapper.doLast {
-    print 'test2'
+task deployWrapper(type: Exec, description: 'sync wrapper apk into hermes agent container', dependsOn: 'assembleRelease') {
+    File[] apkFiles = file('build/outputs/apk/release').listFiles(new FilenameFilter() {
+        @Override
+        boolean accept(File dir, String name) {
+            return name.endsWith('release.apk');
+        }
+    })
+    if (apkFiles == null || apkFiles.length == 0) {
+        print 'can not find target apk file'
+        return
+    }
+    File releaseApk = apkFiles[0];
+    String uploadPath = '/data/local/tmp/' + releaseApk.name
+    commandLine rootProject.file('deploy/syncWrapper.sh').absolutePath, releaseApk.absolutePath, uploadPath
 }
