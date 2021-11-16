@@ -59,6 +59,6 @@ task deployWrapper(type: Exec, description: 'sync wrapper apk into hermes agent 
         return
     }
     File releaseApk = apkFiles[0];
-    String uploadPath = '/data/local/tmp/' + releaseApk.name
+    String uploadPath = '/data/data/com.virjar.hermes.hermesagent/hermesModules/' + releaseApk.name
     commandLine rootProject.file('deploy/syncWrapper.sh').absolutePath, releaseApk.absolutePath, uploadPath
 }

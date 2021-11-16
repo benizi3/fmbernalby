@@ -143,13 +143,14 @@ public class HotLoadPackageEntry {
     private static Set<AgentCallback> findExternalCallBack() {
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
+            Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
             return Collections.emptySet();
         }
         Set<AgentCallback> ret = Sets.newHashSet();
         for (File apkFile : modulesDir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return StringUtils.equalsIgnoreCase(name, ".apk");
+                return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
             try {
