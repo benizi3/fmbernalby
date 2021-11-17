@@ -140,12 +140,13 @@ public class HotLoadPackageEntry {
     }
 
     @SuppressWarnings("unchecked")
-    private static Set<AgentCallback> findExternalCallBack() {
+    private synchronized static Set<AgentCallback> findExternalCallBack() {
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
             Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
             return Collections.emptySet();
         }
+
         Set<AgentCallback> ret = Sets.newHashSet();
         for (File apkFile : modulesDir.listFiles(new FilenameFilter() {
             @Override
@@ -153,12 +154,14 @@ public class HotLoadPackageEntry {
                 return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
+            Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
             try {
                 ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
                 String packageName = apkMeta.getPackageName();
                 ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
                 ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFile);
-                ret.addAll(filter(subClassVisitor));
+                Set<AgentCallback> filtered = filter(subClassVisitor);
+                ret.addAll(filtered);
             } catch (Exception e) {
                 Log.e("weijia", "failed to load hermes-wrapper module", e);
             }
