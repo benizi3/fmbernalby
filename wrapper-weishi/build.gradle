@@ -59,7 +59,7 @@ task deployWrapper(type: Exec, description: 'sync wrapper apk into hermes agent 
         })
         if (apkFiles == null || apkFiles.length == 0) {
             print 'wait for release apk file ready'
-            sleep(100)
+            sleep(500)
             continue
         }
         releaseApk = apkFiles[0];

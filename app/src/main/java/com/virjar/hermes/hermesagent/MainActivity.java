@@ -16,8 +16,12 @@ import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class MainActivity extends AppCompatActivity {
     private IServiceRegister mService = null;
+    private Timer timer = null;
 
     private ServiceConnection fontServiceConnection = new ServiceConnection() {
 
@@ -25,12 +29,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService = IServiceRegister.Stub.asInterface(service);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    updateStatus();
-                }
-            });
         }
 
         @Override
@@ -56,7 +54,13 @@ public class MainActivity extends AppCompatActivity {
         intent.setAction(Constant.serviceRegisterAction);
         intent.setPackage(Constant.packageName);
         bindService(intent, fontServiceConnection, Context.BIND_AUTO_CREATE);
-
+        timer = new Timer("refreshUI", true);
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                updateStatus();
+            }
+        }, 500, 2000);
     }
 
     @Override
