@@ -1,42 +1,35 @@
 package com.virjar.hermes.hermesagent.util;
 
-import android.os.Build;
 import android.util.Log;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
-import com.virjar.baksmalisrc.dexlib2.Opcodes;
-import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedClassDef;
-import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedDexFile;
-import com.virjar.baksmalisrc.dexlib2.dexbacked.DexBackedOdexFile;
-import com.virjar.baksmalisrc.dexlib2.dexbacked.raw.HeaderItem;
-import com.virjar.baksmalisrc.dexlib2.dexbacked.raw.OdexHeaderItem;
-import com.virjar.baksmalisrc.dexlib2.util.DexUtil;
 
 import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.DexClass;
+import net.dongliu.apk.parser.parser.DexParser;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import dalvik.system.PathClassLoader;
-
-
 
 /*
  * Created by virjar on 2018/8/8.<br>
  * 类扫描器，该扫描器无法扫描有壳的class和系统的class
 */
-
 public class ClassScanner {
 
     public static <T> List<Class<? extends T>> scan(Class<T> pclazz) {
@@ -144,30 +137,32 @@ public class ClassScanner {
 
     }
 
-    private static DexBackedDexFile createDexFile() {
+    public static final int ITEM_SIZE = 40;
+
+    private static DexClass[] hermesAgentApkClasses() {
         Object dex = ReflectUtil.callMethod(ClassScanner.class, "getDex");
         if (dex == null) {
             return null;
         }
         byte[] buffer = (byte[]) ReflectUtil.callMethod(dex, "getBytes");
 
-        if (HeaderItem.verifyMagic(buffer, 0)) {
-            return new DexBackedDexFile(Opcodes.forApi(Build.VERSION.SDK_INT), buffer);
-            //a normal dex file
+        if (verifyDexMagic(buffer, 0)) {
+            DexParser dexParser = new DexParser(ByteBuffer.wrap(buffer));
+            return dexParser.parse();
         }
-        if (OdexHeaderItem.verifyMagic(buffer, 0)) {
-            //this is a odex file
+        if (verifyOdexMagic(buffer, 0)) {
             try {
                 ByteArrayInputStream is = new ByteArrayInputStream(buffer);
-                DexUtil.verifyOdexHeader(is);
+                verifyOdexHeader(is);
                 is.reset();
-                byte[] odexBuf = new byte[OdexHeaderItem.ITEM_SIZE];
+                byte[] odexBuf = new byte[ITEM_SIZE];
                 ByteStreams.readFully(is, odexBuf);
-                int dexOffset = OdexHeaderItem.getDexOffset(odexBuf);
-                if (dexOffset > OdexHeaderItem.ITEM_SIZE) {
-                    ByteStreams.skipFully(is, dexOffset - OdexHeaderItem.ITEM_SIZE);
+                int dexOffset = getDexOffset(odexBuf);
+                if (dexOffset > ITEM_SIZE) {
+                    ByteStreams.skipFully(is, dexOffset - ITEM_SIZE);
                 }
-                return new DexBackedOdexFile(Opcodes.forApi(Build.VERSION.SDK_INT), odexBuf, ByteStreams.toByteArray(is));
+                DexParser dexParser = new DexParser(ByteBuffer.wrap(ByteStreams.toByteArray(is)));
+                return dexParser.parse();
             } catch (IOException e) {
                 //while not happen
                 throw new RuntimeException(e);
@@ -176,36 +171,28 @@ public class ClassScanner {
         return null;
     }
 
+
     @SuppressWarnings("unchecked")
     public static <T> void scan(ClassVisitor<T> classVisitor, PackageSearchNode packageSearchNode, File sourceLocation) {
         ClassLoader classLoader;
-        Iterable<String> classes;
+        DexClass[] classes;
         if (sourceLocation == null) {
-            DexBackedDexFile dexFile = createDexFile();
-            if (dexFile == null) {
-                Log.e("weijia", "无法定位dex文件，无法读取class列表");
-                return;
-            }
-            classes = Iterables.transform(dexFile.getClasses(), new Function<DexBackedClassDef, String>() {
-                @Override
-                public String apply(DexBackedClassDef input) {
-                    return descriptorToDot(input.getType());
-                }
-            });
+            classes = hermesAgentApkClasses();
             classLoader = ClassScanner.class.getClassLoader();
         } else {
             try (ApkFile apkFile = new ApkFile(sourceLocation)) {
-                List<String> theClasses = Lists.newArrayListWithExpectedSize(apkFile.getDexClasses().length);
-                for (DexClass dexClass : apkFile.getDexClasses()) {
-                    theClasses.add(descriptorToDot(dexClass.getClassType()));
-                }
-                classes = theClasses;
+                classes = apkFile.getDexClasses();
                 classLoader = new PathClassLoader(sourceLocation.getAbsolutePath(), ClassScanner.class.getClassLoader());
             } catch (IOException e) {
                 throw new IllegalStateException("the filed not a apk filed format", e);
             }
         }
-        for (String className : classes) {
+        if (classes == null) {
+            Log.w("weijia", "failed to get classes  info,class scanner will skip");
+            return;
+        }
+        for (DexClass dexClass : classes) {
+            String className = descriptorToDot(dexClass.getClassType());
             if (className.contains("$")) {
                 //忽略内部类
                 continue;
@@ -297,5 +284,110 @@ public class ClassScanner {
             newStr.append(']');
         }
         return new String(newStr);
+    }
+
+    private static final byte[] DEX_MAGIC_VALUE = new byte[]{0x64, 0x65, 0x78, 0x0a, 0x00, 0x00, 0x00, 0x00};
+
+    /**
+     * Verifies the magic value at the beginning of a dex file
+     *
+     * @param buf    A byte array containing at least the first 8 bytes of a dex file
+     * @param offset The offset within the buffer to the beginning of the dex header
+     * @return True if the magic value is valid
+     */
+    public static boolean verifyDexMagic(byte[] buf, int offset) {
+        if (buf.length - offset < 8) {
+            return false;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (buf[offset + i] != DEX_MAGIC_VALUE[i]) {
+                return false;
+            }
+        }
+        for (int i = 4; i < 7; i++) {
+            if (buf[offset + i] < '0' ||
+                    buf[offset + i] > '9') {
+                return false;
+            }
+        }
+        if (buf[offset + 7] != DEX_MAGIC_VALUE[7]) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static final byte[] ODEX_MAGIC_VALUE = new byte[]{0x64, 0x65, 0x79, 0x0A, 0x00, 0x00, 0x00, 0x00};
+
+
+    /**
+     * Verifies the magic value at the beginning of an odex file
+     *
+     * @param buf    A byte array containing at least the first 8 bytes of an odex file
+     * @param offset The offset within the buffer to the beginning of the odex header
+     * @return True if the magic value is valid
+     */
+    public static boolean verifyOdexMagic(byte[] buf, int offset) {
+        if (buf.length - offset < 8) {
+            return false;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            if (buf[offset + i] != ODEX_MAGIC_VALUE[i]) {
+                return false;
+            }
+        }
+        for (int i = 4; i < 7; i++) {
+            if (buf[offset + i] < '0' ||
+                    buf[offset + i] > '9') {
+                return false;
+            }
+        }
+        if (buf[offset + 7] != ODEX_MAGIC_VALUE[7]) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Reads in the odex header from the given input stream and verifies that it is valid and a supported version
+     * <p>
+     * The inputStream must support mark(), and will be reset to initial position upon exiting the method
+     */
+    public static void verifyOdexHeader(@Nonnull InputStream inputStream) throws IOException {
+        if (!inputStream.markSupported()) {
+            throw new IllegalArgumentException("InputStream must support mark");
+        }
+        inputStream.mark(8);
+        byte[] partialHeader = new byte[8];
+        try {
+            ByteStreams.readFully(inputStream, partialHeader);
+        } catch (EOFException ex) {
+            throw new IllegalStateException("File is too short");
+        } finally {
+            inputStream.reset();
+        }
+    }
+
+    public static final int DEX_OFFSET = 8;
+
+    public static int readSmallUint(int offset, byte[] buf, int baseOffset) {
+
+        offset += baseOffset;
+        int result = (buf[offset] & 0xff) |
+                ((buf[offset + 1] & 0xff) << 8) |
+                ((buf[offset + 2] & 0xff) << 16) |
+                ((buf[offset + 3]) << 24);
+        if (result < 0) {
+            throw new IllegalStateException(String.format("Encountered small uint that is out of range at offset 0x%x", offset));
+        }
+        return result;
+    }
+
+
+    public static int getDexOffset(byte[] buf) {
+        return readSmallUint(DEX_OFFSET, buf, 0);
     }
 }

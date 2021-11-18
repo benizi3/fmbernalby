@@ -66,7 +66,6 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     implementation 'org.apache.commons:commons-lang3:3.7'
     // implementation project(':jadb')
-    implementation project(':baksmali')
     implementation project(':hermes-api')
     // implementation project(':AndroidAsync')
     implementation 'com.jaredrummler:android-processes:1.1.1'
