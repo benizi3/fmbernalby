@@ -58,4 +58,7 @@ public interface Constant {
             ? "/data/user_de/0/" + packageName + "/"
             : "/data/data/" + packageName + "/";
     String HERMES_WRAPPER_DIR = Constant.BASE_DIR + "hermesModules/";
+
+    //adb 远程接口，运行在5555端口
+    int ADBD_PORT = 5555;
 }

@@ -47,7 +47,7 @@ public class AgentDaemonTask extends TimerTask {
         pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
         if (StringUtils.equalsIgnoreCase(pingResponse, Constant.unknown)) {
             Log.i(TAG, "HermesAgent dead, restart it，retryTimes：" + retryTimes);
-            if (retryTimes > 8) {
+            if (retryTimes > 5) {
                 //如果广播方案被禁止，那么尝试显示的启动Hermes进程
                 PackageManager packageManager = context.getPackageManager();
                 Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(Constant.packageName);

@@ -14,6 +14,12 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
@@ -25,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -33,11 +40,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.security.MessageDigest;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
+import eu.chainfire.libsuperuser.Shell;
 import okhttp3.Request;
 
 import static android.content.Context.TELEPHONY_SERVICE;
@@ -58,7 +71,6 @@ public class CommonUtils {
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
                 NetworkInterface intf = en.nextElement();
-                //这个好像是没法用的ip
                 if (StringUtils.startsWithIgnoreCase(intf.getName(), "usbnet")) {
                     continue;
                 }
@@ -258,5 +270,92 @@ public class CommonUtils {
         } catch (IOException e) {
             throw new IllegalStateException("the filed not a apk filed format", e);
         }
+    }
+
+    public static boolean xposedStartSuccess = false;
+
+    private static boolean checkTcpAdbRunning() {
+        Socket socket = new Socket();
+        String localIp = getLocalIp();
+        boolean localBindSuccess = false;
+        try {
+            socket.bind(new InetSocketAddress(localIp, 0));
+            localBindSuccess = true;
+            InetSocketAddress endpointSocketAddr = new InetSocketAddress(localIp, Constant.ADBD_PORT);
+            socket.connect(endpointSocketAddr, 1000);
+            return true;
+        } catch (IOException e) {
+            //ignore
+            if (!localBindSuccess) {
+                throw new IllegalStateException(e);
+            }
+            return false;
+        } finally {
+            IOUtils.closeQuietly(socket);
+        }
+    }
+
+    /**
+     * 将adb daemon进程设置为tcp的模式，这样就可以通过远程的方案使用adb，adbd是在zygote之前启动的一个进程，权限高于普通system进程
+     */
+    public static void enableADBTCPProtocol(Context context) throws IOException, InterruptedException {
+        //check if adb running on 5555 port
+        if (checkTcpAdbRunning()) {
+            return;
+        }
+
+        if (!Shell.SU.available()) {
+            return;
+        }
+
+        List<String> result = Shell.SU.run("getprop service.adb.tcp.port");
+        for (String str : result) {
+            if (StringUtils.isBlank(str)) {
+                continue;
+            }
+            if (!StringUtils.equalsIgnoreCase(str, String.valueOf(Constant.ADBD_PORT))) {
+                Log.w(TAG, "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
+                break;
+            } else {
+                Shell.SU.run(Lists.newArrayList("stop adbd", "start adbd"));
+                return;
+            }
+        }
+
+        //将文件系统挂载为可读写
+        Shell.SU.run("mount -o remount rw /system/");
+
+        List<String> buildProperties = Shell.SU.run("cat /system/build.prop");
+        List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
+        for (String property : buildProperties) {
+            if (StringUtils.startsWithIgnoreCase(property, "ro.sys.usb.storage.type=")
+                    || StringUtils.startsWithIgnoreCase(property, "persist.sys.usb.config=")) {
+                int i = property.indexOf("=");
+                newProperties.add(property.substring(0, i) + "=" + Joiner.on(",").join(Iterables.filter(Splitter.on(",").splitToList(property.substring(i + 1))
+                        , new Predicate<String>() {
+                            @Override
+                            public boolean apply(@Nullable String input) {
+                                return !StringUtils.equalsIgnoreCase(input, "adb");
+                            }
+                        })));
+                continue;
+            }
+            if (StringUtils.startsWithIgnoreCase(property, "service.adb.tcp.port=")) {
+                continue;
+            }
+            newProperties.add(property);
+        }
+        newProperties.add("service.adb.tcp.port=5555");
+
+        //覆盖文件到配置文件
+        File file = com.virjar.hermes.hermesagent.hermes_api.CommonUtils.genTempFile(context);
+        BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
+        for (String property : newProperties) {
+            bufferedWriter.write(property);
+            bufferedWriter.newLine();
+        }
+        IOUtils.closeQuietly(bufferedWriter);
+        Shell.SU.run("mv " + file.getAbsolutePath() + " /system/build.prop");
+        Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  5555", "stop adbd", "start adbd"));
     }
 }

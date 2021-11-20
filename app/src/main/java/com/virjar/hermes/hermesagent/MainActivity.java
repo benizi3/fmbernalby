@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.TextView;
 
 import com.google.common.base.Joiner;
@@ -21,7 +22,6 @@ import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
     private IServiceRegister mService = null;
-    private Timer timer = null;
 
     private ServiceConnection fontServiceConnection = new ServiceConnection() {
 
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setAction(Constant.serviceRegisterAction);
         intent.setPackage(Constant.packageName);
         bindService(intent, fontServiceConnection, Context.BIND_AUTO_CREATE);
-        timer = new Timer("refreshUI", true);
+        Timer timer = new Timer("refreshUI", true);
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -84,14 +84,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 TextView tv = findViewById(R.id.sample_text);
-                String text = "接口地址：" + CommonUtils.localServerBaseURL();
-                if (mService != null) {
-                    try {
-                        text += "\n\n在线服务列表:\n"
-                                + Joiner.on("\n").join(mService.onlineService());
-                    } catch (RemoteException e) {
-                        text += "获取服务列表失败";
+                String text;
+                if (CommonUtils.xposedStartSuccess) {
+                    text = "接口地址：" + CommonUtils.localServerBaseURL();
+                    if (mService != null) {
+                        try {
+                            text += "\n\n在线服务列表:\n"
+                                    + Joiner.on("\n").join(mService.onlineService());
+                        } catch (RemoteException e) {
+                            text += "获取服务列表失败";
+                        }
                     }
+                } else {
+                    text = "xposed中，未正常启动HermesAgent模块";
                 }
                 tv.setText(text);
             }

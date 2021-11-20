@@ -168,9 +168,26 @@ public class FontService extends Service {
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
 
+        if (!CommonUtils.xposedStartSuccess) {
+            Log.w(TAG, "xposed 模块启动不正常，取消server启动");
+            return;
+        }
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    CommonUtils.enableADBTCPProtocol(FontService.this);
+                } catch (Exception e) {
+                    Log.e("weijia", "enable adb remote exception", e);
+                }
+            }
+        }.start();
+
+
         if (allCallback == null) {
             scanCallBack();
         }
+
 
         //启动httpServer
         HttpServer.getInstance().setFontService(this);

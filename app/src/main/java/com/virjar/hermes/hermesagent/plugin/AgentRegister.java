@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -16,6 +17,8 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+
+import java.io.File;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -40,6 +43,27 @@ public class AgentRegister {
                     Log.e(TAG, "invoke callback failed", e);
                     return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(e));
                 }
+            }
+
+            @Override
+            public void killSelf() throws RemoteException {
+                new Thread() {
+                    @Override
+                    public void run() {
+                        Process.killProcess(Process.myPid());
+                        System.exit(0);
+                    }
+                }.start();
+            }
+
+            @Override
+            public void clean(String filePath) throws RemoteException {
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    return;
+                }
+
+                file.delete();
             }
         };
 

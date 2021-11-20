@@ -68,8 +68,9 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                 new Runnable() {
                     @Override
                     public void run() {
+                        InvokeResult invokeResult = null;
                         try {
-                            InvokeResult invokeResult = hookAgent.invoke(invokeRequest);
+                            invokeResult = hookAgent.invoke(invokeRequest);
                             if (invokeResult == null) {
                                 CommonUtils.sendJSON(response, CommonRes.failed("agent return null object"));
                                 return;
@@ -89,6 +90,17 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_service_not_available, Constant.serviceNotAvailableMessage));
                         } catch (RemoteException e) {
                             CommonUtils.sendJSON(response, CommonRes.failed(e));
+                        } finally {
+                            if (invokeResult != null) {
+                                String needDeleteFile = invokeResult.needDeleteFile();
+                                if (needDeleteFile != null) {
+                                    try {
+                                        hookAgent.clean(needDeleteFile);
+                                    } catch (RemoteException e) {
+                                        fontService.releaseDeadAgent(invokePackage);
+                                    }
+                                }
+                            }
                         }
                     }
                 }, response).run();

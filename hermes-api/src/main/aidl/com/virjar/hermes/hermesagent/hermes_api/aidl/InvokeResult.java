@@ -119,6 +119,7 @@ public class InvokeResult implements Parcelable {
         return dataType;
     }
 
+
     public String getTheData() {
         if (!useFile) {
             return theData;
@@ -133,6 +134,7 @@ public class InvokeResult implements Parcelable {
             fileInputStream.close();
             theData = ret;
             useFile = false;
+            deleteFilePath = file.getAbsolutePath();
             if (!file.delete()) {
                 Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
             }
@@ -140,6 +142,12 @@ public class InvokeResult implements Parcelable {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private String deleteFilePath = null;
+
+    public String needDeleteFile() {
+        return deleteFilePath;
     }
 
 }

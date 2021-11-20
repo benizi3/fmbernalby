@@ -20,6 +20,7 @@ public class StartOnBootBroadcastReceiver extends BroadcastReceiver {
         Intent service = new Intent(context, FontService.class);
         context.startService(service);
 
+
         // clearAbortBroadcast();
     }
 }

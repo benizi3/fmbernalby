@@ -35,6 +35,7 @@ import java.util.Timer;
 import javax.annotation.Nullable;
 
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
@@ -48,6 +49,12 @@ public class HotLoadPackageEntry {
 
     @SuppressWarnings("unused")
     public static void entry(Context context, XC_LoadPackage.LoadPackageParam loadPackageParam) {
+        if (StringUtils.equalsIgnoreCase(loadPackageParam.packageName, Constant.packageName)) {
+            //CommonUtils.xposedStartSuccess = true;
+            Class commonUtilClass = XposedHelpers.findClass("com.virjar.hermes.hermesagent.util.CommonUtils", loadPackageParam.classLoader);
+            XposedHelpers.setStaticBooleanField(commonUtilClass, "xposedStartSuccess", true);
+            return;
+        }
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
@@ -190,7 +197,6 @@ public class HotLoadPackageEntry {
             }
         }));
     }
-
 
     /**
      * 在HermesAgent中内置的HermesWrapper实现

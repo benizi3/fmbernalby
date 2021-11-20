@@ -12,8 +12,6 @@ import android.util.Log;
 import com.google.common.collect.Maps;
 import com.virjar.hermes.hermesagent.util.Constant;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.concurrent.ConcurrentMap;
 
 import dalvik.system.PathClassLoader;
@@ -34,9 +32,6 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (StringUtils.equalsIgnoreCase(lpparam.packageName, Constant.packageName)) {
-            return;
-        }
 //        if (StringUtils.equalsIgnoreCase(lpparam.packageName, "de.robv.android.xposed.installer")) {
 //            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
 //                @Override
