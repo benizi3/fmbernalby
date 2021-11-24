@@ -61,6 +61,17 @@ public class MainActivity extends AppCompatActivity {
                 updateStatus();
             }
         }, 500, 2000);
+
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    CommonUtils.enableADBTCPProtocol(MainActivity.this);
+                } catch (Exception e) {
+                    Log.e("weijia", "enable adb remote exception", e);
+                }
+            }
+        }.start();
     }
 
     @Override

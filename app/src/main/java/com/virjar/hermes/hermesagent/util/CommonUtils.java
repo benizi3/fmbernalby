@@ -262,67 +262,91 @@ public class CommonUtils {
         }
     }
 
+    private static volatile boolean isSettingADB = false;
+
     /**
      * 将adb daemon进程设置为tcp的模式，这样就可以通过远程的方案使用adb，adbd是在zygote之前启动的一个进程，权限高于普通system进程
      */
-    public static void enableADBTCPProtocol(Context context) throws IOException, InterruptedException {
+    public static synchronized void enableADBTCPProtocol(Context context) throws IOException, InterruptedException {
+        if (isSettingADB) {
+            return;
+        }
+        isSettingADB = true;
+        String adbTag = "tcpADB";
         //check if adb running on 5555 port
         if (checkTcpAdbRunning()) {
+            Log.i(adbTag, "the adb service already running on 5555");
             return;
         }
-
-        if (!Shell.SU.available()) {
-            return;
-        }
-
-        List<String> result = Shell.SU.run("getprop service.adb.tcp.port");
-        for (String str : result) {
-            if (StringUtils.isBlank(str)) {
-                continue;
-            }
-            if (!StringUtils.equalsIgnoreCase(str, String.valueOf(Constant.ADBD_PORT))) {
-                Log.w(TAG, "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
-                break;
-            } else {
-                Shell.SU.run(Lists.newArrayList("stop adbd", "start adbd"));
+        try {
+            if (!Shell.SU.available()) {
+                Log.w(adbTag, "acquire root permission failed,can not enable adbd service with tcp protocol mode");
                 return;
             }
-        }
 
-        //将文件系统挂载为可读写
-        Shell.SU.run("mount -o remount rw /system/");
-
-        List<String> buildProperties = Shell.SU.run("cat /system/build.prop");
-        List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
-        for (String property : buildProperties) {
-            if (StringUtils.startsWithIgnoreCase(property, "ro.sys.usb.storage.type=")
-                    || StringUtils.startsWithIgnoreCase(property, "persist.sys.usb.config=")) {
-                int i = property.indexOf("=");
-                newProperties.add(property.substring(0, i) + "=" + Joiner.on(",").join(Iterables.filter(Splitter.on(",").splitToList(property.substring(i + 1))
-                        , new Predicate<String>() {
-                            @Override
-                            public boolean apply(@Nullable String input) {
-                                return !StringUtils.equalsIgnoreCase(input, "adb");
-                            }
-                        })));
-                continue;
+            List<String> result = Shell.SU.run("getprop service.adb.tcp.port");
+            for (String str : result) {
+                if (StringUtils.isBlank(str)) {
+                    continue;
+                }
+                if (!StringUtils.equalsIgnoreCase(str, String.valueOf(Constant.ADBD_PORT))) {
+                    Log.w(adbTag, "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
+                    break;
+                } else {
+                    List<String> executeOutput =
+                            Shell.SU.run(Lists.newArrayList("stop adbd", "start adbd"));
+                    Log.i(adbTag, "adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
+                    return;
+                }
             }
-            if (StringUtils.startsWithIgnoreCase(property, "service.adb.tcp.port=")) {
-                continue;
-            }
-            newProperties.add(property);
-        }
-        newProperties.add("service.adb.tcp.port=5555");
 
-        //覆盖文件到配置文件
-        File file = com.virjar.hermes.hermesagent.hermes_api.CommonUtils.genTempFile(context);
-        BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
-        for (String property : newProperties) {
-            bufferedWriter.write(property);
-            bufferedWriter.newLine();
+            //将文件系统挂载为可读写
+            List<String> executeOutput = Shell.SU.run("mount -o remount,rw /system");
+            Log.i(adbTag, "remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
+
+            Log.i(adbTag, "edit file /system/build.prop");
+            List<String> buildProperties = Shell.SU.run("cat /system/build.prop");
+            List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
+            for (String property : buildProperties) {
+                if (StringUtils.startsWithIgnoreCase(property, "ro.sys.usb.storage.type=")
+                        || StringUtils.startsWithIgnoreCase(property, "persist.sys.usb.config=")) {
+                    int i = property.indexOf("=");
+                    newProperties.add(property.substring(0, i) + "=" + Joiner.on(",").join(Iterables.filter(Splitter.on(",").splitToList(property.substring(i + 1))
+                            , new Predicate<String>() {
+                                @Override
+                                public boolean apply(@Nullable String input) {
+                                    return !StringUtils.equalsIgnoreCase(input, "adb");
+                                }
+                            })));
+                    continue;
+                }
+                if (StringUtils.startsWithIgnoreCase(property, "service.adb.tcp.port=")) {
+                    continue;
+                }
+                newProperties.add(property);
+            }
+            newProperties.add("service.adb.tcp.port=5555");
+
+            //覆盖文件到配置文件
+
+            File file = new File(context.getCacheDir(), "build.prop");
+            BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
+            for (String property : newProperties) {
+                bufferedWriter.write(property);
+                bufferedWriter.newLine();
+            }
+            IOUtils.closeQuietly(bufferedWriter);
+            String mvCommand = "mv " + file.getAbsolutePath() + " /system/";
+            executeOutput = Shell.SU.run(mvCommand);
+            Log.i(adbTag, "write content to /system/build.prop  " + mvCommand + "  " + Joiner.on("\n").skipNulls().join(executeOutput));
+            Shell.SU.run("chmod 644 /system/build.prop");
+
+            executeOutput = Shell.SU.run("mount -o remount ro /system");
+            Log.i(adbTag, "re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
+
+            Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  5555", "stop adbd", "start adbd"));
+        } finally {
+            isSettingADB = false;
         }
-        IOUtils.closeQuietly(bufferedWriter);
-        Shell.SU.run("mv " + file.getAbsolutePath() + " /system/build.prop");
-        Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  5555", "stop adbd", "start adbd"));
     }
 }
