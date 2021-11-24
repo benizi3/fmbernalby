@@ -1,14 +1,9 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
-import android.net.Uri;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -20,7 +15,9 @@ public class CommonUtils {
 
     public static File genTempFile(Context context) {
         File cacheDir = context.getCacheDir();
-        File retFile = new File(cacheDir, System.currentTimeMillis() + "_" + fileSequence.incrementAndGet());
+        File retFile = new File(cacheDir, "hermes_exchange_" + System.currentTimeMillis()
+                + "_" + fileSequence.incrementAndGet()
+                + "_" + Thread.currentThread().getId());
         try {
             if (!retFile.createNewFile()) {
                 throw new IllegalStateException("failed to create temp file :" + retFile.getAbsolutePath());

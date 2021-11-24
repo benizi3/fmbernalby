@@ -96,8 +96,10 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                                 if (needDeleteFile != null) {
                                     try {
                                         hookAgent.clean(needDeleteFile);
-                                    } catch (RemoteException e) {
+                                    } catch (DeadObjectException e) {
                                         fontService.releaseDeadAgent(invokePackage);
+                                    } catch (RemoteException e) {
+                                        Log.w("weijia", "remove temp file failed", e);
                                     }
                                 }
                             }

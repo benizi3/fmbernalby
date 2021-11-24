@@ -46,7 +46,6 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -129,41 +128,10 @@ public class CommonUtils {
 
     public static String execCmd(String cmd, boolean useRoot) {
         Log.i(TAG, "execute command:{" + cmd + "} useRoot:" + useRoot);
-        Runtime runtime = Runtime.getRuntime();
-        Process proc;
-        OutputStreamWriter osw = null;
-        StringBuilder stdOut = new StringBuilder();
-        StringBuilder stdErr = new StringBuilder();
-        try {
-            if (useRoot) {
-                proc = runtime.exec("su");
-                osw = new OutputStreamWriter(proc.getOutputStream());
-                osw.write(cmd);
-                osw.close();
-            } else {
-                proc = runtime.exec(cmd);
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                proc.waitFor(10, TimeUnit.SECONDS);
-            } else {
-                proc.waitFor();
-            }
-            stdOut.append(IOUtils.toString(proc.getInputStream(), Charsets.UTF_8));
-            stdErr.append(IOUtils.toString(proc.getErrorStream(), Charsets.UTF_8));
-            String result = StringUtils.join(new String[]{stdOut.toString(), stdErr.toString()}, "\r\n");
-            Log.i(TAG, "command execute result:" + result);
-            return result;
-        } catch (InterruptedException e) {
-            return "timeOut";
-        } catch (Exception ex) {
-            String stackTrack = CommonUtils.getStackTrack(ex);
-            Log.e(TAG, "exec cmd error" + stackTrack);
-            return stackTrack;
-        } finally {
-            IOUtils.closeQuietly(osw);
-        }
-
-
+        List<String> strings = useRoot ? Shell.SU.run(cmd) : Shell.SH.run(cmd);
+        String result = StringUtils.join(strings, "\r\n");
+        Log.i(TAG, "command execute result:" + result);
+        return result;
     }
 
 
@@ -174,7 +142,6 @@ public class CommonUtils {
             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
                 return telephonyMgr.getDeviceId();
             }
-
         }
         WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wm != null) {
