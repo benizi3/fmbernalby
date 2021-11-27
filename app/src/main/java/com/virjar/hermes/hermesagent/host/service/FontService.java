@@ -172,16 +172,6 @@ public class FontService extends Service {
             Log.w(TAG, "xposed 模块启动不正常，取消server启动");
             return;
         }
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    CommonUtils.enableADBTCPProtocol(FontService.this);
-                } catch (Exception e) {
-                    Log.e("weijia", "enable adb remote exception", e);
-                }
-            }
-        }.start();
 
 
         if (allCallback == null) {
@@ -215,6 +205,18 @@ public class FontService extends Service {
         timer = new Timer("FontServiceTimer", true);
         //监控所有agent状态
         timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
+
+        //半个小时，check一下adb的状态，守护adb进程
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    CommonUtils.enableADBTCPProtocol(FontService.this);
+                } catch (Exception e) {
+                    Log.e("weijia", "enable adb remote exception", e);
+                }
+            }
+        }, 10, 1000 * 60 * 30);
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {
