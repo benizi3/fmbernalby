@@ -273,12 +273,12 @@ public class CommonUtils {
         }
         isSettingADB = true;
         String adbTag = "tcpADB";
-        //check if adb running on 5555 port
-        if (checkTcpAdbRunning()) {
-            Log.i(adbTag, "the adb service already running on 5555");
-            return;
-        }
         try {
+            //check if adb running on 5555 port
+            if (checkTcpAdbRunning()) {
+                Log.i(adbTag, "the adb service already running on 5555");
+                return;
+            }
             if (!Shell.SU.available()) {
                 Log.w(adbTag, "acquire root permission failed,can not enable adbd service with tcp protocol mode");
                 return;
