@@ -20,6 +20,8 @@ import com.virjar.hermes.hermesagent.util.Constant;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import eu.chainfire.libsuperuser.Shell;
+
 public class MainActivity extends AppCompatActivity {
     private IServiceRegister mService = null;
 
@@ -108,6 +110,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     text = "xposed中，未正常启动HermesAgent模块";
+                }
+                if (!Shell.SU.available()) {
+                    text += "\n HermesAgent需要root权限，请放开HermesAgent的root授权";
                 }
                 tv.setText(text);
             }
