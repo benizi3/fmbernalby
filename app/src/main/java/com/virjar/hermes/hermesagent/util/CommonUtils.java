@@ -274,9 +274,9 @@ public class CommonUtils {
         isSettingADB = true;
         String adbTag = "tcpADB";
         try {
-            //check if adb running on 5555 port
+            //check if adb running on 4555 port
             if (checkTcpAdbRunning()) {
-                Log.i(adbTag, "the adb service already running on 5555");
+                Log.i(adbTag, "the adb service already running on " + Constant.ADBD_PORT);
                 return;
             }
             if (!Shell.SU.available()) {
@@ -325,7 +325,7 @@ public class CommonUtils {
                 }
                 newProperties.add(property);
             }
-            newProperties.add("service.adb.tcp.port=5555");
+            newProperties.add("service.adb.tcp.port=" + Constant.ADBD_PORT);
 
             //覆盖文件到配置文件
 
@@ -344,7 +344,7 @@ public class CommonUtils {
             executeOutput = Shell.SU.run("mount -o remount ro /system");
             Log.i(adbTag, "re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
 
-            Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  5555", "stop adbd", "start adbd"));
+            Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  " + Constant.ADBD_PORT, "stop adbd", "start adbd"));
         } finally {
             isSettingADB = false;
         }

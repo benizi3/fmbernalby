@@ -59,6 +59,6 @@ public interface Constant {
             : "/data/data/" + packageName + "/";
     String HERMES_WRAPPER_DIR = Constant.BASE_DIR + "hermesModules/";
 
-    //adb 远程接口，运行在5555端口
-    int ADBD_PORT = 5555;
+    //adb 远程接口，运行在4555端口,默认端口为5555，但是貌似有其他配置会和5555冲突，引起device offline，所以这里避开冲突
+    int ADBD_PORT = 4555;
 }
