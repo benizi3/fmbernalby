@@ -9,9 +9,17 @@ import android.content.pm.PackageManager;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
 import dalvik.system.PathClassLoader;
@@ -32,15 +40,15 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-//        if (StringUtils.equalsIgnoreCase(lpparam.packageName, "de.robv.android.xposed.installer")) {
-//            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
-//                @Override
-//                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                    fixXposedInstallerAppUpdate((Context) param.args[0], lpparam);
-//                }
-//            });
-//
-//        }
+        if (StringUtils.equalsIgnoreCase(lpparam.packageName, "de.robv.android.xposed.installer")) {
+            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    fixXposedInstallerAppUpdate((Context) param.args[0], lpparam);
+                }
+            });
+
+        }
         if (hooked) {
             return;
         }
@@ -53,21 +61,43 @@ public class XposedInit implements IXposedHookLoadPackage {
         });
     }
 
-    private void fixXposedInstallerAppUpdate(final Context context, XC_LoadPackage.LoadPackageParam lpparam) {
+    private String MODULES_LIST_FILE = "/data/data/de.robv.android.xposed.installer/conf/modules.list";
+
+    private void fixXposedInstallerAppUpdate(final Context context, final XC_LoadPackage.LoadPackageParam lpparam) {
         XC_MethodHook forceUpdateHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                Intent intent = (Intent) param.args[1];
-                String action = intent.getAction();
-                XposedBridge.log("收到模块更新消息:" + action);
-                if (action != null && action.equals(Intent.ACTION_PACKAGE_REMOVED) && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
-                    // Ignore existing packages being removed in order to be updated
-                    // package update ,the apk file location maybe changed,so can not ignore this message
-                    Intent newIntent = new Intent(intent);
-                    newIntent.putExtra(Intent.EXTRA_REPLACING, false);
-                    param.args[1] = newIntent;
-
-                    XposedBridge.log("xposed installer 强刷配置");
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                List<String> strings = Files.readLines(new File(MODULES_LIST_FILE), Charsets.UTF_8);
+                if (strings.size() == 0) {
+                    return;
+                }
+                PackageInfo packageInfo = context.getPackageManager().getPackageInfo(Constant.packageName, PackageManager.GET_META_DATA);
+                if (packageInfo == null) {
+                    //被卸载了
+                    return;
+                }
+                String sourceDir = packageInfo.applicationInfo.sourceDir;
+                List<String> editedConfig = Lists.newArrayListWithExpectedSize(strings.size());
+                boolean edited = false;
+                for (String config : strings) {
+                    if (StringUtils.containsIgnoreCase(config, Constant.packageName)) {
+                        if (!StringUtils.equals(sourceDir, config)) {
+                            editedConfig.add(sourceDir);
+                            edited = true;
+                        }
+                        break;
+                    } else {
+                        editedConfig.add(config);
+                    }
+                }
+                if (edited) {
+                    PrintWriter modulesList = new PrintWriter(MODULES_LIST_FILE);
+                    for (String config : editedConfig) {
+                        modulesList.println(config);
+                    }
+                    modulesList.close();
+                    Class<?> aClass = XposedHelpers.findClass("android.os.FileUtils", lpparam.classLoader);
+                    XposedHelpers.callStaticMethod(aClass, "setPermissions", MODULES_LIST_FILE, 00664, -1, -1);
                 }
             }
         };

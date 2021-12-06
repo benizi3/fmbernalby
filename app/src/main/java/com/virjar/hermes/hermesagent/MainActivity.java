@@ -112,12 +112,14 @@ public class MainActivity extends AppCompatActivity {
                     text = "xposed中，未正常启动HermesAgent模块";
                 }
                 if (!Shell.SU.available()) {
-                    text += "\n HermesAgent需要root权限，请放开HermesAgent的root授权";
+                    text += "\n  HermesAgent需要root权限，请放开HermesAgent的root授权";
                 }
                 tv.setText(text);
             }
         });
     }
+
+
 
 //
 //    /**
