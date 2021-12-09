@@ -118,7 +118,7 @@ public class HotLoadPackageEntry {
                 if (!StringUtils.equalsIgnoreCase(packageName, Constant.packageName)) {
                     return;
                 }
-                Log.i(TAG, "master 重新安装，重启slave 进程");
+                Log.i(TAG, "master  重新安装，重启slave 进程");
 
                 new Thread("kill-self-thread") {
                     @Override

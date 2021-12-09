@@ -349,4 +349,11 @@ public class CommonUtils {
             isSettingADB = false;
         }
     }
+
+    public static String safeToString(Object input) {
+        if (input == null) {
+            return null;
+        }
+        return input.toString();
+    }
 }

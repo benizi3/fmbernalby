@@ -70,6 +70,7 @@ public class XposedReflectUtil {
             Method[] declaredMethods = clazz.getDeclaredMethods();
             for (Method method : declaredMethods) {
                 XposedBridge.log("printMethod: " + method);
+                Log.i("weijia", "printMethod: " + method);
             }
             clazz = clazz.getSuperclass();
         }
