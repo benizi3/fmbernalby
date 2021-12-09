@@ -119,7 +119,7 @@ public class XposedInit implements IXposedHookLoadPackage {
         XposedReflectUtil.findAndHookMethodOnlyByMethodName(classIfExists, "isAllowedStartActivity", new SingletonXC_MethodHook() {
 
             @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(param.args[3]), Constant.packageName)) {
                     Log.i("weijia", "hermes 拉起apk的权限，强行打开");
                     param.setResult(true);
