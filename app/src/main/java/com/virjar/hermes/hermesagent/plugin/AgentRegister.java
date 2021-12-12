@@ -20,6 +20,8 @@ import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.io.File;
 
+import eu.chainfire.libsuperuser.Shell;
+
 /**
  * Created by virjar on 2018/8/23.
  */
@@ -63,7 +65,9 @@ public class AgentRegister {
                     return;
                 }
 
-                file.delete();
+                if (!file.delete()) {
+                    Shell.SH.run("rm -f " + file.getAbsolutePath());
+                }
             }
         };
 

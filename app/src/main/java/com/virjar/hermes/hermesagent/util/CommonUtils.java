@@ -284,7 +284,10 @@ public class CommonUtils {
                 return;
             }
 
-            List<String> result = Shell.SU.run("getprop service.adb.tcp.port");
+
+            List<String> result = Shell.run("su", new String[]{
+                    "getprop service.adb.tcp.port"
+            }, null, true);
             for (String str : result) {
                 if (StringUtils.isBlank(str)) {
                     continue;
