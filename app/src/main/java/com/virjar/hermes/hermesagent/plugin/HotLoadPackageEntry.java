@@ -150,7 +150,7 @@ public class HotLoadPackageEntry {
     private synchronized static Set<AgentCallback> findExternalCallBack() {
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
-            Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
+            //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
             return Collections.emptySet();
         }
 
@@ -161,7 +161,7 @@ public class HotLoadPackageEntry {
                 return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
-            Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
+            //Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
             try {
                 ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
                 String packageName = apkMeta.getPackageName();
