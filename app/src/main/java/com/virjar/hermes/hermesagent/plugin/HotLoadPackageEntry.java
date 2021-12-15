@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.Process;
 import android.util.Log;
 
@@ -112,7 +111,7 @@ public class HotLoadPackageEntry {
                 if (StringUtils.isBlank(action)) {
                     return;
                 }
-                String packageName = getPackageName(intent);
+                String packageName = CommonUtils.getPackageName(intent);
                 if (packageName == null)
                     return;
                 if (!StringUtils.equalsIgnoreCase(packageName, Constant.packageName)) {
@@ -138,10 +137,6 @@ public class HotLoadPackageEntry {
 
             }
 
-            private String getPackageName(Intent intent) {
-                Uri uri = intent.getData();
-                return (uri != null) ? uri.getSchemeSpecificPart() : null;
-            }
 
         }, intentFilter);
     }

@@ -7,12 +7,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
@@ -24,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import dalvik.system.PathClassLoader;
@@ -71,70 +74,85 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     /**
      * 小米系统的各种权限拦截，统一拆解掉<br>
-     * 小米系统拦截日志：
+     * 小米系统拦截日志：<br>
+     * activity拉起拦截<br>
      * D/com.android.server.am.ExtraActivityManagerService(  757): MIUILOG- Permission Denied Activity KeyguardLocked: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 pkg=com.tencent.weishi cmp=com.tencent.weishi/com.tencent.oscar.module.splash.SplashActivity } pkg : com.virjar.hermes.hermesagent uid : 10129<br>
      * 定位发生作用的代码为com.android.server.am.ExtraActivityManagerService，这个代码是小米自己的，Android原生不存在
+     * <br><br>
+     * 自启动广播拦截<br>
+     * W/BroadcastQueueInjector(  764): Unable to launch app de.robv.android.xposed.installer/10127 for broadcast Intent { act=android.intent.action.PACKAGE_ADDED dat=package:com.virjar.hermes.hermesagent flg=0x4000010 (has extras) }: process is not permitted to  auto start
      */
     private void fixMiUIStartPermissionFilter(final XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> classIfExists = XposedHelpers.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
-        if (classIfExists == null) {
-            return;
-        }
-        //Log.i("weijia", "classLoaderType :" + classIfExists.getClassLoader().getClass());
-        //Log.i("weijia", "classLoader" + JSONObject.toJSONString(classIfExists.getClassLoader()));
-        //classLoaderType :class dalvik.system.PathClassLoader  根据pathClassLoader 去解析jar包或者apk的文件地址
-        //dalvik.system.DexPathList
-        //Object pathList = XposedHelpers.getObjectField(classIfExists.getClassLoader(), "pathList");
-        //dalvik.system.DexPathList.Element
-        // Object[] dexElements = (Object[]) XposedHelpers.getObjectField(pathList, "dexElements");
-        //Log.i("weijia", "resource location:" + pathList);
-        //resource location:DexPathList[[zip file "/system/framework/services.jar", zip file "/system/framework/ethernet-service.jar", zip file "/system/framework/wifi-service.jar"],nativeLibraryDirectories=[/vendor/lib64, /system/lib64]]
+        Class<?> extraActivityManagerServiceClass = XposedHelpers.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
+        if (extraActivityManagerServiceClass != null) {
+            try {
+                XposedReflectUtil.findAndHookMethodOnlyByMethodName(extraActivityManagerServiceClass, "isAllowedStartActivity", new SingletonXC_MethodHook() {
 
-        //最终定位，这个次拦截class的jar包路径，位于/system/framework/services.jar
-        //相关博客 http://www.miui.com/thread-5762572-1-1.html，该文件是一个空头文件，因为代码被odex了。
-        //我拆开小米note的包，找到了services.odex的位置，就在system/framework/ota/arm里，其它miui手机应该也在这个路径！
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(param.args[3]), Constant.packageName)) {
+                            Log.i("weijia", "hermes 拉起apk的权限，强行打开");
+                            param.setResult(true);
+                        }
+                    }
 
-        //逆向表明，该方法为isAllowedStartActivity，我们需要拦截这个方法
-
-        // static android.content.Intent com.android.server.am.ExtraActivityManagerService.checkStartActivityPermission(
-        // android.content.Context,com.android.server.am.ActivityManagerService,android.app.IApplicationThread,
-        // android.content.pm.ActivityInfo,android.content.Intent,java.lang.String,
-        // boolean,int,boolean,int,int,java.lang.String)
-//        XposedReflectUtil.findAndHookMethodOnlyByMethodName(classIfExists, "checkStartActivityPermission", new SingletonXC_MethodHook() {
-//            @Override
-//            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                Log.i("weijia", "checkStartActivityPermission called");
-//            }
-//
-//            @Override
-//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//
-//            }
-//        });
-
-        //这个也比较可疑  static boolean com.android.server.am.ExtraActivityManagerService.isAllowedStartActivity(
-        // com.android.server.am.ActivityManagerService,com.android.server.am.ActivityStackSupervisor
-        // ,android.content.Intent,
-        // java.lang.String,int,android.content.pm.ActivityInfo)
-        XposedReflectUtil.findAndHookMethodOnlyByMethodName(classIfExists, "isAllowedStartActivity", new SingletonXC_MethodHook() {
-
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(param.args[3]), Constant.packageName)) {
-                    Log.i("weijia", "hermes 拉起apk的权限，强行打开");
-                    param.setResult(true);
-                }
+                });
+            } catch (NoSuchMethodError error) {
+                //ignore
             }
+        }
 
-        });
-        //        String sourceDir = "unknown";
-//        if (lpparam.appInfo != null) {
-//            sourceDir = lpparam.appInfo.sourceDir;
-//        }
-//        Log.i("weijia", "找到 activity manager,processName is:" + lpparam.processName + "  packageName is:" + lpparam.packageName + " appLocation is:" + sourceDir);
-//        //Method[] declaredMethods = classIfExists.getDeclaredMethods();
-//        XposedReflectUtil.printAllMethod(classIfExists);
+        //处理广播拦截  com.android.server.am.BroadcastQueueInjector
+        // static  bool checkApplicationAutoStart (com.android.server.am.BroadcastQueue, com.android.server.am.ActivityManagerService, com.android.server.am.BroadcastRecord, android.content.pm.ResolveInfo);
+        Class<?> broadcastQueueInjectorClass = XposedHelpers.findClassIfExists("com.android.server.am.BroadcastQueueInjector", lpparam.classLoader);
+        if (broadcastQueueInjectorClass != null) {
+            XposedReflectUtil.findAndHookMethodOnlyByMethodName(broadcastQueueInjectorClass, "checkApplicationAutoStart", new SingletonXC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.args.length < 2) {
+                        return;
+                    }
+                    Object info = param.args[param.args.length - 1];
+                    if (!(info instanceof ResolveInfo)) {
+                        return;
+                    }
+                    ResolveInfo resolveInfo = (ResolveInfo) info;
+                    if (resolveInfo.activityInfo == null) {
+                        return;
+                    }
+                    String packageName = resolveInfo.activityInfo.applicationInfo.packageName;
+                    if (autoStartWhiteList.contains(packageName)) {
+                        //xposedInstaller和HermesAgent，直接放开系统限制
+                        param.setResult(true);
+                        return;
+                    }
+                    Object r = param.args[param.args.length - 2];
+                    if (r == null || StringUtils.equalsIgnoreCase(r.getClass().getName(), "com.android.server.am.BroadcastRecord")) {
+                        return;
+                    }
+                    try {
+                        Intent intent = (Intent) XposedHelpers.getObjectField(r, "intent");
+                        if (intent != null && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName(intent), Constant.packageName)) {
+                            //HermesAgent触发的广播，均不拦截
+                            param.setResult(true);
+                            return;
+                        }
+                    } catch (Throwable throwable) {
+                        //ignore
+                    }
+                    try {
+                        if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), Constant.packageName)) {
+                            param.setResult(true);
+                        }
+                    } catch (Throwable throwable) {
+                        //ignore
+                    }
+                }
+            });
+        }
     }
+
+    private static Set<String> autoStartWhiteList = Sets.newHashSet(Constant.packageName, Constant.xposedInstallerPackage);
 
     @SuppressLint("SdCardPath")
     private String MODULES_LIST_FILE = "/data/data/de.robv.android.xposed.installer/conf/modules.list";

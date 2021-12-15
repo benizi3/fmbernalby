@@ -4,7 +4,9 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
@@ -358,5 +360,10 @@ public class CommonUtils {
             return null;
         }
         return input.toString();
+    }
+
+    public static String getPackageName(Intent intent) {
+        Uri uri = intent.getData();
+        return (uri != null) ? uri.getSchemeSpecificPart() : null;
     }
 }
