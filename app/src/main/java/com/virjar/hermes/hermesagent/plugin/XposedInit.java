@@ -123,6 +123,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                     String packageName = resolveInfo.activityInfo.applicationInfo.packageName;
                     if (autoStartWhiteList.contains(packageName)) {
                         //xposedInstaller和HermesAgent，直接放开系统限制
+                        Log.i("weijia", "xposedInstaller和HermesAgent，直接放开系统限制");
                         param.setResult(true);
                         return;
                     }
@@ -134,6 +135,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                         Intent intent = (Intent) XposedHelpers.getObjectField(r, "intent");
                         if (intent != null && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName(intent), Constant.packageName)) {
                             //HermesAgent触发的广播，均不拦截
+                            Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
                             return;
                         }
@@ -142,6 +144,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                     }
                     try {
                         if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), Constant.packageName)) {
+                            Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
                         }
                     } catch (Throwable throwable) {
