@@ -89,6 +89,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                             fontService.releaseDeadAgent(invokePackage);
                             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_service_not_available, Constant.serviceNotAvailableMessage));
                         } catch (RemoteException e) {
+                            Log.i("")
                             CommonUtils.sendJSON(response, CommonRes.failed(e));
                         } finally {
                             if (invokeResult != null) {

@@ -1,6 +1,5 @@
 package com.virjar.hermes.hermesagent.plugin;
 
-import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -11,11 +10,8 @@ import android.content.pm.ResolveInfo;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -23,9 +19,6 @@ import com.virjar.hermes.hermesagent.util.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,7 +31,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import de.robv.android.xposed.callbacks.XCallback;
 
 /**
- * Created by virjar on 2018/8/22.
+ * Created by virjar on 2018/8/22.<br>xposed加载入口
  */
 
 public class XposedInit implements IXposedHookLoadPackage {
@@ -47,15 +40,6 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (StringUtils.equalsIgnoreCase(lpparam.packageName, "de.robv.android.xposed.installer")) {
-            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    //经过验证，应该是某种原因导致xposed收不到广播消息
-                    fixXposedInstallerAppUpdate((Context) param.args[0], lpparam);
-                }
-            });
-        }
         if (StringUtils.equalsIgnoreCase(lpparam.processName, "android")) {
             fixMiUIStartPermissionFilter(lpparam);
         }
@@ -156,67 +140,6 @@ public class XposedInit implements IXposedHookLoadPackage {
     }
 
     private static Set<String> autoStartWhiteList = Sets.newHashSet(Constant.packageName, Constant.xposedInstallerPackage);
-
-    @SuppressLint("SdCardPath")
-    private String MODULES_LIST_FILE = "/data/data/de.robv.android.xposed.installer/conf/modules.list";
-
-    private void fixXposedInstallerAppUpdate(final Context context, final XC_LoadPackage.LoadPackageParam lpparam) {
-        XC_MethodHook forceUpdateHook = new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                Log.i("weijia", "收到app安装广播");
-                List<String> strings = Files.readLines(new File(MODULES_LIST_FILE), Charsets.UTF_8);
-                if (strings.size() == 0) {
-                    return;
-                }
-                PackageInfo packageInfo = context.getPackageManager().getPackageInfo(Constant.packageName, PackageManager.GET_META_DATA);
-                if (packageInfo == null) {
-                    //被卸载了
-                    return;
-                }
-                String sourceDir = packageInfo.applicationInfo.sourceDir;
-                Log.i("weijia", "hermesAgent的安装路径为:" + sourceDir);
-                List<String> editedConfig = Lists.newArrayListWithExpectedSize(strings.size());
-                boolean edited = false;
-                for (String config : strings) {
-                    if (StringUtils.containsIgnoreCase(config, Constant.packageName)) {
-                        if (!StringUtils.equals(sourceDir, config)) {
-                            editedConfig.add(sourceDir);
-                            edited = true;
-                        }
-                        break;
-                    } else {
-                        editedConfig.add(config);
-                    }
-                }
-                if (edited) {
-                    if (editedConfig.size() > 0 && StringUtils.startsWithIgnoreCase(editedConfig.get(editedConfig.size() - 1), "#hermes_auto")) {
-                        editedConfig.add("#hermes_auto edit");
-                    }
-                    Log.i("weijia", "重刷xposed配置文件");
-                    PrintWriter modulesList = new PrintWriter(MODULES_LIST_FILE);
-                    for (String config : editedConfig) {
-                        modulesList.println(config);
-                    }
-                    modulesList.close();
-                    Class<?> aClass = XposedHelpers.findClass("android.os.FileUtils", lpparam.classLoader);
-                    XposedHelpers.callStaticMethod(aClass, "setPermissions", MODULES_LIST_FILE, 00664, -1, -1);
-                }
-            }
-        };
-
-        Class<?> packageChangeReceiverClass = XposedHelpers.findClassIfExists("de.robv.android.xposed.installer.receivers.PackageChangeReceiver", lpparam.classLoader);
-
-        if (packageChangeReceiverClass != null) {
-            XposedHelpers.findAndHookMethod(packageChangeReceiverClass, "onReceive", Context.class, Intent.class, forceUpdateHook);
-        }
-        packageChangeReceiverClass = XposedHelpers.findClassIfExists("de.robv.android.xposed.installer.PackageChangeReceiver", lpparam.classLoader);
-        if (packageChangeReceiverClass != null) {
-            XposedHelpers.findAndHookMethod(packageChangeReceiverClass, "onReceive", Context.class, Intent.class, forceUpdateHook);
-        }
-        //TDOO
-
-    }
 
     private void alertHotLoadFailedWarning(Context context) {
         new AlertDialog.Builder(context)

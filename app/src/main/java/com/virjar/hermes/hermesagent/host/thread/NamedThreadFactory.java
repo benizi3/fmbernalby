@@ -13,7 +13,7 @@ public class NamedThreadFactory implements ThreadFactory {
     private final String namePrefix;
 
 
-    NamedThreadFactory(String namePrefix) {
+    public NamedThreadFactory(String namePrefix) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() :
                 Thread.currentThread().getThreadGroup();

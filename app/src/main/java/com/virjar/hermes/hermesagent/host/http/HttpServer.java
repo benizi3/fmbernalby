@@ -19,6 +19,7 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
+import com.virjar.hermes.hermesagent.host.thread.NamedThreadFactory;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
@@ -93,7 +94,7 @@ public class HttpServer {
         mAsyncServer = new AsyncServer(Constant.httpServerLooperThreadName);
         j2Executor = new J2Executor(
                 new ThreadPoolExecutor(10, 10, 0L,
-                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10))
+                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10), new NamedThreadFactory("http-server-public-pool"))
         );
         httpServerRequestCallback = new RCPInvokeCallback(fontService, j2Executor);
 
