@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.common.base.Function;
@@ -26,8 +27,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+
+import eu.chainfire.libsuperuser.Shell;
 
 /**
  * Created by virjar on 2018/8/24.<br>
@@ -136,14 +142,87 @@ public class AgentWatchTask extends TimerTask {
     }
 
     private AgentInfo handleAgentHeartBeat(String targetPackageName, IHookAgentService hookAgentService) {
+        //ping应该很快，如果25s都不能返回，那么肯定是假死了
+        PingWatchTask pingWatchTask = new PingWatchTask(System.currentTimeMillis() + 1000 * 25, targetPackageName);
         try {
+            //如果targetApp假死，那么这个调用将会阻塞，需要监控这个任务的执行时间，如果长时间ping没有响应，那么需要强杀targetApp
+            pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
             return hookAgentService.ping();
         } catch (DeadObjectException deadObjectException) {
             Log.e(TAG, "remote service dead,wait for re register");
             fontService.releaseDeadAgent(targetPackageName);
         } catch (RemoteException e) {
             Log.e(TAG, "failed to ping agent", e);
+        } finally {
+            pingWatchTask.setDone(true);
         }
         return null;
+    }
+
+    private static DelayQueue<PingWatchTask> pingWatchTaskLinkedBlockingDeque = new DelayQueue<>();
+    private static boolean suAvailable = Shell.SU.available();
+
+    static {
+        Thread thread = new Thread("pingWatchTask") {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        PingWatchTask poll = pingWatchTaskLinkedBlockingDeque.take();
+                        if (poll.isDone) {
+                            continue;
+                        }
+                        //注意不能通过kill的rpc过去，需要强杀
+                        Log.e("pingWatchTask", "app: " + poll.targetPackageName + " 假死，强杀该app");
+                        if (!suAvailable) {
+                            Log.w("pingWatchTask", "无法杀死targetApp，请给HermesAgent分配root权限");
+                            continue;
+                        }
+                        List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
+                        for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
+                            if (androidAppProcess.getPackageName().equalsIgnoreCase(poll.targetPackageName)) {
+                                Shell.SU.run("kill -9 " + androidAppProcess.pid);
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        return;
+                    } catch (Exception e) {
+                        Log.e("pingWatchTask", "handle ping task failed", e);
+                    }
+                }
+            }
+        };
+        thread.setDaemon(false);
+        thread.start();
+    }
+
+    private static class PingWatchTask implements Delayed {
+        private long needCheckTimestamp;
+        private String targetPackageName;
+        private boolean isDone = false;
+
+        PingWatchTask(long needCheckTimestamp, String targetPackageName) {
+            this.needCheckTimestamp = needCheckTimestamp;
+            this.targetPackageName = targetPackageName;
+        }
+
+        public void setDone(boolean done) {
+            isDone = done;
+        }
+
+        public String getTargetPackageName() {
+            return targetPackageName;
+        }
+
+
+        @Override
+        public long getDelay(@NonNull TimeUnit unit) {
+            return unit.convert(needCheckTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public int compareTo(@NonNull Delayed o) {
+            return Long.valueOf(getDelay(TimeUnit.MILLISECONDS)).compareTo(o.getDelay(TimeUnit.MILLISECONDS));
+        }
     }
 }

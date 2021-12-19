@@ -27,10 +27,14 @@ import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
+
+import eu.chainfire.libsuperuser.Shell;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 
@@ -43,7 +47,7 @@ public class FontService extends Service {
     private static final String TAG = "AIDLRegisterService";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService = Maps.newConcurrentMap();
     public static RemoteCallbackList<IHookAgentService> mCallbacks = new RemoteCallbackList<>();
-    public Timer timer = null;
+    public static Timer timer = null;
     private volatile long lastCheckTimerCheck = 0;
     private static final long aliveCheckDuration = 5000;
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
@@ -217,6 +221,35 @@ public class FontService extends Service {
                 }
             }
         }, 10, 1000 * 60 * 30);
+
+
+        //平均每半个小时重启所有的targetApp
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
+                    try {
+                        Log.i(TAG, "杀死targetApp");
+                        entry.getValue().killSelf();
+                    } catch (RemoteException e) {
+                        //ignore
+                    }
+                }
+            }
+        }, 30 * 60 * 1000 + new Random().nextLong() % (30 * 60 * 1000), 60 * 60 * 1000);
+
+        //半天，重启一次手机系统，避免系统跑死
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (!Shell.SU.available()) {
+                    //TODO test for jadb
+                    return;
+                }
+                Shell.SU.run("reboot");
+            }
+        }, 6 * 60 * 60 * 1000 + new Random().nextLong() % (6 * 60 * 60 * 1000), 12 * 60 * 60 * 100);
+
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
         timer.scheduleAtFixedRate(new TimerTask() {

@@ -44,8 +44,6 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class HotLoadPackageEntry {
     private static final String TAG = "HotPluginLoader";
 
-    private static Timer heartbeatTimer = new Timer(TAG, true);
-
     @SuppressWarnings("unused")
     public static void entry(Context context, XC_LoadPackage.LoadPackageParam loadPackageParam) {
         if (StringUtils.equalsIgnoreCase(loadPackageParam.packageName, Constant.packageName)) {
@@ -54,6 +52,7 @@ public class HotLoadPackageEntry {
             XposedHelpers.setStaticBooleanField(commonUtilClass, "xposedStartSuccess", true);
             return;
         }
+        Timer heartbeatTimer = new Timer(TAG, true);
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
@@ -90,7 +89,8 @@ public class HotLoadPackageEntry {
                 XposedBridge.log(e);
             }
         }
-        if (hint) {
+        if (!hint) {
+            heartbeatTimer.cancel();
             //先不实现这个功能，对于外置apk的方案，如果Hermes-wrapper有新发布，由hermes-agent发送IPC命令过来重启。
             //Hermes-Agent主动更新认为是框架更新，只要是IPC protocol没有发生更新，无需重启Slave
             //exitIfMasterReInstall(context, loadPackageParam.packageName);

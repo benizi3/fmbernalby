@@ -94,7 +94,7 @@ public class HttpServer {
         mAsyncServer = new AsyncServer(Constant.httpServerLooperThreadName);
         j2Executor = new J2Executor(
                 new ThreadPoolExecutor(10, 10, 0L,
-                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10), new NamedThreadFactory("http-server-public-pool"))
+                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10), new NamedThreadFactory("httpServer-public-pool"))
         );
         httpServerRequestCallback = new RCPInvokeCallback(fontService, j2Executor);
 
