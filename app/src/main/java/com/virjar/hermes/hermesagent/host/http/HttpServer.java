@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import eu.chainfire.libsuperuser.Shell;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
@@ -105,6 +106,7 @@ public class HttpServer {
         bindAliveServiceCommand();
         bindRestartDeviceCommand();
         bindExecuteShellCommand();
+        bindRestartADBDCommand();
         //TODO adb命令，需要维持会话
 
         try {
@@ -226,6 +228,24 @@ public class HttpServer {
                         //CommonUtils.restartAndroidSystem();
                         //shell无启动权限，adb通过网络直连，adb远程服务默认关闭，目前无法再不获取root权限的情况下重启系统
                         CommonUtils.sendJSON(response, CommonRes.failed("not implement"));
+                    }
+                }, response).run();
+            }
+        });
+    }
+
+    private void bindRestartADBDCommand() {
+        server.get(Constant.restartAdbD, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!Shell.SU.available()) {
+                            CommonUtils.sendJSON(response, CommonRes.failed("need root permission"));
+                            return;
+                        }
+                        CommonUtils.sendJSON(response, CommonRes.success(Shell.SU.run(Lists.newArrayList("stop adbd", "start adbd"))));
                     }
                 }, response).run();
             }

@@ -366,4 +366,8 @@ public class CommonUtils {
         Uri uri = intent.getData();
         return (uri != null) ? uri.getSchemeSpecificPart() : null;
     }
+
+    public static String getRequestID() {
+        return "request_session_" + Thread.currentThread().getId() + "_" + System.currentTimeMillis();
+    }
 }

@@ -7,7 +7,7 @@ import android.util.Log;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import com.virjar.hermes.hermesagent.hermes_api.CommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 
 import org.apache.commons.io.IOUtils;
 
@@ -23,19 +23,22 @@ import java.io.IOException;
 public class InvokeRequest implements Parcelable {
     private String paramContent;
     private boolean useFile;
+    private String requestID;
 
     private static final String TAG = "BinderRPC";
 
     protected InvokeRequest(Parcel in) {
         paramContent = in.readString();
         useFile = in.readByte() != 0;
+        requestID = in.readString();
     }
 
-    public InvokeRequest(String paramContent, Context context) {
+    public InvokeRequest(String paramContent, Context context, String requestID) {
+        this.requestID = requestID;
         if (paramContent.length() < 4096) {
             this.paramContent = paramContent;
         } else {
-            File file = CommonUtils.genTempFile(context);
+            File file = APICommonUtils.genTempFile(context);
             try {
                 BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
                 bufferedWriter.write(paramContent);
@@ -48,7 +51,15 @@ public class InvokeRequest implements Parcelable {
         }
     }
 
+    public String getRequestID() {
+        return requestID;
+    }
+
     public String getParamContent() {
+        return getParamContent(true);
+    }
+
+    public String getParamContent(boolean changeState) {
         if (!useFile) {
             return paramContent;
         }
@@ -60,10 +71,12 @@ public class InvokeRequest implements Parcelable {
             FileInputStream fileInputStream = new FileInputStream(file);
             String ret = IOUtils.toString(fileInputStream, Charsets.UTF_8);
             fileInputStream.close();
-            paramContent = ret;
-            useFile = false;
-            if (!file.delete()) {
-                Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
+            if (changeState) {
+                paramContent = ret;
+                useFile = false;
+                if (!file.delete()) {
+                    Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
+                }
             }
             return ret;
         } catch (IOException e) {
@@ -92,10 +105,12 @@ public class InvokeRequest implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(paramContent);
         dest.writeByte((byte) (useFile ? 1 : 0));
+        dest.writeString(requestID);
     }
 
     public void readFromParcel(Parcel reply) {
         paramContent = reply.readString();
         useFile = reply.readByte() != 0;
+        requestID = reply.readString();
     }
 }

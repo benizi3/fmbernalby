@@ -154,7 +154,8 @@ public class AgentWatchTask extends TimerTask {
         } catch (RemoteException e) {
             Log.e(TAG, "failed to ping agent", e);
         } finally {
-            pingWatchTask.setDone(true);
+            pingWatchTaskLinkedBlockingDeque.remove(pingWatchTask);
+            pingWatchTask.isDone = true;
         }
         return null;
     }
@@ -204,14 +205,6 @@ public class AgentWatchTask extends TimerTask {
         PingWatchTask(long needCheckTimestamp, String targetPackageName) {
             this.needCheckTimestamp = needCheckTimestamp;
             this.targetPackageName = targetPackageName;
-        }
-
-        public void setDone(boolean done) {
-            isDone = done;
-        }
-
-        public String getTargetPackageName() {
-            return targetPackageName;
         }
 
 

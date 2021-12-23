@@ -49,4 +49,7 @@ dependencies {
     implementation 'com.alibaba:fastjson:1.1.67.android'
     implementation 'commons-io:commons-io:2.6'
     implementation 'com.google.guava:guava:23.4-android'
+    // https://mvnrepository.com/artifact/joda-time/joda-time
+    implementation group: 'joda-time', name: 'joda-time', version: '2.10'
+
 }

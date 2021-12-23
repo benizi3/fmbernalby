@@ -2,7 +2,6 @@ package com.virjar.hermes.hermesagent.host.http;
 
 import android.os.DeadObjectException;
 import android.os.RemoteException;
-import android.util.Log;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -18,6 +17,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
@@ -69,13 +69,17 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                     @Override
                     public void run() {
                         InvokeResult invokeResult = null;
+                        long invokeStartTimestamp = System.currentTimeMillis();
                         try {
+                            APICommonUtils.requestLogI(invokeRequest, " startTime: " + invokeStartTimestamp + "  params:" + invokeRequest.getParamContent(false));
                             invokeResult = hookAgent.invoke(invokeRequest);
                             if (invokeResult == null) {
+                                APICommonUtils.requestLogW(invokeRequest, " agent return null object");
                                 CommonUtils.sendJSON(response, CommonRes.failed("agent return null object"));
                                 return;
                             }
                             if (invokeResult.getStatus() != InvokeResult.statusOK) {
+                                APICommonUtils.requestLogW(invokeRequest, " return status not ok");
                                 CommonUtils.sendJSON(response, CommonRes.failed(invokeResult.getStatus(), invokeResult.getTheData()));
                                 return;
                             }
@@ -85,14 +89,17 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                                 CommonUtils.sendJSON(response, CommonRes.success(invokeResult.getTheData()));
                             }
                         } catch (DeadObjectException e) {
-                            Log.e("rpcInvoke", "service " + invokePackage + " dead ,offline it", e);
+                            APICommonUtils.requestLogW(invokeRequest, "service " + invokePackage + " dead ,offline it", e);
                             fontService.releaseDeadAgent(invokePackage);
                             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_service_not_available, Constant.serviceNotAvailableMessage));
                         } catch (RemoteException e) {
-                            Log.i("rpcInvoke", "remote exception", e);
+                            APICommonUtils.requestLogW(invokeRequest, "remote exception", e);
                             CommonUtils.sendJSON(response, CommonRes.failed(e));
                         } finally {
+                            long endTime = System.currentTimeMillis();
+                            APICommonUtils.requestLogI(invokeRequest, "invoke end time:" + endTime + " duration:" + ((endTime - invokeStartTimestamp) / 1000) + "s");
                             if (invokeResult != null) {
+                                APICommonUtils.requestLogI(invokeRequest, " invoke result" + invokeResult.getTheData());
                                 String needDeleteFile = invokeResult.needDeleteFile();
                                 if (needDeleteFile != null) {
                                     try {
@@ -100,7 +107,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                                     } catch (DeadObjectException e) {
                                         fontService.releaseDeadAgent(invokePackage);
                                     } catch (RemoteException e) {
-                                        Log.w("weijia", "remove temp file failed", e);
+                                        APICommonUtils.requestLogW(invokeRequest, "remove temp file failed", e);
                                     }
                                 }
                             }
@@ -150,25 +157,25 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     private InvokeRequest buildInvokeRequest(AsyncHttpServerRequest request) {
         if ("get".equalsIgnoreCase(request.getMethod())) {
-            return new InvokeRequest(joinParam(request.getQuery()), fontService);
+            return new InvokeRequest(joinParam(request.getQuery()), fontService, CommonUtils.getRequestID());
         }
 
         AsyncHttpRequestBody requestBody = request.getBody();
         if (requestBody instanceof UrlEncodedFormBody) {
             return new InvokeRequest(joiner.join(joinParam(request.getQuery()),
-                    joinParam(((UrlEncodedFormBody) requestBody).get())), fontService);
+                    joinParam(((UrlEncodedFormBody) requestBody).get())), fontService, CommonUtils.getRequestID());
         }
         if (requestBody instanceof StringBody) {
-            return new InvokeRequest(((StringBody) requestBody).get(), fontService);
+            return new InvokeRequest(((StringBody) requestBody).get(), fontService, CommonUtils.getRequestID());
         }
         if (requestBody instanceof JSONObjectBody) {
             JSONObjectBody jsonObjectBody = (JSONObjectBody) requestBody;
             JSONObject jsonObject = jsonObjectBody.get();
-            return new InvokeRequest(jsonObject.toString(), fontService);
+            return new InvokeRequest(jsonObject.toString(), fontService, CommonUtils.getRequestID());
         }
 
         if (request instanceof JSONArrayBody) {
-            return new InvokeRequest(((JSONArrayBody) request).get().toString(), fontService);
+            return new InvokeRequest(((JSONArrayBody) request).get().toString(), fontService, CommonUtils.getRequestID());
         }
         return null;
     }

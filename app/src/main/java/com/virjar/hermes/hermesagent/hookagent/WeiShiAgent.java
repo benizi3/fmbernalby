@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.Multimap;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
@@ -54,8 +55,9 @@ public class WeiShiAgent implements AgentCallback {
         String attach_info = nameValuePairs.getString("attach_info");
         Long uniqueID = nextUniueID();
         Object searchBean = createSearchBean(key.trim(), uniqueID, attach_info);
-        Log.i(TAG, "构造查询请求:" + com.alibaba.fastjson.JSONObject.toJSONString(searchBean));
+        APICommonUtils.requestLogI(invokeRequest, "构造查询请求:" + com.alibaba.fastjson.JSONObject.toJSONString(searchBean));
         if (!sendQueryRequest(searchBean)) {
+            APICommonUtils.requestLogI(invokeRequest, "请求发送失败");
             return InvokeResult.failed("请求发送失败");
         }
         Object lock = new Object();
@@ -68,6 +70,7 @@ public class WeiShiAgent implements AgentCallback {
                 return InvokeResult.success(remove, SharedObject.context);
             }
         } catch (InterruptedException e) {
+            APICommonUtils.requestLogW(invokeRequest, "等待微视响应超时", e);
             return InvokeResult.failed("timeOut");
         }
     }

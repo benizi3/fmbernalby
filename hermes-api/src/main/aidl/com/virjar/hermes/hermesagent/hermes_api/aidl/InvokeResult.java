@@ -8,7 +8,7 @@ import android.util.Log;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import com.virjar.hermes.hermesagent.hermes_api.CommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 
 import org.apache.commons.io.IOUtils;
 
@@ -84,7 +84,7 @@ public class InvokeResult implements Parcelable {
         if (!useFile) {
             return new InvokeResult(statusOK, dataType, body, false);
         }
-        File file = CommonUtils.genTempFile(context);
+        File file = APICommonUtils.genTempFile(context);
         try {
             BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
             bufferedWriter.write(body);
@@ -119,8 +119,14 @@ public class InvokeResult implements Parcelable {
         return dataType;
     }
 
-
     public String getTheData() {
+        return getTheData(true);
+    }
+
+    /**
+     * @hidden 请不要直接调用函数
+     */
+    public String getTheData(boolean changeState) {
         if (!useFile) {
             return theData;
         }
@@ -132,11 +138,13 @@ public class InvokeResult implements Parcelable {
             FileInputStream fileInputStream = new FileInputStream(file);
             String ret = IOUtils.toString(fileInputStream, Charsets.UTF_8);
             fileInputStream.close();
-            theData = ret;
-            useFile = false;
-            deleteFilePath = file.getAbsolutePath();
-            if (!file.delete()) {
-                Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
+            if (changeState) {
+                theData = ret;
+                useFile = false;
+                deleteFilePath = file.getAbsolutePath();
+                if (!file.delete()) {
+                    Log.w(TAG, "delete binder file failed:" + file.getAbsolutePath());
+                }
             }
             return ret;
         } catch (IOException e) {

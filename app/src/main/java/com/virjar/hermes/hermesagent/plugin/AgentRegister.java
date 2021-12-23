@@ -9,6 +9,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
@@ -40,9 +41,16 @@ public class AgentRegister {
             @Override
             public InvokeResult invoke(InvokeRequest param) throws RemoteException {
                 try {
-                    return agentCallback.invoke(param);
+                    APICommonUtils.requestLogI(param, "handle IPC invoke request");
+                    InvokeResult result = agentCallback.invoke(param);
+                    if (result == null) {
+                        APICommonUtils.requestLogW(param, "agent return null");
+                    } else {
+                        APICommonUtils.requestLogI(param, "IPC invoke result:" + result.getTheData(false));
+                    }
+                    return result;
                 } catch (Exception e) {
-                    Log.e(TAG, "invoke callback failed", e);
+                    APICommonUtils.requestLogW(param, "invoke callback failed", e);
                     return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(e));
                 }
             }

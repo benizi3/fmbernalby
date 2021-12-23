@@ -15,6 +15,7 @@ public interface Constant {
     String aliveServicePath = "/aliveService";
     String restartDevicePath = "/restartDevice";
     String executeShellCommandPath = "/executeCommand";
+    String restartAdbD = "/restartAdbD";
     String jsonContentType = "application/json; charset=utf-8";
 
     String nativeLibName = "native-lib";

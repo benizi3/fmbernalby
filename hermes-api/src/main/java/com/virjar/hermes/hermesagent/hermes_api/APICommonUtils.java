@@ -1,6 +1,11 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
+import android.util.Log;
+
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
+
+import org.joda.time.DateTime;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created by virjar on 2018/9/13.
  */
 
-public class CommonUtils {
+public class APICommonUtils {
     private static AtomicLong fileSequence = new AtomicLong(1);
 
     public static File genTempFile(Context context) {
@@ -38,5 +43,23 @@ public class CommonUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static String invokeLogTag = "hermes_IPC_Invoke";
+
+    public static void requestLogI(InvokeRequest invokeRequest, String msg) {
+        Log.i(invokeLogTag, buildMessageBody(invokeRequest, msg));
+    }
+
+    public static void requestLogW(InvokeRequest invokeRequest, String msg, Throwable throwable) {
+        Log.w(invokeLogTag, buildMessageBody(invokeRequest, msg), throwable);
+    }
+
+    public static void requestLogW(InvokeRequest invokeRequest, String msg) {
+        Log.w(invokeLogTag, buildMessageBody(invokeRequest, msg));
+    }
+
+    private static String buildMessageBody(InvokeRequest invokeRequest, String msg) {
+        return invokeRequest.getRequestID() + " " + DateTime.now().toString("yyyy-MM-dd hh:mm:ss") + " " + msg;
     }
 }
