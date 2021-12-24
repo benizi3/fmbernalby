@@ -37,6 +37,8 @@ public interface Constant {
 
     String invokePackage = "invoke_package";
 
+    String invokeSessionID = "invoke_session_id";
+
     int status_service_not_available = -2;
     String serviceNotAvailableMessage = "service not available";
     int status_need_invoke_package_param = -3;

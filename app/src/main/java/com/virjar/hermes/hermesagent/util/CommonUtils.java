@@ -367,7 +367,7 @@ public class CommonUtils {
         return (uri != null) ? uri.getSchemeSpecificPart() : null;
     }
 
-    public static String getRequestID() {
+    public static String genRequestID() {
         return "request_session_" + Thread.currentThread().getId() + "_" + System.currentTimeMillis();
     }
 }

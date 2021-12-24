@@ -6,6 +6,7 @@ import android.os.RemoteException;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.NameValuePair;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
@@ -30,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import java.net.URLEncoder;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -48,7 +50,8 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     @Override
     public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-        final String invokePackage = determineInvokeTarget(request);
+        Map<String, String> innerParam = determineInnerParam(request);
+        final String invokePackage = innerParam.get(Constant.invokePackage);
         if (StringUtils.isBlank(invokePackage)) {
             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_need_invoke_package_param, Constant.needInvokePackageParamMessage));
             return;
@@ -59,7 +62,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
             return;
         }
 
-        final InvokeRequest invokeRequest = buildInvokeRequest(request);
+        final InvokeRequest invokeRequest = buildInvokeRequest(request, innerParam);
         if (invokeRequest == null) {
             CommonUtils.sendJSON(response, CommonRes.failed("unknown request data format"));
             return;
@@ -117,24 +120,32 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     }
 
-    private String determineInvokeTarget(AsyncHttpServerRequest request) {
+    private Map<String, String> determineInnerParam(AsyncHttpServerRequest request) {
         Multimap query = request.getQuery();
         String invokePackage = query.getString(Constant.invokePackage);
+        String invokeSessionID = query.getString(Constant.invokeSessionID);
+        Map<String, String> result = Maps.newHashMap();
         if (StringUtils.isNotBlank(invokePackage)) {
-            return invokePackage;
+            result.put(Constant.invokePackage, invokePackage);
+            result.put(Constant.invokeSessionID, invokeSessionID);
+            return result;
         }
         Object o = request.getBody().get();
         if (o instanceof JSONObject) {
             invokePackage = ((JSONObject) o).optString(Constant.invokePackage);
+            invokeSessionID = ((JSONObject) o).optString(Constant.invokeSessionID);
         } else if (o instanceof String) {
             try {
                 com.alibaba.fastjson.JSONObject jsonObject = com.alibaba.fastjson.JSONObject.parseObject((String) o);
                 invokePackage = jsonObject.getString(Constant.invokePackage);
+                invokeSessionID = jsonObject.getString(Constant.invokeSessionID);
             } catch (com.alibaba.fastjson.JSONException e) {
                 //ignore
             }
         }
-        return invokePackage;
+        result.put(Constant.invokePackage, invokePackage);
+        result.put(Constant.invokeSessionID, invokeSessionID);
+        return result;
     }
 
     private Joiner joiner = Joiner.on('&').skipNulls();
@@ -155,27 +166,34 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     }
 
-    private InvokeRequest buildInvokeRequest(AsyncHttpServerRequest request) {
+    private InvokeRequest buildInvokeRequest(AsyncHttpServerRequest request, Map<String, String> innerParam) {
+        String requestSession = innerParam.get(Constant.invokeSessionID);
+        if (StringUtils.isBlank(requestSession)) {
+            requestSession = CommonUtils.genRequestID();
+        }
+        if (!requestSession.startsWith("request_session_")) {
+            requestSession += "request_session_";
+        }
         if ("get".equalsIgnoreCase(request.getMethod())) {
-            return new InvokeRequest(joinParam(request.getQuery()), fontService, CommonUtils.getRequestID());
+            return new InvokeRequest(joinParam(request.getQuery()), fontService, requestSession);
         }
 
         AsyncHttpRequestBody requestBody = request.getBody();
         if (requestBody instanceof UrlEncodedFormBody) {
             return new InvokeRequest(joiner.join(joinParam(request.getQuery()),
-                    joinParam(((UrlEncodedFormBody) requestBody).get())), fontService, CommonUtils.getRequestID());
+                    joinParam(((UrlEncodedFormBody) requestBody).get())), fontService, requestSession);
         }
         if (requestBody instanceof StringBody) {
-            return new InvokeRequest(((StringBody) requestBody).get(), fontService, CommonUtils.getRequestID());
+            return new InvokeRequest(((StringBody) requestBody).get(), fontService, requestSession);
         }
         if (requestBody instanceof JSONObjectBody) {
             JSONObjectBody jsonObjectBody = (JSONObjectBody) requestBody;
             JSONObject jsonObject = jsonObjectBody.get();
-            return new InvokeRequest(jsonObject.toString(), fontService, CommonUtils.getRequestID());
+            return new InvokeRequest(jsonObject.toString(), fontService, requestSession);
         }
 
         if (request instanceof JSONArrayBody) {
-            return new InvokeRequest(((JSONArrayBody) request).get().toString(), fontService, CommonUtils.getRequestID());
+            return new InvokeRequest(((JSONArrayBody) request).get().toString(), fontService, requestSession);
         }
         return null;
     }
