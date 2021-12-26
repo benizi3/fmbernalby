@@ -89,6 +89,10 @@ public class HttpServer {
         return httpServerPort;
     }
 
+    public J2Executor getJ2Executor() {
+        return j2Executor;
+    }
+
     private void startServerInternal(Context context) {
         stopServer();
         server = new AsyncHttpServer();

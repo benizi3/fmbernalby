@@ -30,7 +30,11 @@ public interface Constant {
     String serviceRegisterAction = "com.virjar.hermes.hermesagent.aidl.IServiceRegister";
 
 
-    String serverBaseURL = "http://hermesadmin.virjar.com:5597";
+    String serverHost = "hermesadmin.virjar.com";
+    int serverHttpPort = 5597;
+    int serverNettyPort = 5598;
+
+    String serverBaseURL = "http://" + serverHost + ":" + serverHttpPort;
     String reportPath = "/device/report";
     String getConfigPath = "/device/deviceConfig";
     String downloadPath = "/targetApp/download";
@@ -38,6 +42,8 @@ public interface Constant {
     String invokePackage = "invoke_package";
 
     String invokeSessionID = "invoke_session_id";
+
+    String invokeRequestID = "invoke_request_id";
 
     int status_service_not_available = -2;
     String serviceNotAvailableMessage = "service not available";
@@ -66,4 +72,15 @@ public interface Constant {
     int ADBD_PORT = 4555;
 
     String xposedInstallerPackage = "de.robv.android.xposed.installer";
+
+    int WEBSOCKET_PORT = 19999;
+
+    // 最大协议包长度
+    int MAX_FRAME_LENGTH = 1024 * 10;
+
+    // 10k
+    int MAX_AGGREGATED_CONTENT_LENGTH = 65536;
+
+    int HEAD_LENGTH = 4;
+
 }

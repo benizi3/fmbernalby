@@ -57,11 +57,17 @@ import okhttp3.Request;
 import static android.content.Context.TELEPHONY_SERVICE;
 
 /**
- * Created by virjar on 2018/8/22.
+ * Created by virjar on 2018/8/22.<br>
  */
 
 public class CommonUtils {
     private static String TAG = "common_util";
+
+    public static boolean isLocalTest() {
+        return BuildConfig.DEBUG;
+        //   return false;
+    }
+
 
     /**
      * 获取本机IP
@@ -225,11 +231,6 @@ public class CommonUtils {
 
     public static String localServerBaseURL() {
         return "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
-    }
-
-    public static boolean isLocalTest() {
-        return BuildConfig.DEBUG;
-        //   return false;
     }
 
     public static ApkMeta parseApk(File file) {

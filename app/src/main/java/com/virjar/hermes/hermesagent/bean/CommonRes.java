@@ -11,15 +11,21 @@ public class CommonRes {
     private int status;
     private String errorMessage;
     private Object data;
+    private String requestId;
 
 
     public static CommonRes success(Object data) {
-        return new CommonRes(Constant.status_ok, null, data);
+        return new CommonRes(Constant.status_ok, null, data, null);
     }
 
     public static CommonRes failed(int status
             , String errorMessage) {
-        return new CommonRes(status, errorMessage, null);
+        return new CommonRes(status, errorMessage, null, null);
+    }
+
+    public static CommonRes failed(int status
+            , String errorMessage, String requestId) {
+        return new CommonRes(status, errorMessage, null, requestId);
     }
 
     public static CommonRes failed(String errorMessage) {
@@ -30,10 +36,11 @@ public class CommonRes {
         return failed(CommonUtils.translateSimpleExceptionMessage(e));
     }
 
-    public CommonRes(int status, String errorMessage, Object data) {
+    public CommonRes(int status, String errorMessage, Object data, String requestId) {
         this.status = status;
         this.errorMessage = errorMessage;
         this.data = data;
+        this.requestId = requestId;
     }
 
     public int getStatus() {
@@ -45,9 +52,11 @@ public class CommonRes {
         return errorMessage;
     }
 
-
     public Object getData() {
         return data;
     }
 
+    public String getRequestId() {
+        return requestId;
+    }
 }
