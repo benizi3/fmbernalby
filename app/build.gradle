@@ -76,7 +76,8 @@ dependencies {
     implementation 'com.google.guava:guava:23.4-android'
     implementation 'net.dongliu:apk-parser:2.6.2'
     implementation 'eu.chainfire:libsuperuser:1.0.0.201608240809'
-    implementation 'io.netty:netty-all:4.1.29.Final'
+    //直接导入netty-all 会引发dex方法数量溢出
+    //implementation 'io.netty:netty-all:4.1.29.Final'
 
     //for dbflow
     def dbflow_version = "4.2.4"

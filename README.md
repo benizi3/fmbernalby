@@ -49,6 +49,8 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
 [stackoverflow](https://stackoverflow.com/questions/32032329/process-is-not-permitted-to-autostart-boot-complete-broadcast-receiver)
 *一定要打开自启动，每个相关的都要打开*
 
+对于小米系统来说，已经默认拆解了自启动拦截问题。可以不关心程序自启动配置
+
 
 ### 演示
 1. 查看首页，观察可以提供的接口
@@ -75,13 +77,7 @@ A: 观察系统日志，系统内部master和slave可以正常通信，此时可
 Q:master和slave都正常运行，但是在agent上面查看服务列表，对应服务一直不在服务列表中   
 A:服务注册的原理是，在slave中注入钩子代码，驱动slave主动注册service到master。一般注册不成功的原因是钩子代码注入失败   
 我们使用xposed作为代码注入的base lib，可以观察是否xposed本身模块启动失败。1.xposed未安装完整；2.xposed中没有开启本插件；3.高版本中，xposed存在一个bug，导致在Android启动的时候，使用错误的插件apk地址进行加载，进而无法加载到插件代码（同一个apk，覆盖安装，系统重启之后，apk代码地址将会被系统整理而改变路径，xposed模块管理使用的整理之前的apk地址）
-解决办法：，1.在xposed中，关闭HermesAgent的model。2.重启手机。3.从新安装HermesAgent，并在xposed中开启本model。4.再次重启apk
-```
-        if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED) && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false))
-            // Ignore existing packages being removed in order to be updated
-            return;
-        这么写其实有bug
-```
+第三个原因，是系统拦截了xposedInstaller自启动广播导致的。目前Hermes已经自动处理了这个问题，只要是Hermes模块正常启动的过程，XposedInstall安装过程会放开对应广播传递
 
 #### 参与贡献
 
@@ -96,6 +92,13 @@ A:服务注册的原理是，在slave中注入钩子代码，驱动slave主动�
 如果你想寻求解决方案，但是又没有能力驾驭这个项目，欢迎走商务合作通道。联系qq：819154316，或者加群：569543649。
 拒绝回答常见问题！！！
 
+#### todo list
+
+1. 自动配置网络，如果系统系统启动，网络不正常，根据配置策略配置网络连接参数。如wiki账号密码，系统代理等
+2. 拆解后台网络流量拦截限制（小米系统）。目前app安装之后，需要放开多个app的网络后台限制配置。可以通过app内嵌代码统一拆解
+3. 垃圾文件异步清理，在IPC过程中，可能存在大问题传递，由于某种原因，可能临时文件没有清除成功。这可能导致手机存储被无效文件占用。导致磁盘被打爆
+4. Hermes系统日志整理，目前hermes相关日志没有统一tag。无法方便排查Hermes本身的问题，需要考虑串联Hermes系统日志
+5. 内网穿透方案，考虑Android手机运行在私有网络，server在公有网络。server可以转发invoke请求到达处于私有网络下面的Android手机中
 
 #### 捐赠
 如果你觉得作者辛苦了，可以的话请我喝杯咖啡
