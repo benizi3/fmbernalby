@@ -81,11 +81,7 @@ public class WeiShiAgent implements AgentCallback {
         });
 
         handlers.put("GetFansList".toLowerCase(), new SearchBeanHandler() {
-            @Override
-            public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
-                if (frameworkClassLoader == null) {
-                    return InvokeResult.failed("service not ready,please wait");
-                }
+            private Object invokeVersion1(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
                 String userID = nameValuePairs.getString("userID");
                 if (StringUtils.isBlank(userID)) {
                     return InvokeResult.failed("the param {userID} not presented");
@@ -105,9 +101,9 @@ public class WeiShiAgent implements AgentCallback {
 
                 Object callback = XposedHelpers.findConstructorExact("com.tencent.oscar.module.e.a.g$22", frameworkClassLoader, long.class, boolean.class).newInstance(nextUniueID(), true);
 
-                if (!registerFanceCallBackFilter) {
+                if (!registerFanceCallBackFilter1) {
                     synchronized (WeiShiAgent.class) {
-                        if (!registerFanceCallBackFilter) {
+                        if (!registerFanceCallBackFilter1) {
                             XposedReflectUtil.findAndHookMethodOnlyByMethodName(XposedHelpers.findClass("com.tencent.oscar.module.e.a.g$22", frameworkClassLoader), "onReply", new XC_MethodHook() {
                                 @Override
                                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -137,7 +133,89 @@ public class WeiShiAgent implements AgentCallback {
                                 }
                             });
                         }
-                        registerFanceCallBackFilter = true;
+                        registerFanceCallBackFilter1 = true;
+                    }
+                }
+
+                XposedHelpers.callMethod(senderManager, "a", getUsers, callback);
+
+
+                Object lock = new Object();
+                lockes.put(getUsers, lock);
+                try {
+                    synchronized (lock) {
+                        //微视本身是一个异步请求，这里等待5s，等待异步的结果，异步转同步
+                        lock.wait(5000);
+                        Object remove = queryResult.remove(getUsers);
+                        return InvokeResult.success(remove, SharedObject.context);
+                    }
+                } catch (InterruptedException e) {
+                    APICommonUtils.requestLogW(invokeRequest, "等待微视响应超时", e);
+                    return InvokeResult.failed("timeOut");
+                }
+
+            }
+
+
+
+            @Override
+            public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
+                if (frameworkClassLoader != null) {
+                    return invokeVersion1(nameValuePairs,invokeRequest);
+                }
+                String userID = nameValuePairs.getString("userID");
+                if (StringUtils.isBlank(userID)) {
+                    return InvokeResult.failed("the param {userID} not presented");
+                }
+                String attach_info = nameValuePairs.getString("attach_info");
+                if (attach_info == null) {
+                    attach_info = "";
+                }
+                Long uniqueID = nextUniueID();
+                Object getUsers = XposedHelpers.findConstructorExact("com.tencent.oscar.module.f.a.f$18", hostClassLoader, long.class, String.class)
+                        .newInstance(uniqueID, "GetUsers");
+
+                Object stGetUsersReq = XposedHelpers.findConstructorExact("NS_KING_INTERFACE.stGetUsersReq", hostClassLoader, String.class, String.class, String.class, ArrayList.class)
+                        .newInstance(attach_info, userID, "follower", null);
+                XposedHelpers.setObjectField(getUsers, "req", stGetUsersReq);
+                Object senderManager = XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.tencent.oscar.base.app.App", hostClassLoader)
+                        , "getSenderManager");
+
+                Object callback = XposedHelpers.findConstructorExact("com.tencent.oscar.module.f.a.f$19", hostClassLoader, long.class, boolean.class).newInstance(nextUniueID(), true);
+
+                if (!registerFanceCallBackFilter2) {
+                    synchronized (WeiShiAgent.class) {
+                        if (!registerFanceCallBackFilter2) {
+                            XposedReflectUtil.findAndHookMethodOnlyByMethodName(XposedHelpers.findClass("com.tencent.oscar.module.f.a.f$19", hostClassLoader), "onReply", new XC_MethodHook() {
+                                @Override
+                                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                    Object requestBean = param.args[0];
+                                    Object requestResponse = param.args[1];
+                                    Object jceStruct = XposedHelpers.callMethod(requestResponse, "d");
+                                    param.setResult(true);
+                                    queryResult.put(requestBean, jceStruct);
+                                    Object lock = lockes.remove(requestBean);
+                                    if (lock == null) {
+                                        return;
+                                    }
+                                    synchronized (lock) {
+                                        lock.notify();
+                                    }
+                                }
+                            });
+                            XposedReflectUtil.findAndHookMethodOnlyByMethodName(XposedHelpers.findClass("com.tencent.oscar.module.f.a.f$19", hostClassLoader), "onError", new XC_MethodHook() {
+                                @Override
+                                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                    Object requestBean = param.args[0];
+                                    String errorMessage = (String) param.args[2];
+                                    Log.i(TAG, "请求error:" + errorMessage);
+                                    param.setResult(false);
+                                    queryResult.put(requestBean, errorMessage);
+                                    lockes.remove(requestBean).notify();
+                                }
+                            });
+                        }
+                        registerFanceCallBackFilter2 = true;
                     }
                 }
 
@@ -161,7 +239,8 @@ public class WeiShiAgent implements AgentCallback {
         });
     }
 
-    private static volatile boolean registerFanceCallBackFilter = false;
+    private static volatile boolean registerFanceCallBackFilter1 = false;
+    private static volatile boolean registerFanceCallBackFilter2 = false;
 
     @Override
     public InvokeResult invoke(InvokeRequest invokeRequest) {
