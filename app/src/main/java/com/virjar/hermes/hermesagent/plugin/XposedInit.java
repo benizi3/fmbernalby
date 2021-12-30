@@ -150,7 +150,6 @@ public class XposedInit implements IXposedHookLoadPackage {
                         "2.您安装了新代码之后，需要先打开一次HermesAgent的App，才能重启Android系统，否则Xposed会在init进程为HermesAgent的apk创建odex缓存。" +
                         "  这会导致该文件创建者为root，进而再次热发代码的时候，普通进程没有remove老的odex文件缓存的权限，导致apk代码刷新失败 "
                 )
-                //.setIcon(R.mipmap.ic_launcher)
                 .setNeutralButton("我已知晓！", new DialogInterface.OnClickListener() {//添加普通按钮
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
