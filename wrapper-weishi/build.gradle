@@ -48,27 +48,7 @@ dependencies {
 }
 
 task deployWrapper(type: Exec, description: 'sync wrapper apk into hermes agent container', dependsOn: 'assembleRelease') {
-    File releaseApk = null;
-    for (int i = 0; i < 10; i++) {
-
-        File[] apkFiles = file('build/outputs/apk/release').listFiles(new FilenameFilter() {
-            @Override
-            boolean accept(File dir, String name) {
-                return name.endsWith('release.apk')
-            }
-        })
-        if (apkFiles == null || apkFiles.length == 0) {
-            print 'wait for release apk file ready'
-            sleep(500)
-            continue
-        }
-        releaseApk = apkFiles[0];
-        break
-    }
-    if (releaseApk == null) {
-        print 'can not find target apk file'
-        return
-    }
+    File releaseApk = file('build/outputs/apk/release/app-release.apk')
     String uploadPath = '/data/data/com.virjar.hermes.hermesagent/hermesModules/' + releaseApk.name
     commandLine rootProject.file('deploy/syncWrapper.sh').absolutePath, releaseApk.absolutePath, uploadPath
 }
