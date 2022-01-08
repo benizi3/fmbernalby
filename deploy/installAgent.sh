@@ -45,7 +45,13 @@ function connect()
 
 cd `dirname $0`
 offline_list=('')
-for line in `cat devices_list.txt`
+
+device_list_file="devices_list.txt"
+if [ $2 ] ;then
+    device_list_file="devices_list_local_test.txt";
+fi
+
+for line in `cat ${device_list_file}`
 do
     if [[ $line == "#"* ]] ;then
         continue
@@ -60,7 +66,7 @@ do
     adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
     adb -s $line:4555 push $1 /data/local/tmp/com.virjar.hermes.hermesagent
     adb -s $line:4555 shell pm install -t -r "/data/local/tmp/com.virjar.hermes.hermesagent"
-    adb -s $line:4555 shell reboot
+    #adb -s $line:4555 shell reboot
     echo 'sleep 5 s'
     sleep 5s
 done

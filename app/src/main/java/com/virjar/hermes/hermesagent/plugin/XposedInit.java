@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -74,8 +75,13 @@ public class XposedInit implements IXposedHookLoadPackage {
 
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(param.args[3]), Constant.packageName)) {
+                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(param.args[3]), Constant.packageName)) {
                             Log.i("weijia", "hermes 拉起apk的权限，强行打开");
+                            param.setResult(true);
+                        }
+                        Object intentObject = param.args[2];
+                        if (intentObject instanceof Intent && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName((Intent) intentObject), Constant.packageName)) {
+                            Log.i("weijia", "其他app拉起hermes的权限，强行打开");
                             param.setResult(true);
                         }
                     }
@@ -107,7 +113,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                     String packageName = resolveInfo.activityInfo.applicationInfo.packageName;
                     if (autoStartWhiteList.contains(packageName)) {
                         //xposedInstaller和HermesAgent，直接放开系统限制
-                        Log.i("weijia", "xposedInstaller和HermesAgent，直接放开系统限制");
+                        Log.i("weijia", " xposedInstaller和HermesAgent，直接放开系统限制,当前开启的package：" + packageName);
                         param.setResult(true);
                         return;
                     }
@@ -127,7 +133,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                         //ignore
                     }
                     try {
-                        if (StringUtils.equalsIgnoreCase(CommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), Constant.packageName)) {
+                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), Constant.packageName)) {
                             Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
                         }
@@ -166,7 +172,7 @@ public class XposedInit implements IXposedHookLoadPackage {
         try {
             aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
         } catch (ClassNotFoundException e) {
-            alertHotLoadFailedWarning(context);
+            // alertHotLoadFailedWarning(context);
             Log.e(TAG, "hot load failed", e);
             try {
                 aClass = XposedInit.class.getClassLoader().loadClass(Constant.xposedHotloadEntry);

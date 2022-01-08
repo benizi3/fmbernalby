@@ -59,7 +59,23 @@ public class APICommonUtils {
         Log.w(invokeLogTag, buildMessageBody(invokeRequest, msg));
     }
 
+    public static void requestLogE(InvokeRequest invokeRequest, String msg, Throwable throwable) {
+        Log.e(invokeLogTag, buildMessageBody(invokeRequest, msg), throwable);
+    }
+
+    public static void requestLogE(InvokeRequest invokeRequest, String msg) {
+        Log.e(invokeLogTag, buildMessageBody(invokeRequest, msg));
+    }
+
     private static String buildMessageBody(InvokeRequest invokeRequest, String msg) {
         return invokeRequest.getRequestID() + " " + DateTime.now().toString("yyyy-MM-dd hh:mm:ss") + " " + msg;
     }
+
+    public static String safeToString(Object input) {
+        if (input == null) {
+            return null;
+        }
+        return input.toString();
+    }
+
 }

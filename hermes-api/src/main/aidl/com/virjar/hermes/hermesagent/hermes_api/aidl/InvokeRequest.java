@@ -5,9 +5,14 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
 
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPath;
 import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.Multimap;
 
 import org.apache.commons.io.IOUtils;
 
@@ -15,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -112,5 +118,71 @@ public class InvokeRequest implements Parcelable {
         paramContent = reply.readString();
         useFile = reply.readByte() != 0;
         requestID = reply.readString();
+    }
+
+    private Multimap nameValuePairsModel;
+    private JSONObject jsonModel;
+
+
+    public String getString(String name) {
+        initInnerModel();
+        if (nameValuePairsModel != null) {
+            return nameValuePairsModel.getString(name);
+        }
+        if (jsonModel != null) {
+            return jsonModel.getString(name);
+        }
+        throw new IllegalStateException("parameter parse failed");
+    }
+
+    public List<String> getValues(String name) {
+        initInnerModel();
+        if (nameValuePairsModel != null) {
+            return nameValuePairsModel.get(name);
+        }
+        if (jsonModel != null) {
+            return Lists.newArrayList(jsonModel.getString(name));
+        }
+        throw new IllegalStateException("parameter parse failed");
+    }
+
+    public JSONObject getJsonParam() {
+        initInnerModel();
+        return jsonModel;
+    }
+
+    public String jsonPath(String jsonPath) {
+        initInnerModel();
+        if (jsonModel == null) {
+            throw new IllegalStateException("param not  json format");
+        }
+        return APICommonUtils.safeToString(JSONPath.compile(jsonPath).eval(jsonModel));
+    }
+
+    private void initInnerModel() {
+        if (nameValuePairsModel != null || jsonModel != null) {
+            return;
+        }
+        synchronized (this) {
+            if (nameValuePairsModel != null || jsonModel != null) {
+                return;
+            }
+            String paramContent = getParamContent();
+            if (paramContent == null) {
+                throw new IllegalArgumentException("invoke request can not be empty");
+            }
+            paramContent = paramContent.trim();
+            if (paramContent.startsWith("{")) {
+                try {
+                    jsonModel = JSONObject.parseObject(paramContent);
+                } catch (JSONException e) {
+                    //ignore
+                }
+            }
+            if (jsonModel != null) {
+                return;
+            }
+            nameValuePairsModel = Multimap.parseUrlEncoded(paramContent);
+        }
     }
 }

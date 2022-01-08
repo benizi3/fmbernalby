@@ -8,7 +8,6 @@ import com.google.common.collect.Maps;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
-import com.virjar.hermes.hermesagent.hermes_api.Multimap;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -49,7 +48,7 @@ public class WeiShiAgent implements AgentCallback {
 
 
     private interface SearchBeanHandler {
-        Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Throwable;
+        Object createSearchBean(InvokeRequest invokeRequest) throws Throwable;
     }
 
     private static Map<String, SearchBeanHandler> handlers = Maps.newHashMap();
@@ -57,12 +56,12 @@ public class WeiShiAgent implements AgentCallback {
     static {
         handlers.put("search", new SearchBeanHandler() {
             @Override
-            public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) {
-                String key = nameValuePairs.getString("key");
+            public Object createSearchBean(InvokeRequest invokeRequest) {
+                String key = invokeRequest.getString("key");
                 if (StringUtils.isBlank(key)) {
                     return InvokeResult.failed("the param {key} not presented");
                 }
-                String attach_info = nameValuePairs.getString("attach_info");
+                String attach_info = invokeRequest.getString("attach_info");
                 Long uniqueID = nextUniueID();
                 return createSearchBeanForSearch(key.trim(), uniqueID, attach_info);
             }
@@ -70,27 +69,27 @@ public class WeiShiAgent implements AgentCallback {
 
         handlers.put("GetPersonalPage".toLowerCase(), new SearchBeanHandler() {
             @Override
-            public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) {
-                String userID = nameValuePairs.getString("userID");
+            public Object createSearchBean(InvokeRequest invokeRequest) {
+                String userID = invokeRequest.getString("userID");
                 if (StringUtils.isBlank(userID)) {
                     return InvokeResult.failed("the param {userID} not presented");
                 }
-                String attach_info = nameValuePairs.getString("attach_info");
+                String attach_info = invokeRequest.getString("attach_info");
                 return createSearchBeanForPersonInfo(userID, attach_info);
             }
         });
 
         handlers.put("GetUsers".toLowerCase(), new SearchBeanHandler() {
-            private Object invokeVersion1(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
-                String userID = nameValuePairs.getString("userID");
+            private Object invokeVersion1(InvokeRequest invokeRequest) throws Exception {
+                String userID = invokeRequest.getString("userID");
                 if (StringUtils.isBlank(userID)) {
                     return InvokeResult.failed("the param {userID} not presented");
                 }
-                String attach_info = nameValuePairs.getString("attach_info");
+                String attach_info = invokeRequest.getString("attach_info");
                 if (attach_info == null) {
                     attach_info = "";
                 }
-                String type = nameValuePairs.getString("type");
+                String type = invokeRequest.getString("type");
                 if (!StringUtils.equalsIgnoreCase(type, "follower")
                         && !StringUtils.equalsIgnoreCase(type, "interester")) {
                     type = "follower";
@@ -163,19 +162,19 @@ public class WeiShiAgent implements AgentCallback {
 
 
             @Override
-            public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
+            public Object createSearchBean(InvokeRequest invokeRequest) throws Exception {
                 if (frameworkClassLoader != null) {
-                    return invokeVersion1(nameValuePairs, invokeRequest);
+                    return invokeVersion1(invokeRequest);
                 }
-                String userID = nameValuePairs.getString("userID");
+                String userID = invokeRequest.getString("userID");
                 if (StringUtils.isBlank(userID)) {
                     return InvokeResult.failed("the param {userID} not presented");
                 }
-                String attach_info = nameValuePairs.getString("attach_info");
+                String attach_info = invokeRequest.getString("attach_info");
                 if (attach_info == null) {
                     attach_info = "";
                 }
-                String type = nameValuePairs.getString("type");
+                String type = invokeRequest.getString("type");
                 if (!StringUtils.equalsIgnoreCase(type, "follower")
                         && !StringUtils.equalsIgnoreCase(type, "interester")) {
                     type = "follower";
@@ -254,11 +253,8 @@ public class WeiShiAgent implements AgentCallback {
 
     @Override
     public InvokeResult invoke(InvokeRequest invokeRequest) {
-        String paramContent = invokeRequest.getParamContent();
-        Multimap nameValuePairs = Multimap.parseUrlEncoded(paramContent);
 
-
-        String action = nameValuePairs.getString("action");
+        String action = invokeRequest.getString("action");
         if (StringUtils.isBlank(action)) {
             action = "search";
         }
@@ -271,7 +267,7 @@ public class WeiShiAgent implements AgentCallback {
 
         Object searchBean;
         try {
-            searchBean = searchBeanHandler.createSearchBean(nameValuePairs, invokeRequest);
+            searchBean = searchBeanHandler.createSearchBean(invokeRequest);
         } catch (Throwable throwable) {
             APICommonUtils.requestLogW(invokeRequest, "请求异常", throwable);
             return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(throwable));

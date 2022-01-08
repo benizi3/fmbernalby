@@ -46,7 +46,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     compileOnly 'de.robv.android.xposed:api:82'
-    implementation 'com.alibaba:fastjson:1.1.67.android'
+    implementation 'com.alibaba:fastjson:1.2.7'
     implementation 'commons-io:commons-io:2.6'
     implementation 'com.google.guava:guava:23.4-android'
     // https://mvnrepository.com/artifact/joda-time/joda-time

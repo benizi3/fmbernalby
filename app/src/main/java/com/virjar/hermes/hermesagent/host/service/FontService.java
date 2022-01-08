@@ -177,11 +177,9 @@ public class FontService extends Service {
             return;
         }
 
-
         if (allCallback == null) {
             scanCallBack();
         }
-
 
         //启动httpServer
         HttpServer.getInstance().setFontService(this);

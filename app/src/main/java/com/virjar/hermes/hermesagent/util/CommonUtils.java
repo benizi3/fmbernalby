@@ -356,12 +356,6 @@ public class CommonUtils {
         }
     }
 
-    public static String safeToString(Object input) {
-        if (input == null) {
-            return null;
-        }
-        return input.toString();
-    }
 
     public static String getPackageName(Intent intent) {
         Uri uri = intent.getData();
