@@ -80,7 +80,7 @@ public class WeiShiAgent implements AgentCallback {
             }
         });
 
-        handlers.put("GetFansList".toLowerCase(), new SearchBeanHandler() {
+        handlers.put("GetUsers".toLowerCase(), new SearchBeanHandler() {
             private Object invokeVersion1(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
                 String userID = nameValuePairs.getString("userID");
                 if (StringUtils.isBlank(userID)) {
@@ -90,12 +90,17 @@ public class WeiShiAgent implements AgentCallback {
                 if (attach_info == null) {
                     attach_info = "";
                 }
+                String type = nameValuePairs.getString("type");
+                if (!StringUtils.equalsIgnoreCase(type, "follower")
+                        && !StringUtils.equalsIgnoreCase(type, "interester")) {
+                    type = "follower";
+                }
                 Long uniqueID = nextUniueID();
                 Object getUsers = XposedHelpers.findConstructorExact("com.tencent.oscar.module.e.a.g$21", frameworkClassLoader, long.class, String.class)
-                        .newInstance(uniqueID, "GetUsers");
+                        .newInstance(uniqueID, type);
 
                 Object stGetUsersReq = XposedHelpers.findConstructorExact("NS_KING_INTERFACE.stGetUsersReq", frameworkClassLoader, String.class, String.class, String.class, ArrayList.class)
-                        .newInstance(attach_info, userID, "follower", null);
+                        .newInstance(attach_info, userID, type, null);
                 XposedHelpers.setObjectField(getUsers, "req", stGetUsersReq);
                 Object senderManager = XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.tencent.oscar.app.LifePlayApplication", frameworkClassLoader), "getSenderManager");
 
@@ -157,11 +162,10 @@ public class WeiShiAgent implements AgentCallback {
             }
 
 
-
             @Override
             public Object createSearchBean(Multimap nameValuePairs, InvokeRequest invokeRequest) throws Exception {
                 if (frameworkClassLoader != null) {
-                    return invokeVersion1(nameValuePairs,invokeRequest);
+                    return invokeVersion1(nameValuePairs, invokeRequest);
                 }
                 String userID = nameValuePairs.getString("userID");
                 if (StringUtils.isBlank(userID)) {
@@ -171,12 +175,18 @@ public class WeiShiAgent implements AgentCallback {
                 if (attach_info == null) {
                     attach_info = "";
                 }
+                String type = nameValuePairs.getString("type");
+                if (!StringUtils.equalsIgnoreCase(type, "follower")
+                        && !StringUtils.equalsIgnoreCase(type, "interester")) {
+                    type = "follower";
+                }
+
                 Long uniqueID = nextUniueID();
                 Object getUsers = XposedHelpers.findConstructorExact("com.tencent.oscar.module.f.a.f$18", hostClassLoader, long.class, String.class)
                         .newInstance(uniqueID, "GetUsers");
 
                 Object stGetUsersReq = XposedHelpers.findConstructorExact("NS_KING_INTERFACE.stGetUsersReq", hostClassLoader, String.class, String.class, String.class, ArrayList.class)
-                        .newInstance(attach_info, userID, "follower", null);
+                        .newInstance(attach_info, userID, type, null);
                 XposedHelpers.setObjectField(getUsers, "req", stGetUsersReq);
                 Object senderManager = XposedHelpers.callStaticMethod(XposedHelpers.findClass("com.tencent.oscar.base.app.App", hostClassLoader)
                         , "getSenderManager");
