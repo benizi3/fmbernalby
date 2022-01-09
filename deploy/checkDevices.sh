@@ -15,7 +15,7 @@ for line in `cat devices_list.txt` ;do
     fi
 done
 
-if [ ${#offline_list[@]} != 0 ] ;then
+if [ ${#offline_list[@]} -eq 0 ] ;then
     echo 'offline device list:'
 fi
 

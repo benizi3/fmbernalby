@@ -22,6 +22,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.jaredrummler.android.processes.AndroidProcesses;
+import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
@@ -282,7 +284,7 @@ public class CommonUtils {
                 Log.i(adbTag, "the adb service already running on " + Constant.ADBD_PORT);
                 return;
             }
-            if (!Shell.SU.available()) {
+            if (!CommonUtils.isSuAvailable()) {
                 Log.w(adbTag, "acquire root permission failed,can not enable adbd service with tcp protocol mode");
                 return;
             }
@@ -364,5 +366,33 @@ public class CommonUtils {
 
     public static String genRequestID() {
         return "request_session_" + Thread.currentThread().getId() + "_" + System.currentTimeMillis();
+    }
+
+    private static boolean suAvailable = Shell.SU.available();
+
+    public static boolean killService(String packageName) {
+        //注意不能通过kill的rpc过去，需要强杀
+        Log.e("pingWatchTask", "app: " + packageName + " 假死，强杀该app");
+        if (!isSuAvailable()) {
+            Log.w("pingWatchTask", "无法杀死targetApp，请给HermesAgent分配root权限");
+            return false;
+        }
+        boolean hinted = false;
+        List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
+        for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
+            if (androidAppProcess.getPackageName().equalsIgnoreCase(packageName)) {
+                Shell.SU.run("kill -9 " + androidAppProcess.pid);
+                hinted = true;
+            }
+        }
+        return hinted;
+    }
+
+    public static boolean isSuAvailable() {
+        return suAvailable;
+    }
+
+    public static boolean requestSuPermission() {
+        return suAvailable = Shell.SU.available();
     }
 }

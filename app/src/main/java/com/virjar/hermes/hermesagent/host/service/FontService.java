@@ -240,7 +240,7 @@ public class FontService extends Service {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (!Shell.SU.available()) {
+                if (!CommonUtils.isSuAvailable()) {
                     //TODO test for jadb
                     return;
                 }

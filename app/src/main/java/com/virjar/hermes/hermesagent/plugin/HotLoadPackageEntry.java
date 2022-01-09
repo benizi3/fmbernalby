@@ -13,6 +13,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
@@ -46,7 +47,7 @@ public class HotLoadPackageEntry {
 
     @SuppressWarnings("unused")
     public static void entry(Context context, XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        if (StringUtils.equalsIgnoreCase(loadPackageParam.packageName, Constant.packageName)) {
+        if (StringUtils.equalsIgnoreCase(loadPackageParam.packageName, BuildConfig.APPLICATION_ID)) {
             //CommonUtils.xposedStartSuccess = true;
             Class commonUtilClass = XposedHelpers.findClass("com.virjar.hermes.hermesagent.util.CommonUtils", loadPackageParam.classLoader);
             XposedHelpers.setStaticBooleanField(commonUtilClass, "xposedStartSuccess", true);
@@ -114,7 +115,7 @@ public class HotLoadPackageEntry {
                 String packageName = CommonUtils.getPackageName(intent);
                 if (packageName == null)
                     return;
-                if (!StringUtils.equalsIgnoreCase(packageName, Constant.packageName)) {
+                if (!StringUtils.equalsIgnoreCase(packageName, BuildConfig.APPLICATION_ID)) {
                     return;
                 }
                 Log.i(TAG, "master  重新安装，重启slave 进程");

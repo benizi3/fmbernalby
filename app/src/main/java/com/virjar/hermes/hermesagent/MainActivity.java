@@ -20,8 +20,6 @@ import com.virjar.hermes.hermesagent.util.Constant;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import eu.chainfire.libsuperuser.Shell;
-
 public class MainActivity extends AppCompatActivity {
     private IServiceRegister mService = null;
 
@@ -54,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
         intent = new Intent();
         intent.setAction(Constant.serviceRegisterAction);
-        intent.setPackage(Constant.packageName);
+        intent.setPackage(BuildConfig.APPLICATION_ID);
         bindService(intent, fontServiceConnection, Context.BIND_AUTO_CREATE);
         Timer timer = new Timer("refreshUI", true);
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -87,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         Intent intent = new Intent();
         intent.setAction(Constant.serviceRegisterAction);
-        intent.setPackage(Constant.packageName);
+        intent.setPackage(BuildConfig.APPLICATION_ID);
         this.unbindService(fontServiceConnection);
     }
 
@@ -111,14 +109,13 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     text = "xposed中，未正常启动HermesAgent模块";
                 }
-                if (!Shell.SU.available()) {
+                if (!CommonUtils.isSuAvailable() && !CommonUtils.requestSuPermission()) {
                     text += "\n  HermesAgent需要root权限，请放开HermesAgent的root授权";
                 }
                 tv.setText(text);
             }
         });
     }
-
 
 
 //

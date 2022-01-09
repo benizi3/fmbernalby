@@ -9,6 +9,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
@@ -117,7 +118,7 @@ public class AgentRegister {
 
         Intent intent = new Intent();
         intent.setAction(Constant.serviceRegisterAction);
-        intent.setPackage(Constant.packageName);
+        intent.setPackage(BuildConfig.APPLICATION_ID);
         application.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 

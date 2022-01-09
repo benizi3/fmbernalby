@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -111,6 +113,7 @@ public class HttpServer {
         bindRestartDeviceCommand();
         bindExecuteShellCommand();
         bindRestartADBDCommand();
+        bindReloadServiceCommand();
         //TODO adb命令，需要维持会话
 
         try {
@@ -195,6 +198,37 @@ public class HttpServer {
         });
     }
 
+    private void bindReloadServiceCommand() {
+        server.get(Constant.reloadService, new HttpServerRequestCallback() {
+
+            @Override
+            public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!CommonUtils.isSuAvailable()) {
+                            CommonUtils.sendJSON(response, CommonRes.failed("need root permission"));
+                            return;
+                        }
+                        Multimap query = request.getQuery();
+                        final String service = query.getString("service");
+                        Map<String, Boolean> killStatus = Maps.newHashMap();
+                        if (StringUtils.isNotBlank(service)) {
+                            killStatus.put(service, CommonUtils.killService(service));
+                        } else {
+                            for (String str : fontService.onlineAgentServices()) {
+                                killStatus.put(service, CommonUtils.killService(str));
+                            }
+                        }
+                        CommonUtils.sendJSON(response, CommonRes.success(killStatus));
+                    }
+                }, response).run();
+
+
+            }
+        });
+    }
+
     private void bindExecuteShellCommand() {
         server.get(Constant.executeShellCommandPath, new HttpServerRequestCallback() {
             @Override
@@ -245,7 +279,7 @@ public class HttpServer {
                 new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
                     @Override
                     public void run() {
-                        if (!Shell.SU.available()) {
+                        if (!CommonUtils.isSuAvailable()) {
                             CommonUtils.sendJSON(response, CommonRes.failed("need root permission"));
                             return;
                         }

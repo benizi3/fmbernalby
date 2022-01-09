@@ -3,6 +3,8 @@ package com.virjar.hermes.hermesagent.util;
 import android.annotation.SuppressLint;
 import android.os.Build;
 
+import com.virjar.hermes.hermesagent.BuildConfig;
+
 /**
  * Created by virjar on 2018/8/23.
  */
@@ -15,12 +17,12 @@ public interface Constant {
     String aliveServicePath = "/aliveService";
     String restartDevicePath = "/restartDevice";
     String executeShellCommandPath = "/executeCommand";
+    String reloadService = "/reloadService";
     String restartAdbD = "/restartAdbD";
     String jsonContentType = "application/json; charset=utf-8";
 
     String nativeLibName = "native-lib";
 
-    String packageName = "com.virjar.hermes.hermesagent";
     String fontServiceDestroyAction = "com.virjar.hermes.hermesagent.fontServiceDestroy";
     int status_ok = 0;
     int status_failed = -1;
@@ -64,14 +66,19 @@ public interface Constant {
     String httpServerLooperThreadName = "httpServerLooper";
     @SuppressLint("SdCardPath")
     String BASE_DIR = Build.VERSION.SDK_INT >= 24
-            ? "/data/user_de/0/" + packageName + "/"
-            : "/data/data/" + packageName + "/";
+            ? "/data/user_de/0/" + BuildConfig.APPLICATION_ID + "/"
+            : "/data/data/" + BuildConfig.APPLICATION_ID + "/";
     String HERMES_WRAPPER_DIR = Constant.BASE_DIR + "hermesModules/";
 
     //adb 远程接口，运行在4555端口,默认端口为5555，但是貌似有其他配置会和5555冲突，引起device offline，所以这里避开冲突
     int ADBD_PORT = 4555;
 
     String xposedInstallerPackage = "de.robv.android.xposed.installer";
+
+    @SuppressLint("SdCardPath")
+    String XPOSED_BASE_DIR = Build.VERSION.SDK_INT >= 24
+            ? "/data/user_de/0/" + xposedInstallerPackage + "/"
+            : "/data/data/" + xposedInstallerPackage + "/";
 
     int WEBSOCKET_PORT = 19999;
 

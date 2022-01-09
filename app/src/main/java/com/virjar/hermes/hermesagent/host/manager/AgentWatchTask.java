@@ -33,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import eu.chainfire.libsuperuser.Shell;
-
 /**
  * Created by virjar on 2018/8/24.<br>
  * server端，监控所有agent的状态，无法调通agent的话，尝试拉起agent
@@ -161,7 +159,7 @@ public class AgentWatchTask extends TimerTask {
     }
 
     private static DelayQueue<PingWatchTask> pingWatchTaskLinkedBlockingDeque = new DelayQueue<>();
-    private static boolean suAvailable = Shell.SU.available();
+
 
     static {
         Thread thread = new Thread("pingWatchTask") {
@@ -173,18 +171,7 @@ public class AgentWatchTask extends TimerTask {
                         if (poll.isDone) {
                             continue;
                         }
-                        //注意不能通过kill的rpc过去，需要强杀
-                        Log.e("pingWatchTask", "app: " + poll.targetPackageName + " 假死，强杀该app");
-                        if (!suAvailable) {
-                            Log.w("pingWatchTask", "无法杀死targetApp，请给HermesAgent分配root权限");
-                            continue;
-                        }
-                        List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
-                        for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
-                            if (androidAppProcess.getPackageName().equalsIgnoreCase(poll.targetPackageName)) {
-                                Shell.SU.run("kill -9 " + androidAppProcess.pid);
-                            }
-                        }
+                        CommonUtils.killService(poll.targetPackageName);
                     } catch (InterruptedException e) {
                         return;
                     } catch (Exception e) {

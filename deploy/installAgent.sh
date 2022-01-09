@@ -46,6 +46,12 @@ function connect()
 cd `dirname $0`
 offline_list=('')
 
+apk_location=$1
+
+if [ ! apk_location ] ;then
+    apk_location=`pwd`
+fi
+
 device_list_file="devices_list.txt"
 if [ $2 ] ;then
     device_list_file="devices_list_local_test.txt";
@@ -63,15 +69,19 @@ do
         offline_list[${#offline_list[@]}]=$line
         continue
     fi
-    adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+    #adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
     adb -s $line:4555 push $1 /data/local/tmp/com.virjar.hermes.hermesagent
     adb -s $line:4555 shell pm install -t -r "/data/local/tmp/com.virjar.hermes.hermesagent"
+    adb -s $line:4555 shell am start -n "com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+    #adb -s $line:4555 shell am broadcast -a android.intent.action.PACKAGE_REPLACED -n de.robv.android.xposed.installer/de.robv.android.xposed.installer.receivers.PackageChangeReceiver
+    #这里超时时间设置的长一些，因为hermes刚刚安装重启，可能需要一点时间http服务才会开启。hermesAgent的安装，需要重启所有slave
+    curl --connect-timeout 10 "http://$line:5597/reloadService"
     #adb -s $line:4555 shell reboot
-    echo 'sleep 5 s'
-    sleep 5s
+    #echo 'sleep 5 s'
+    #sleep 5s
 done
 
-if [ ${#offline_list[@]} != 0 ] ;then
+if [ ${#offline_list[@]} -eq 0 ] ;then
     echo 'install failed  device list:'
 fi
 

@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
@@ -75,12 +76,12 @@ public class XposedInit implements IXposedHookLoadPackage {
 
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(param.args[3]), Constant.packageName)) {
+                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(param.args[3]), BuildConfig.APPLICATION_ID)) {
                             Log.i("weijia", "hermes 拉起apk的权限，强行打开");
                             param.setResult(true);
                         }
                         Object intentObject = param.args[2];
-                        if (intentObject instanceof Intent && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName((Intent) intentObject), Constant.packageName)) {
+                        if (intentObject instanceof Intent && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName((Intent) intentObject), BuildConfig.APPLICATION_ID)) {
                             Log.i("weijia", "其他app拉起hermes的权限，强行打开");
                             param.setResult(true);
                         }
@@ -123,7 +124,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                     }
                     try {
                         Intent intent = (Intent) XposedHelpers.getObjectField(r, "intent");
-                        if (intent != null && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName(intent), Constant.packageName)) {
+                        if (intent != null && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName(intent), BuildConfig.APPLICATION_ID)) {
                             //HermesAgent触发的广播，均不拦截
                             Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
@@ -133,7 +134,7 @@ public class XposedInit implements IXposedHookLoadPackage {
                         //ignore
                     }
                     try {
-                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), Constant.packageName)) {
+                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(XposedHelpers.getObjectField(r, "callerPackage")), BuildConfig.APPLICATION_ID)) {
                             Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
                         }
@@ -145,7 +146,7 @@ public class XposedInit implements IXposedHookLoadPackage {
         }
     }
 
-    private static Set<String> autoStartWhiteList = Sets.newHashSet(Constant.packageName, Constant.xposedInstallerPackage);
+    private static Set<String> autoStartWhiteList = Sets.newHashSet(BuildConfig.APPLICATION_ID, Constant.xposedInstallerPackage);
 
     private void alertHotLoadFailedWarning(Context context) {
         new AlertDialog.Builder(context)
@@ -201,12 +202,12 @@ public class XposedInit implements IXposedHookLoadPackage {
 
         PackageInfo packageInfo = null;
         try {
-            packageInfo = packageManager.getPackageInfo(Constant.packageName, PackageManager.GET_META_DATA);
+            packageInfo = packageManager.getPackageInfo(BuildConfig.APPLICATION_ID, PackageManager.GET_META_DATA);
         } catch (PackageManager.NameNotFoundException e) {
             //ignore
         }
         if (packageInfo == null) {
-            XposedBridge.log("can not find plugin install location for plugin: " + Constant.packageName);
+            XposedBridge.log("can not find plugin install location for plugin: " + BuildConfig.APPLICATION_ID);
             return classLoader;
         }
 
