@@ -48,9 +48,11 @@ offline_list=('')
 
 apk_location=$1
 
-if [ ! apk_location ] ;then
-    apk_location=`pwd`
+if [ ! $apk_location ] ;then
+    apk_location=`pwd`/../app/build/outputs/apk/debug/app-debug.apk
 fi
+
+
 
 device_list_file="devices_list.txt"
 if [ $2 ] ;then
@@ -70,8 +72,13 @@ do
         continue
     fi
     #adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
-    adb -s $line:4555 push $1 /data/local/tmp/com.virjar.hermes.hermesagent
+    echo "adb -s $line:4555 push ${apk_location} /data/local/tmp/com.virjar.hermes.hermesagent"
+    adb -s $line:4555 push $apk_location /data/local/tmp/com.virjar.hermes.hermesagent
+
+    echo "adb -s $line:4555 shell pm install -t -r \"/data/local/tmp/com.virjar.hermes.hermesagent\""
     adb -s $line:4555 shell pm install -t -r "/data/local/tmp/com.virjar.hermes.hermesagent"
+
+    echo "adb -s $line:4555 shell am start -n \"com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity\" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
     adb -s $line:4555 shell am start -n "com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
     #adb -s $line:4555 shell am broadcast -a android.intent.action.PACKAGE_REPLACED -n de.robv.android.xposed.installer/de.robv.android.xposed.installer.receivers.PackageChangeReceiver
     #这里超时时间设置的长一些，因为hermes刚刚安装重启，可能需要一点时间http服务才会开启。hermesAgent的安装，需要重启所有slave
