@@ -217,7 +217,7 @@ public class HttpServer {
                             killStatus.put(service, CommonUtils.killService(service));
                         } else {
                             for (String str : fontService.onlineAgentServices()) {
-                                killStatus.put(service, CommonUtils.killService(str));
+                                killStatus.put(str, CommonUtils.killService(str));
                             }
                         }
                         CommonUtils.sendJSON(response, CommonRes.success(killStatus));

@@ -44,20 +44,29 @@ function connect()
 }
 
 cd `dirname $0`
+cd ..
+echo "build hermes agent apk"
+./gradlew app:assembleDebug
+if [ ! $? -eq 0 ] ;then
+    echo 'apk assemble failed'
+    exit -1
+fi
+
+cd `dirname $0`
 offline_list=('')
 
 apk_location=$1
+device_list_file="devices_list.txt"
 
 if [ ! $apk_location ] ;then
     apk_location=`pwd`/../app/build/outputs/apk/debug/app-debug.apk
 fi
 
-
-
-device_list_file="devices_list.txt"
-if [ $2 ] ;then
-    device_list_file="devices_list_local_test.txt";
+if [[ ! $1 == *".apk" ]] ;then
+     device_list_file="devices_list_local_test.txt";
+     apk_location=`pwd`/../app/build/outputs/apk/debug/app-debug.apk
 fi
+
 
 for line in `cat ${device_list_file}`
 do
@@ -81,11 +90,15 @@ do
     echo "adb -s $line:4555 shell am start -n \"com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity\" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
     adb -s $line:4555 shell am start -n "com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
     #adb -s $line:4555 shell am broadcast -a android.intent.action.PACKAGE_REPLACED -n de.robv.android.xposed.installer/de.robv.android.xposed.installer.receivers.PackageChangeReceiver
+    echo 'sleep 10s ,wait for hermes http server startup'
+    sleep 10s
     #这里超时时间设置的长一些，因为hermes刚刚安装重启，可能需要一点时间http服务才会开启。hermesAgent的安装，需要重启所有slave
+
+    echo "curl --connect-timeout 10 \"http://$line:5597/reloadService\""
     curl --connect-timeout 10 "http://$line:5597/reloadService"
     #adb -s $line:4555 shell reboot
-    #echo 'sleep 5 s'
-    #sleep 5s
+    echo
+    echo "$line deploy success"
 done
 
 if [ ${#offline_list[@]} -eq 0 ] ;then
