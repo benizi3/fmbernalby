@@ -62,7 +62,7 @@ if [ ! $apk_location ] ;then
     apk_location=`pwd`/../app/build/outputs/apk/debug/app-debug.apk
 fi
 
-if [[ ! $1 == *".apk" ]] ;then
+if [ $1 -a [ ! $1 == *".apk" ]] ;then
      device_list_file="devices_list_local_test.txt";
      apk_location=`pwd`/../app/build/outputs/apk/debug/app-debug.apk
 fi

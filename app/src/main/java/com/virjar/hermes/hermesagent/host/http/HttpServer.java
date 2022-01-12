@@ -244,7 +244,7 @@ public class HttpServer {
                 new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
                     @Override
                     public void run() {
-                        CommonUtils.sendJSON(response, CommonRes.success(CommonUtils.execCmd(cmd, useRoot)));
+                        CommonUtils.sendPlainText(response, CommonUtils.execCmd(cmd, useRoot));
                     }
                 }, response).run();
                 if (StringUtils.trimToEmpty(cmd).equalsIgnoreCase("reboot")) {

@@ -1,5 +1,6 @@
 package com.virjar.hermes.hermesagent.plugin;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -148,22 +149,34 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     private static Set<String> autoStartWhiteList = Sets.newHashSet(BuildConfig.APPLICATION_ID, Constant.xposedInstallerPackage);
 
-    private void alertHotLoadFailedWarning(Context context) {
-        new AlertDialog.Builder(context)
-                .setTitle("HermesAgent热发代码加载失败")
-                .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +
-                        "有两个常见原因可能引发这个问题，请check:\n" +
-                        "1.您的Android studio开启了Instant Run，这会导致Xposed框架无法记载到正确的回调class" +
-                        "2.您安装了新代码之后，需要先打开一次HermesAgent的App，才能重启Android系统，否则Xposed会在init进程为HermesAgent的apk创建odex缓存。" +
-                        "  这会导致该文件创建者为root，进而再次热发代码的时候，普通进程没有remove老的odex文件缓存的权限，导致apk代码刷新失败 "
-                )
-                .setNeutralButton("我已知晓！", new DialogInterface.OnClickListener() {//添加普通按钮
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
+    private static boolean hotLoadFailedDialog = false;
 
-                    }
-                })
-                .create().show();
+    private void alertHotLoadFailedWarning(Context context) {
+        XposedBridge.hookAllConstructors(Activity.class, new SingletonXC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                if (hotLoadFailedDialog) {
+                    return;
+                }
+                hotLoadFailedDialog = true;
+                new AlertDialog.Builder((Context) param.thisObject)
+                        .setTitle("HermesAgent热发代码加载失败")
+                        .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +
+                                "有两个常见原因可能引发这个问题，请check:\n" +
+                                "1.您的Android studio开启了Instant Run，这会导致Xposed框架无法记载到正确的回调class" +
+                                "2.您安装了新代码之后，需要先打开一次HermesAgent的App，才能重启Android系统，否则Xposed会在init进程为HermesAgent的apk创建odex缓存。" +
+                                "  这会导致该文件创建者为root，进而再次热发代码的时候，普通进程没有remove老的odex文件缓存的权限，导致apk代码刷新失败 "
+                        )
+                        .setNeutralButton("我已知晓！", new DialogInterface.OnClickListener() {//添加普通按钮
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+
+                            }
+                        })
+                        .create().show();
+            }
+        });
+
     }
 
     private void hotLoadPlugin(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
@@ -173,7 +186,7 @@ public class XposedInit implements IXposedHookLoadPackage {
         try {
             aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
         } catch (ClassNotFoundException e) {
-            // alertHotLoadFailedWarning(context);
+            alertHotLoadFailedWarning(context);
             Log.e(TAG, "hot load failed", e);
             try {
                 aClass = XposedInit.class.getClassLoader().loadClass(Constant.xposedHotloadEntry);

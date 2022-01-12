@@ -172,10 +172,6 @@ public class FontService extends Service {
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
 
-        if (!CommonUtils.xposedStartSuccess) {
-            Log.w(TAG, "xposed 模块启动不正常，取消server启动");
-            return;
-        }
 
         if (allCallback == null) {
             scanCallBack();
@@ -185,7 +181,7 @@ public class FontService extends Service {
         HttpServer.getInstance().setFontService(this);
         HttpServer.getInstance().startServer(this);
 
-        if (lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
+        if (CommonUtils.xposedStartSuccess && lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
             if (lastCheckTimerCheck != 0) {
                 Log.i(TAG, "timer 假死，重启timer");
             }

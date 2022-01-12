@@ -20,6 +20,7 @@ public interface Constant {
     String reloadService = "/reloadService";
     String restartAdbD = "/restartAdbD";
     String jsonContentType = "application/json; charset=utf-8";
+    String plainTextContentType = "text/plain; charset=utf-8";
 
     String nativeLibName = "native-lib";
 
@@ -90,4 +91,5 @@ public interface Constant {
 
     int HEAD_LENGTH = 4;
 
+    String xposedBridgeClassLoaderName = "com.virjar.hermes.hermesagent.xposed_classloader_bridge.XposedRelateClassLoader";
 }

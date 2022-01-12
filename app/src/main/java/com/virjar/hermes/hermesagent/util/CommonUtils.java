@@ -127,6 +127,10 @@ public class CommonUtils {
         response.send(Constant.jsonContentType, JSONObject.toJSONString(commonRes));
     }
 
+    public static void sendPlainText(AsyncHttpServerResponse response, String text) {
+        response.send(Constant.plainTextContentType, text);
+    }
+
     public static Request pingServerRequest() {
         String url = localServerBaseURL() + Constant.httpServerPingPath;
         return new Request.Builder()
@@ -395,4 +399,7 @@ public class CommonUtils {
     public static boolean requestSuPermission() {
         return suAvailable = Shell.SU.available();
     }
+
+
+    public static ClassLoader xposedBridgeClassLoader = null;
 }

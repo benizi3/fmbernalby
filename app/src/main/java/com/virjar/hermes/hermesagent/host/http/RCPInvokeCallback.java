@@ -50,6 +50,11 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
 
     @Override
     public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+        if (!CommonUtils.xposedStartSuccess) {
+            CommonUtils.sendJSON(response, CommonRes.failed("hermes startup failed,please contact hermes administrator; android device info{mac: " +
+                    CommonUtils.deviceID(fontService) + " ,ip:" + CommonUtils.getLocalIp() + "}"));
+            return;
+        }
         Map<String, String> innerParam = determineInnerParam(request);
         final String invokePackage = innerParam.get(Constant.invokePackage);
         if (StringUtils.isBlank(invokePackage)) {
