@@ -88,3 +88,11 @@ dependencies {
 }
 
 
+task insertXposedBridgeApk(type: Copy, dependsOn: ':xposedbridge:assembleRelease') {
+    from file('../xposedbridge/build/outputs/apk/release/xposedbridge-release.apk')
+    into file('../app/src/main/assets/')
+}
+
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn(insertXposedBridgeApk)
+}

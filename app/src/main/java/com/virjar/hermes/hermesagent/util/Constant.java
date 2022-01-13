@@ -92,4 +92,5 @@ public interface Constant {
     int HEAD_LENGTH = 4;
 
     String xposedBridgeClassLoaderName = "com.virjar.hermes.hermesagent.xposed_classloader_bridge.XposedRelateClassLoader";
+    String xposedBridgeApkFileName = "xposedbridge-release.apk";
 }

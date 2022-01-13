@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
@@ -11,11 +12,16 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
+import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
@@ -23,9 +29,13 @@ import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
+import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -53,37 +63,43 @@ public class FontService extends Service {
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
     private Set<String> onlineServices = null;
 
-    //TODO 这个需要热发，和watch dog隔离
     private Set<String> allCallback = null;
 
     @SuppressWarnings("unchecked")
     private void scanCallBack() {
-        allCallback = Sets.newHashSet("com.tencent.weishi");
-        //无法使用类扫描机制，由于agent代码依赖xposed环境，宿主中，无法直接使用xposed代码
-        //TODO 考虑xposed的mock
-//        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
-//        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage));
-//
-//        allCallback = Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
-//            @javax.annotation.Nullable
-//            @Override
-//            public String apply(@javax.annotation.Nullable Class<? extends AgentCallback> input) {
-//                if (input == null) {
-//                    return null;
-//                }
-//                try {
-//                    return input.newInstance().targetPackageName();
-//                } catch (InstantiationException | IllegalAccessException e) {
-//                    Log.e("weijia", "failed to load create plugin", e);
-//                }
-//                return null;
-//            }
-//        }), new Predicate<String>() {
-//            @Override
-//            public boolean apply(@javax.annotation.Nullable String input) {
-//                return StringUtils.isNotBlank(input);
-//            }
-//        }));
+        String sourceDir;
+        try {
+            sourceDir = getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, PackageManager.GET_META_DATA).applicationInfo.sourceDir;
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new IllegalStateException(e);
+            //not happen
+        }
+        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+        //这里欺骗了xposed
+        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
+
+        allCallback = Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
+            @javax.annotation.Nullable
+            @Override
+            public String apply(@javax.annotation.Nullable Class<? extends AgentCallback> input) {
+                if (input == null) {
+                    return null;
+                }
+                try {
+                    return input.newInstance().targetPackageName();
+                } catch (InstantiationException | IllegalAccessException e) {
+                    Log.e("weijia", "failed to load create plugin", e);
+                }
+                return null;
+            }
+        }), new Predicate<String>() {
+            @Override
+            public boolean apply(@javax.annotation.Nullable String input) {
+                return StringUtils.isNotBlank(input);
+            }
+        }));
+
+        //TODO 还有external wrapper实现
 
     }
 

@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -37,7 +38,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
@@ -53,6 +56,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import dalvik.system.PathClassLoader;
 import eu.chainfire.libsuperuser.Shell;
 import okhttp3.Request;
 
@@ -63,7 +67,7 @@ import static android.content.Context.TELEPHONY_SERVICE;
  */
 
 public class CommonUtils {
-    private static String TAG = "common_util";
+    private static String TAG = "weijia";
 
     public static boolean isLocalTest() {
         return BuildConfig.DEBUG;
@@ -402,4 +406,31 @@ public class CommonUtils {
 
 
     public static ClassLoader xposedBridgeClassLoader = null;
+
+    public static ClassLoader createXposedClassLoadBridgeClassLoader(Context context) {
+        if (xposedBridgeClassLoader != null) {
+            return xposedBridgeClassLoader;
+        }
+        synchronized (CommonUtils.class) {
+            if (xposedBridgeClassLoader != null) {
+                return xposedBridgeClassLoader;
+            }
+            File xposedBridgeApkFile = new File(context.getFilesDir(), Constant.xposedBridgeApkFileName);
+            if (!xposedBridgeApkFile.exists()) {
+                releaseXposedBridgeApkFile(context, xposedBridgeApkFile);
+            }
+            xposedBridgeClassLoader = new PathClassLoader(xposedBridgeApkFile.getAbsolutePath(), CommonUtils.class.getClassLoader());
+            return xposedBridgeClassLoader;
+        }
+    }
+
+    private static void releaseXposedBridgeApkFile(Context context, File xposedBridgeApkFile) {
+        AssetManager assets = context.getAssets();
+        try (InputStream inputStream = assets.open(Constant.xposedBridgeApkFileName)) {
+            IOUtils.copy(inputStream, new FileOutputStream(xposedBridgeApkFile));
+        } catch (IOException e) {
+            Log.e("weijia", "release xposed bridge apk file failed", e);
+            throw new IllegalStateException(e);
+        }
+    }
 }

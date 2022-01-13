@@ -28,15 +28,6 @@ allprojects {
     }
 }
 
-task insertXposedBridgeApk(type: Copy, dependsOn: ':xposedbridge:assembleRelease') {
-    task(':app:assembleRelease').dependsOn(insertXposedBridgeApk)
-    task(':app:assembleDebug').dependsOn(insertXposedBridgeApk)
-    from file('xposedbridge/build/outputs/apk/release/xposedbridge-release.apk')
-    into file('app/src/main/assets/')
-}
-
-
-
 
 task clean(type: Delete) {
     delete rootProject.buildDir

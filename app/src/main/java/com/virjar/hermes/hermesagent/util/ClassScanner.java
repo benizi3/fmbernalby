@@ -43,12 +43,16 @@ public class ClassScanner {
     }
 
     public static <T> void scan(ClassVisitor<T> subClassVisitor, Collection<String> basePackages, File sourceLocation) {
+        scan(subClassVisitor, basePackages, sourceLocation, null);
+    }
+
+    public static <T> void scan(ClassVisitor<T> subClassVisitor, Collection<String> basePackages, File sourceLocation, ClassLoader baseClassLoader) {
 
         PackageSearchNode packageSearchNode = new PackageSearchNode();
         for (String packageName : basePackages) {
             packageSearchNode.addToTree(packageName);
         }
-        scan(subClassVisitor, packageSearchNode, sourceLocation);
+        scan(subClassVisitor, packageSearchNode, sourceLocation, baseClassLoader);
     }
 
     public interface ClassVisitor<T> {
@@ -173,7 +177,7 @@ public class ClassScanner {
 
 
     @SuppressWarnings("unchecked")
-    public static <T> void scan(ClassVisitor<T> classVisitor, PackageSearchNode packageSearchNode, File sourceLocation) {
+    public static <T> void scan(ClassVisitor<T> classVisitor, PackageSearchNode packageSearchNode, File sourceLocation, ClassLoader baseClassLoader) {
         ClassLoader classLoader;
         DexClass[] classes;
         if (sourceLocation == null) {
@@ -182,7 +186,10 @@ public class ClassScanner {
         } else {
             try (ApkFile apkFile = new ApkFile(sourceLocation)) {
                 classes = apkFile.getDexClasses();
-                classLoader = new PathClassLoader(sourceLocation.getAbsolutePath(), ClassScanner.class.getClassLoader());
+                if (baseClassLoader == null) {
+                    baseClassLoader = ClassScanner.class.getClassLoader();
+                }
+                classLoader = new PathClassLoader(sourceLocation.getAbsolutePath(), baseClassLoader);
             } catch (IOException e) {
                 throw new IllegalStateException("the filed not a apk filed format", e);
             }
