@@ -35,6 +35,7 @@ public class HermesApplication extends Application {
     private void fixXposedConfigFile() {
         if (!CommonUtils.isSuAvailable()) {
             Log.w("weijia", "need root permission ");
+            return;
         }
         String sourcePath;
         try {
