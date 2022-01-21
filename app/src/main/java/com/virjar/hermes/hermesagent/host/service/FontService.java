@@ -33,9 +33,12 @@ import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
+import net.dongliu.apk.parser.bean.ApkMeta;
+
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -78,7 +81,36 @@ public class FontService extends Service {
         //这里欺骗了xposed
         ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
 
-        allCallback = Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
+        allCallback = transformAgentNames(subClassVisitor);
+
+        File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
+        if (!modulesDir.exists() || !modulesDir.canRead()) {
+            //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
+            return;
+        }
+
+        for (File apkFile : modulesDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return StringUtils.endsWithIgnoreCase(name, ".apk");
+            }
+        })) {
+            //Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
+            try {
+                ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
+                String packageName = apkMeta.getPackageName();
+                subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+                ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFile, CommonUtils.createXposedClassLoadBridgeClassLoader(this));
+                allCallback.addAll(transformAgentNames(subClassVisitor));
+            } catch (Exception e) {
+                Log.e("weijia", "failed to load hermes-wrapper module", e);
+            }
+        }
+
+    }
+
+    private Set<String> transformAgentNames(ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor) {
+        return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
             @javax.annotation.Nullable
             @Override
             public String apply(@javax.annotation.Nullable Class<? extends AgentCallback> input) {
@@ -98,9 +130,6 @@ public class FontService extends Service {
                 return StringUtils.isNotBlank(input);
             }
         }));
-
-        //TODO 还有external wrapper实现
-
     }
 
 
