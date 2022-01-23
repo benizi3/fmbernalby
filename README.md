@@ -43,6 +43,7 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
      3、关闭(不限制后台应用的功能)
      4、默认是标准,在屏保后4分钟左右会限制后台应用的网络功能
 ```
+6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
 
 6. 允许程序开机自启
 为了让app全自动提供服务，需要让手机开机便启动agent，有些系统会禁止该行为。如果你的手机有存在该行为的话，请放开自启动限制

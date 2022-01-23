@@ -92,9 +92,8 @@ public class HotLoadPackageEntry {
         }
         if (!hint) {
             heartbeatTimer.cancel();
-            //先不实现这个功能，对于外置apk的方案，如果Hermes-wrapper有新发布，由hermes-agent发送IPC命令过来重启。
-            //Hermes-Agent主动更新认为是框架更新，只要是IPC protocol没有发生更新，无需重启Slave
-            //exitIfMasterReInstall(context, loadPackageParam.packageName);
+        } else {
+            exitIfMasterReInstall(context, loadPackageParam.packageName);
         }
     }
 
@@ -102,9 +101,8 @@ public class HotLoadPackageEntry {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
-        // intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         intentFilter.addDataScheme("package");
-        //final Context finalContext = context;
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -125,7 +123,7 @@ public class HotLoadPackageEntry {
                     public void run() {
                         //不能马上自杀，这可能会触发slave进程去更新master的代码dex-cache。但是由于权限问题无法remove历史版本的apk代码缓存，进而热加载失败
                         try {
-                            Thread.sleep(5000);
+                            Thread.sleep(500);
                         } catch (InterruptedException e) {
                             return;
                         }
