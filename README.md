@@ -45,7 +45,7 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
 ```
 6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
 
-6. 允许程序开机自启
+7. 允许程序开机自启
 为了让app全自动提供服务，需要让手机开机便启动agent，有些系统会禁止该行为。如果你的手机有存在该行为的话，请放开自启动限制
 [stackoverflow](https://stackoverflow.com/questions/32032329/process-is-not-permitted-to-autostart-boot-complete-broadcast-receiver)
 *一定要打开自启动，每个相关的都要打开*
