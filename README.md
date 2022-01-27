@@ -42,10 +42,28 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
      2、标准(限制后台应用的网络和定位功能)
      3、关闭(不限制后台应用的功能)
      4、默认是标准,在屏保后4分钟左右会限制后台应用的网络功能
+
+```
+关于小米系统神隐模式拆解方案：对应的设置app为``com.miui.powerkeeper``，用户权限为：``android:sharedUserId="android.uid.system"``
+代码地址：``/data/dalvik-cache/arm/system@app@PowerKeeper@PowerKeeper.apk@classes.dex``,apk地址：``/system/app/PowerKeeper/PowerKeeper.apk``
+apk设置api：``com.miui.powerkeeper.provider.UserConfigureHelper.updateToTable``,方法内使用ContentResolver：
+```
+    public static void updateToTable(Context context, ContentValues contentValues) {
+        ContentResolver contentResolverForUser = ContextHelper.getContentResolverForUser(context, UserHandle.OWNER);
+        if (contentValues.getAsInteger("userId") == null) {
+            Log.e(TAG, "Missed userId");
+        } else if (contentValues.getAsString("pkgName") == null) {
+            Log.e(TAG, "Missed pkgName");
+        } else if (contentValues.containsKey("_id")) {
+            contentResolverForUser.update(ContentUris.withAppendedId(UserConfigure.CONTENT_URI, contentValues.getAsLong("_id").longValue()), contentValues, null, null);
+        } else {
+            contentResolverForUser.insert(UserConfigure.CONTENT_URI, contentValues);
+        }
+    }
 ```
 6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
 
-7. 允许程序开机自启
+. 允许程序开机自启
 为了让app全自动提供服务，需要让手机开机便启动agent，有些系统会禁止该行为。如果你的手机有存在该行为的话，请放开自启动限制
 [stackoverflow](https://stackoverflow.com/questions/32032329/process-is-not-permitted-to-autostart-boot-complete-broadcast-receiver)
 *一定要打开自启动，每个相关的都要打开*
