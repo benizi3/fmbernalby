@@ -61,6 +61,11 @@ apk设置api：``com.miui.powerkeeper.provider.UserConfigureHelper.updateToTable
         }
     }
 ```
+两条关于微视由无限制到小米只能策略切换日志：
+```
+ content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=noRestrict, _id=5264, userId=0, pkgName=com.tencent.weishi]
+ content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=miuiAuto, _id=5264, userId=0, pkgName=com.tencent.weishi]
+```
 6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
 
 7. 允许程序开机自启
