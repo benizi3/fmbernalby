@@ -66,6 +66,24 @@ apk设置api：``com.miui.powerkeeper.provider.UserConfigureHelper.updateToTable
  content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=noRestrict, _id=5264, userId=0, pkgName=com.tencent.weishi]
  content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=miuiAuto, _id=5264, userId=0, pkgName=com.tencent.weishi]
 ```
+```
+09-22 17:35:16.240  4829  5917 I weijia  : content provider update, URI content://com.miui.powerkeeper.configure/userTable/1112 contentValues:[bgControl=noRestrict, _id=1112, userId=0, pkgName=tv.danmaku.bili]
+09-22 17:35:16.240  4829  5917 I weijia  : 接收到神隐模式配置命令,process: com.miui.powerkeeper:service package:com.miui.powerkeeper providerClass:com.miui.powerkeeper.provider.PowerKeeperConfigureProvider
+```
+输入入库了，数据库建库代码：``com.miui.powerkeeper.provider.UserDatabaseHelper``，数据库地址：``/data/data/com.miui.powerkeeper/databases/user_configure.db``
+数据库内容：
+```
+sqlite> select * from userTable;
+3|0|com.miui.gallery|1520247935689|miuiAuto||
+9|0|com.android.providers.downloads.ui|1520247936451|miuiAuto||
+12|0|com.xiaomi.gamecenter|1520247936886|miuiAuto||
+..
+723|0|com.umetrip.android.msky.app|1524650024364|miuiAuto||
+1111|0|com.sina.weibo|1525451454542|miuiAuto||
+1112|0|tv.danmaku.bili|1537608916242|noRestrict||
+```
+对应的控制指令为noRestrict，就是不限制后台了。逻辑基本破解
+
 6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
 
 7. 允许程序开机自启
