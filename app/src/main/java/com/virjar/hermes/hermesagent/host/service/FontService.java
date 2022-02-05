@@ -3,9 +3,12 @@ package com.virjar.hermes.hermesagent.host.service;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -137,6 +140,49 @@ public class FontService extends Service {
         this.onlineServices = onlineServices;
     }
 
+    /**
+     * 如果运行在小米系统上面的话，开放对应wrapper宿主的后台网络权限
+     */
+    private void makeSureMIUINetworkPermissionOnBackground(String packageName) {
+        Uri uri = Uri.parse(Constant.MIUIPowerKeeperContentProviderURI);
+        //CREATE TABLE userTable (
+        // _id INTEGER PRIMARY KEY AUTOINCREMENT,
+        // userId INTEGER NOT NULL DEFAULT 0,
+        // pkgName TEXT NOT NULL,
+        // lastConfigured INTEGER,
+        // bgControl TEXT NOT NULL DEFAULT 'miuiAuto',
+        // bgLocation TEXT, bgDelayMin INTEGER,
+        // UNIQUE (userId, pkgName) ON CONFLICT REPLACE );
+        int id;
+        String pkgName;
+        String bgControl;
+        int userId;
+        try (Cursor cursor = getContentResolver().
+                query(uri, new String[]{"_id", "userId", "pkgName", "bgControl"}, "pkgName=?", new String[]{packageName}, null)) {
+            if (cursor == null) {
+                return;
+            }
+            while (cursor.moveToNext()) {
+                bgControl = cursor.getString(cursor.getColumnIndex("bgControl"));
+                id = cursor.getInt(cursor.getColumnIndex("_id"));
+                userId = cursor.getInt(cursor.getColumnIndex("userId"));
+                pkgName = cursor.getString(cursor.getColumnIndex("pkgName"));
+                if (!StringUtils.equalsIgnoreCase(packageName, pkgName)) {
+                    continue;
+                }
+                if (StringUtils.equalsIgnoreCase("noRestrict", bgControl)) {
+                    continue;
+                }
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("_id", id);
+                contentValues.put("pkgName", pkgName);
+                contentValues.put("userId", userId);
+                contentValues.put("bgControl", "noRestrict");
+                getContentResolver().update(Uri.parse(Constant.MIUIPowerKeeperContentProviderURI + "/" + id),
+                        contentValues, "_id=?", new String[]{String.valueOf(id)});
+            }
+        }
+    }
 
     private IServiceRegister.Stub binder = new IServiceRegister.Stub() {
         @Override
@@ -149,6 +195,7 @@ public class FontService extends Service {
                 Log.w(TAG, "service register,ping failed");
                 return;
             }
+            makeSureMIUINetworkPermissionOnBackground(agentInfo.getPackageName());
             Log.i(TAG, "service " + agentInfo.getPackageName() + " register success");
             mCallbacks.register(hookAgentService);
             allRemoteHookService.putIfAbsent(agentInfo.getServiceAlis(), hookAgentService);

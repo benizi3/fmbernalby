@@ -93,4 +93,6 @@ public interface Constant {
 
     String xposedBridgeClassLoaderName = "com.virjar.hermes.hermesagent.xposed_classloader_bridge.XposedRelateClassLoader";
     String xposedBridgeApkFileName = "xposedbridge-release.apk";
+
+    String MIUIPowerKeeperContentProviderURI = "content://com.miui.powerkeeper.configure/userTable";
 }

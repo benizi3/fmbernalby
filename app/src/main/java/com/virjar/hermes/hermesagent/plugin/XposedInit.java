@@ -46,6 +46,9 @@ public class XposedInit implements IXposedHookLoadPackage {
         if (StringUtils.equalsIgnoreCase(lpparam.processName, "android")) {
             fixMiUIStartPermissionFilter(lpparam);
         }
+        if (StringUtils.equalsIgnoreCase(lpparam.processName, "package")) {
+            toSystemAndPrivilegedApp(lpparam);
+        }
 
         if (hooked) {
             return;
@@ -55,6 +58,35 @@ public class XposedInit implements IXposedHookLoadPackage {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 hotLoadPlugin((Context) param.args[0], lpparam);
+            }
+        });
+    }
+
+    //public static final int FLAG_PRIVILEGED = 1 << 30;
+
+    /**
+     * 讲hermes设置为PrivilegedApp的权限
+     */
+    private void toSystemAndPrivilegedApp(XC_LoadPackage.LoadPackageParam lpparam) {
+        Class<?> packageManagerServiceClass = XposedHelpers.findClassIfExists("com.android.server.pm.PackageManagerService", lpparam.classLoader);
+        if (packageManagerServiceClass == null) {
+            Log.i("weijia", "grant hermes agent system permission failed");
+            return;
+        }
+        XposedReflectUtil.findAndHookMethodOnlyByMethodName(packageManagerServiceClass, "isPrivilegedApp", new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (param.args.length == 0) {
+                    return;
+                }
+                if (param.args[0] == null) {
+                    return;
+                }
+
+                Object packageName = XposedHelpers.getObjectField(param.args[0], "packageName");
+                if (packageName != null && BuildConfig.APPLICATION_ID.equals(packageName)) {
+                    param.setResult(true);
+                }
             }
         });
     }
