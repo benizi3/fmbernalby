@@ -13,6 +13,7 @@ import android.util.Log;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
@@ -48,9 +49,8 @@ public class XposedInit implements IXposedHookLoadPackage {
         if (StringUtils.equalsIgnoreCase(lpparam.processName, "android")) {
             fixMiUIStartPermissionFilter(lpparam);
             toSystemAndPrivilegedApp(lpparam);
-            //com.android.server.am.ActivityManagerService#checkContentProviderPermissionLocked
-            // ReflectUtil.findClassIfExists("")
             grantAllContentProviderPermission(lpparam);
+            grantAllPackagePermission(lpparam);
         }
 
         if (hooked) {
@@ -65,6 +65,26 @@ public class XposedInit implements IXposedHookLoadPackage {
         });
     }
 
+
+    private void grantAllPackagePermission(XC_LoadPackage.LoadPackageParam lpparam) {
+        Class<?> contentImplClass = ReflectUtil.findClassIfExists("android.app.ContextImpl", lpparam.classLoader);
+        if (contentImplClass == null) {
+            return;
+        }
+        XposedHelpers.findAndHookMethod(contentImplClass, "checkPermission", String.class, int.class, int.class, new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                int pid = (int) param.args[1];
+                if (pid <= 0) {
+                    return;
+                }
+                AndroidProcess androidProcess = new AndroidProcess(pid);
+                if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
+                    param.setResult(PackageManager.PERMISSION_GRANTED);
+                }
+            }
+        });
+    }
 
     private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
         Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);

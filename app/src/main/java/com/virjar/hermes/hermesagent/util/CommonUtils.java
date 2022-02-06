@@ -57,6 +57,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import dalvik.system.PathClassLoader;
+import eu.chainfire.libsuperuser.Debug;
 import eu.chainfire.libsuperuser.Shell;
 import okhttp3.Request;
 
@@ -146,7 +147,7 @@ public class CommonUtils {
 
     public static String execCmd(String cmd, boolean useRoot) {
         Log.i(TAG, "execute command:{" + cmd + "} useRoot:" + useRoot);
-        List<String> strings = useRoot ? Shell.SU.run(cmd) : Shell.SH.run(cmd);
+        List<String> strings = useRoot ? SUShell.run(cmd) : Shell.SH.run(cmd);
         String result = StringUtils.join(strings, "\r\n");
         Log.i(TAG, "command execute result:" + result);
         return result;
@@ -284,6 +285,7 @@ public class CommonUtils {
         if (isSettingADB) {
             return;
         }
+        Debug.setDebug(true);
         isSettingADB = true;
         String adbTag = "tcpADB";
         try {
@@ -298,9 +300,7 @@ public class CommonUtils {
             }
 
 
-            List<String> result = Shell.run("su", new String[]{
-                    "getprop service.adb.tcp.port"
-            }, null, true);
+            List<String> result = SUShell.run("getprop service.adb.tcp.port");
             for (String str : result) {
                 if (StringUtils.isBlank(str)) {
                     continue;
@@ -310,18 +310,18 @@ public class CommonUtils {
                     break;
                 } else {
                     List<String> executeOutput =
-                            Shell.SU.run(Lists.newArrayList("stop adbd", "start adbd"));
+                            SUShell.run(Lists.newArrayList("stop adbd", "start adbd"));
                     Log.i(adbTag, "adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
                     return;
                 }
             }
 
             //将文件系统挂载为可读写
-            List<String> executeOutput = Shell.SU.run("mount -o remount,rw /system");
+            List<String> executeOutput = SUShell.run("mount -o remount,rw /system");
             Log.i(adbTag, "remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
 
             Log.i(adbTag, "edit file /system/build.prop");
-            List<String> buildProperties = Shell.SU.run("cat /system/build.prop");
+            List<String> buildProperties = SUShell.run("cat /system/build.prop");
             List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
             for (String property : buildProperties) {
                 if (StringUtils.startsWithIgnoreCase(property, "ro.sys.usb.storage.type=")
@@ -352,15 +352,19 @@ public class CommonUtils {
                 bufferedWriter.newLine();
             }
             IOUtils.closeQuietly(bufferedWriter);
-            String mvCommand = "mv " + file.getAbsolutePath() + " /system/";
-            executeOutput = Shell.SU.run(mvCommand);
+            //failed on '/data/data/com.virjar.hermes.hermesagent/cache/build.prop' - Cross-device link
+            //do not use the mv command , maybe some things will wrong
+            String mvCommand = "cat " + file.getAbsolutePath() + " >  /system/build.prop";
+            executeOutput = SUShell.run(mvCommand);
             Log.i(adbTag, "write content to /system/build.prop  " + mvCommand + "  " + Joiner.on("\n").skipNulls().join(executeOutput));
-            Shell.SU.run("chmod 644 /system/build.prop");
+            SUShell.run("chmod 644 /system/build.prop");
+            SUShell.run("rm -f " + file.getAbsolutePath());
 
-            executeOutput = Shell.SU.run("mount -o remount ro /system");
+            executeOutput = SUShell.run("mount -o remount ro /system");
             Log.i(adbTag, "re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
 
-            Shell.SU.run(Lists.newArrayList("setprop service.adb.tcp.port  " + Constant.ADBD_PORT, "stop adbd", "start adbd"));
+            SUShell.run(Lists.newArrayList("setprop service.adb.tcp.port  " + Constant.ADBD_PORT, "stop adbd", "start adbd"));
+            Log.i(adbTag, "restart adbd service on port " + Constant.ADBD_PORT + " ,service will auto startup on this port when android device startup next time");
         } finally {
             isSettingADB = false;
         }

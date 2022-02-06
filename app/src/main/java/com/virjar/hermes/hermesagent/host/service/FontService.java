@@ -284,6 +284,7 @@ public class FontService extends Service {
         }
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startService();
