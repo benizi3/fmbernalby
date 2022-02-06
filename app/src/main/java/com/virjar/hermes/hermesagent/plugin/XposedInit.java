@@ -19,6 +19,7 @@ import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.util.ReflectUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,11 +44,13 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        //这个进程是传说中的system_server,拥有system权限
         if (StringUtils.equalsIgnoreCase(lpparam.processName, "android")) {
             fixMiUIStartPermissionFilter(lpparam);
-        }
-        if (StringUtils.equalsIgnoreCase(lpparam.processName, "package")) {
             toSystemAndPrivilegedApp(lpparam);
+            //com.android.server.am.ActivityManagerService#checkContentProviderPermissionLocked
+            // ReflectUtil.findClassIfExists("")
+            grantAllContentProviderPermission(lpparam);
         }
 
         if (hooked) {
@@ -62,13 +65,42 @@ public class XposedInit implements IXposedHookLoadPackage {
         });
     }
 
+
+    private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
+        Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);
+        if (activityManagerServiceClass == null) {
+            Log.i("weijia", "grant contentProviderPermission failed,can not find class:com.android.server.am.ActivityManagerService for process system_server");
+            return;
+        }
+        XposedReflectUtil.findAndHookMethodOnlyByMethodName(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                if (param.args.length < 2) {
+                    return;
+                }
+                Object processRecord = param.args[1];
+                if (processRecord == null) {
+                    return;
+                }
+                Object processName = XposedHelpers.getObjectField(processRecord, "processName");
+                if (processName == null) {
+                    return;
+                }
+                if (BuildConfig.APPLICATION_ID.equalsIgnoreCase(processName.toString())) {
+                    Log.i("weijia", "hermes 调用任何content provider的权限，强行打开");
+                    param.setResult(null);
+                }
+            }
+        });
+    }
+
     //public static final int FLAG_PRIVILEGED = 1 << 30;
 
     /**
      * 讲hermes设置为PrivilegedApp的权限
      */
     private void toSystemAndPrivilegedApp(XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> packageManagerServiceClass = XposedHelpers.findClassIfExists("com.android.server.pm.PackageManagerService", lpparam.classLoader);
+        Class<?> packageManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.pm.PackageManagerService", lpparam.classLoader);
         if (packageManagerServiceClass == null) {
             Log.i("weijia", "grant hermes agent system permission failed");
             return;
@@ -102,7 +134,7 @@ public class XposedInit implements IXposedHookLoadPackage {
      * W/BroadcastQueueInjector(  764): Unable to launch app de.robv.android.xposed.installer/10127 for broadcast Intent { act=android.intent.action.PACKAGE_ADDED dat=package:com.virjar.hermes.hermesagent flg=0x4000010 (has extras) }: process is not permitted to  auto start
      */
     private void fixMiUIStartPermissionFilter(final XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> extraActivityManagerServiceClass = XposedHelpers.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
+        Class<?> extraActivityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
         if (extraActivityManagerServiceClass != null) {
             try {
                 XposedReflectUtil.findAndHookMethodOnlyByMethodName(extraActivityManagerServiceClass, "isAllowedStartActivity", new SingletonXC_MethodHook() {
@@ -128,7 +160,7 @@ public class XposedInit implements IXposedHookLoadPackage {
 
         //处理广播拦截  com.android.server.am.BroadcastQueueInjector
         // static  bool checkApplicationAutoStart (com.android.server.am.BroadcastQueue, com.android.server.am.ActivityManagerService, com.android.server.am.BroadcastRecord, android.content.pm.ResolveInfo);
-        Class<?> broadcastQueueInjectorClass = XposedHelpers.findClassIfExists("com.android.server.am.BroadcastQueueInjector", lpparam.classLoader);
+        Class<?> broadcastQueueInjectorClass = ReflectUtil.findClassIfExists("com.android.server.am.BroadcastQueueInjector", lpparam.classLoader);
         if (broadcastQueueInjectorClass != null) {
             XposedReflectUtil.findAndHookMethodOnlyByMethodName(broadcastQueueInjectorClass, "checkApplicationAutoStart", new SingletonXC_MethodHook() {
                 @Override

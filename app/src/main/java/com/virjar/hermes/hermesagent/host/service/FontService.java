@@ -181,6 +181,9 @@ public class FontService extends Service {
                 getContentResolver().update(Uri.parse(Constant.MIUIPowerKeeperContentProviderURI + "/" + id),
                         contentValues, "_id=?", new String[]{String.valueOf(id)});
             }
+        } catch (Exception e) {
+            //这个异常，暂时忽略，如果失败，则需要手动去开启后台网络权限
+            Log.e("weijia", "call miui system content provider failed", e);
         }
     }
 

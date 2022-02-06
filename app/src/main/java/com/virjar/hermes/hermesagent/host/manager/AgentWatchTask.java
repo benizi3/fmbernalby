@@ -102,6 +102,11 @@ public class AgentWatchTask extends TimerTask {
                     continue;
                 }
 
+                if ("127.0.0.1".equalsIgnoreCase(CommonUtils.getLocalIp())) {
+                    Log.w(TAG, "手机未联网");
+                    continue;
+                }
+
                 Log.i(TAG, "启动app：" + packageName);
                 Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(packageName);
                 context.startActivity(launchIntentForPackage);
