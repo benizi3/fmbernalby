@@ -57,7 +57,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import dalvik.system.PathClassLoader;
-import eu.chainfire.libsuperuser.Debug;
 import eu.chainfire.libsuperuser.Shell;
 import okhttp3.Request;
 
@@ -285,7 +284,7 @@ public class CommonUtils {
         if (isSettingADB) {
             return;
         }
-        Debug.setDebug(true);
+        // Debug.setDebug(true);
         isSettingADB = true;
         String adbTag = "tcpADB";
         try {
