@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Binder;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
@@ -29,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
+import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
@@ -39,7 +41,7 @@ import de.robv.android.xposed.callbacks.XCallback;
  * Created by virjar on 2018/8/22.<br>xposed加载入口
  */
 
-public class XposedInit implements IXposedHookLoadPackage {
+public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit {
     private static volatile boolean hooked = false;
     private static final String TAG = "XposedInit";
 
@@ -88,30 +90,32 @@ public class XposedInit implements IXposedHookLoadPackage {
 
     private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
         Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);
-        if (activityManagerServiceClass == null) {
+        if (activityManagerServiceClass != null) {
+            XposedReflectUtil.findAndHookMethodOnlyByMethodName(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.args.length < 2) {
+                        return;
+                    }
+                    Object processRecord = param.args[1];
+                    if (processRecord == null) {
+                        return;
+                    }
+                    Object processName = XposedHelpers.getObjectField(processRecord, "processName");
+                    if (processName == null) {
+                        return;
+                    }
+                    if (BuildConfig.APPLICATION_ID.equalsIgnoreCase(processName.toString())) {
+                        Log.i("weijia", "hermes 调用任何content provider的权限，强行打开");
+                        param.setResult(null);
+                    }
+                }
+            });
+
+        } else {
             Log.i("weijia", "grant contentProviderPermission failed,can not find class:com.android.server.am.ActivityManagerService for process system_server");
-            return;
         }
-        XposedReflectUtil.findAndHookMethodOnlyByMethodName(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (param.args.length < 2) {
-                    return;
-                }
-                Object processRecord = param.args[1];
-                if (processRecord == null) {
-                    return;
-                }
-                Object processName = XposedHelpers.getObjectField(processRecord, "processName");
-                if (processName == null) {
-                    return;
-                }
-                if (BuildConfig.APPLICATION_ID.equalsIgnoreCase(processName.toString())) {
-                    Log.i("weijia", "hermes 调用任何content provider的权限，强行打开");
-                    param.setResult(null);
-                }
-            }
-        });
+
     }
 
     //public static final int FLAG_PRIVILEGED = 1 << 30;
@@ -326,5 +330,48 @@ public class XposedInit implements IXposedHookLoadPackage {
             classLoaderCache.putIfAbsent(packageInfo.applicationInfo.sourceDir, hotClassLoader);
             return hotClassLoader;
         }
+    }
+
+    @Override
+    public void initZygote(StartupParam startupParam) throws Throwable {
+        XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceReadPermissionInner", new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                int pid = Binder.getCallingPid();
+                if (pid <= 0) {
+                    return;
+                }
+                try {
+                    AndroidProcess androidProcess = new AndroidProcess(pid);
+
+                    if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
+                        //如果是hermes，读取任何一个content provider，直接放过权限
+                        Log.i("weijia", "hermes  申请" + param.args[0] + " 的读取权限，直接放过");
+                        param.setResult(null);
+                    }
+                } catch (Exception e) {
+                    Log.w("weijia", "get process info failed", e);
+                }
+            }
+        });
+        XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceWritePermissionInner", new SingletonXC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                int pid = Binder.getCallingPid();
+                if (pid <= 0) {
+                    return;
+                }
+                try {
+                    AndroidProcess androidProcess = new AndroidProcess(pid);
+                    if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
+                        //如果是hermes，读取任何一个content provider，直接放过权限
+                        Log.i("weijia", "hermes  申请" + param.args[0] + " 的写入权限，直接放过");
+                        param.setResult(null);
+                    }
+                } catch (Exception e) {
+                    Log.w("weijia", "get process info failed", e);
+                }
+            }
+        });
     }
 }

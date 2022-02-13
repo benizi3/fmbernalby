@@ -156,16 +156,14 @@ public class FontService extends Service {
         int id;
         String pkgName;
         String bgControl;
-        int userId;
         try (Cursor cursor = getContentResolver().
-                query(uri, new String[]{"_id", "userId", "pkgName", "bgControl"}, "pkgName=?", new String[]{packageName}, null)) {
+                query(uri, new String[]{"_id", "pkgName", "bgControl"}, "pkgName=?", new String[]{packageName}, null)) {
             if (cursor == null) {
                 return;
             }
             while (cursor.moveToNext()) {
                 bgControl = cursor.getString(cursor.getColumnIndex("bgControl"));
                 id = cursor.getInt(cursor.getColumnIndex("_id"));
-                userId = cursor.getInt(cursor.getColumnIndex("userId"));
                 pkgName = cursor.getString(cursor.getColumnIndex("pkgName"));
                 if (!StringUtils.equalsIgnoreCase(packageName, pkgName)) {
                     continue;
@@ -176,7 +174,6 @@ public class FontService extends Service {
                 ContentValues contentValues = new ContentValues();
                 contentValues.put("_id", id);
                 contentValues.put("pkgName", pkgName);
-                contentValues.put("userId", userId);
                 contentValues.put("bgControl", "noRestrict");
                 getContentResolver().update(Uri.parse(Constant.MIUIPowerKeeperContentProviderURI + "/" + id),
                         contentValues, "_id=?", new String[]{String.valueOf(id)});
