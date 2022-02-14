@@ -28,7 +28,6 @@ public class ClassLoadMonitor {
     }
 
     private static void enableClassMonitor() {
-
         //要hook所有子类的方法实现
         XposedHelpers.findAndHookConstructor(ClassLoader.class, new SingletonXC_MethodHook() {
 
@@ -60,7 +59,9 @@ public class ClassLoadMonitor {
             }
         });
 
-        hookedClassLoader.add(SharedObject.loadPackageParam.classLoader);
+        if (SharedObject.loadPackageParam != null && SharedObject.loadPackageParam.classLoader != null) {
+            hookedClassLoader.add(SharedObject.loadPackageParam.classLoader);
+        }
         //do not need to fire call back for masterClassLoader
     }
 

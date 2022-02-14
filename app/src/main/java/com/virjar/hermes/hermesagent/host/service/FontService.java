@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -85,7 +86,7 @@ public class FontService extends Service {
         ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
 
         allCallback = transformAgentNames(subClassVisitor);
-
+        Log.i("weijia", "扫描class:" + allCallback);
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
             //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
@@ -144,6 +145,10 @@ public class FontService extends Service {
      * 如果运行在小米系统上面的话，开放对应wrapper宿主的后台网络权限
      */
     private void makeSureMIUINetworkPermissionOnBackground(String packageName) {
+        if (!Build.BRAND.equalsIgnoreCase("xiaomi")) {
+            //非小米系统，不做该适配
+            return;
+        }
         Uri uri = Uri.parse(Constant.MIUIPowerKeeperContentProviderURI);
         //CREATE TABLE userTable (
         // _id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,30 +158,67 @@ public class FontService extends Service {
         // bgControl TEXT NOT NULL DEFAULT 'miuiAuto',
         // bgLocation TEXT, bgDelayMin INTEGER,
         // UNIQUE (userId, pkgName) ON CONFLICT REPLACE );
-        int id;
-        String pkgName;
-        String bgControl;
+        //query(uri, new String[]{"_id", "pkgName", "bgControl"}, "pkgName=?", new String[]{packageName}, null)
         try (Cursor cursor = getContentResolver().
-                query(uri, new String[]{"_id", "pkgName", "bgControl"}, "pkgName=?", new String[]{packageName}, null)) {
+                query(uri, null, "pkgName=?", new String[]{packageName}, null)) {
             if (cursor == null) {
                 return;
             }
             while (cursor.moveToNext()) {
-                bgControl = cursor.getString(cursor.getColumnIndex("bgControl"));
-                id = cursor.getInt(cursor.getColumnIndex("_id"));
-                pkgName = cursor.getString(cursor.getColumnIndex("pkgName"));
+                Map<String, String> configData = Maps.newHashMap();
+                for (int i = 0; i < cursor.getColumnCount(); i++) {
+                    configData.put(cursor.getColumnName(i), cursor.getString(i));
+                }
+                String id = configData.get("_id");
+                if (id == null) {
+                    return;
+                }
+                String pkgName = configData.get("pkgName");
                 if (!StringUtils.equalsIgnoreCase(packageName, pkgName)) {
                     continue;
                 }
-                if (StringUtils.equalsIgnoreCase("noRestrict", bgControl)) {
+                boolean needUpdate = false;
+                //高版本的配置选项，noRestrict为不限制后台行为
+                String bgControl = configData.get("bgControl");
+                if (bgControl != null && !StringUtils.equalsIgnoreCase("noRestrict", bgControl)) {
+                    configData.put("bgControl", "noRestrict");
+                    needUpdate = true;
+                }
+
+                //低版本的配置选项
+                String miuiSuggest = configData.get("miuiSuggest");
+                if (miuiSuggest != null && !StringUtils.equalsIgnoreCase(miuiSuggest, "disable")) {
+                    //关闭小米推荐配置
+                    configData.put("miuiSuggest", "disable");
+                    needUpdate = true;
+                }
+
+                String bgData = configData.get("bgData");
+                if (bgData != null && !StringUtils.equalsIgnoreCase(bgData, "enable")) {
+                    //允许后台联网
+                    configData.put("bgData", "enable");
+                    needUpdate = true;
+                }
+
+                String bgLocation = configData.get("bgLocation");
+                if (bgLocation != null && !StringUtils.equalsIgnoreCase(bgLocation, "enable")) {
+                    //允许后台定位
+                    configData.put("bgLocation", "enable");
+                    needUpdate = true;
+                }
+
+                if (!needUpdate) {
                     continue;
                 }
+
                 ContentValues contentValues = new ContentValues();
-                contentValues.put("_id", id);
-                contentValues.put("pkgName", pkgName);
-                contentValues.put("bgControl", "noRestrict");
+                configData.remove("_id");
+
+                for (Map.Entry<String, String> entry : configData.entrySet()) {
+                    contentValues.put(entry.getKey(), entry.getValue());
+                }
                 getContentResolver().update(Uri.parse(Constant.MIUIPowerKeeperContentProviderURI + "/" + id),
-                        contentValues, "_id=?", new String[]{String.valueOf(id)});
+                        contentValues, "_id=?", new String[]{id});
             }
         } catch (Exception e) {
             //这个异常，暂时忽略，如果失败，则需要手动去开启后台网络权限

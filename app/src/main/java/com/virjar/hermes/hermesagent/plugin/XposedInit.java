@@ -12,11 +12,13 @@ import android.os.Binder;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -54,6 +56,19 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
             grantAllContentProviderPermission(lpparam);
             grantAllPackagePermission(lpparam);
         }
+
+//        ClassLoadMonitor.addClassLoadMonitor("com.miui.powerkeeper.provider.PowerKeeperConfigureProvider", new ClassLoadMonitor.OnClassLoader() {
+//            @Override
+//            public void onClassLoad(Class clazz) {
+//                XposedReflectUtil.findAndHookMethodOnlyByMethodName(clazz, "query", new SingletonXC_MethodHook() {
+//                    @Override
+//                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                        Log.i("weijia", "查询神隐模式数据：" + JSONObject.toJSONString(param.args));
+//                    }
+//                });
+//            }
+//        });
+
 
         if (hooked) {
             return;
@@ -343,7 +358,6 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                 }
                 try {
                     AndroidProcess androidProcess = new AndroidProcess(pid);
-
                     if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
                         //如果是hermes，读取任何一个content provider，直接放过权限
                         Log.i("weijia", "hermes  申请" + param.args[0] + " 的读取权限，直接放过");
