@@ -3,13 +3,16 @@ package com.virjar.hermes.hermesagent.host.service;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.os.DeadObjectException;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -22,11 +25,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.jaredrummler.android.processes.AndroidProcesses;
+import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.DaemonBinder;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
@@ -36,6 +42,7 @@ import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.util.SUShell;
 
 import net.dongliu.apk.parser.bean.ApkMeta;
 
@@ -50,8 +57,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
-
-import eu.chainfire.libsuperuser.Shell;
+import java.util.concurrent.DelayQueue;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 
@@ -71,6 +77,8 @@ public class FontService extends Service {
     private Set<String> onlineServices = null;
 
     private Set<String> allCallback = null;
+
+    private DaemonBinder daemonBinder = null;
 
     @SuppressWarnings("unchecked")
     private void scanCallBack() {
@@ -315,12 +323,32 @@ public class FontService extends Service {
         HttpServer.getInstance().setFontService(this);
         HttpServer.getInstance().startServer(this);
 
+        startDaemonProcess();
+
         if (CommonUtils.xposedStartSuccess && lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
             if (lastCheckTimerCheck != 0) {
                 Log.i(TAG, "timer 假死，重启timer");
             }
             restartTimer();
         }
+    }
+
+    private void startDaemonProcess() {
+        Intent intent = new Intent(this, DaemonService.class);
+        startService(intent);
+
+        bindService(intent, new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                daemonBinder = (DaemonBinder) service;
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                daemonBinder = null;
+                startDaemonProcess();
+            }
+        }, BIND_AUTO_CREATE);
     }
 
 
@@ -375,7 +403,7 @@ public class FontService extends Service {
                     //TODO test for jadb
                     return;
                 }
-                Shell.SU.run("reboot");
+                SUShell.run("reboot");
             }
         }, 6 * 60 * 60 * 1000 + new Random().nextLong() % (6 * 60 * 60 * 1000), 12 * 60 * 60 * 100);
 
@@ -389,6 +417,33 @@ public class FontService extends Service {
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();
 
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                DaemonBinder daemonBinderCopy = daemonBinder;
+                if (daemonBinderCopy == null) {
+                    startDaemonProcess();
+                    return;
+                }
+                PingWatchTask pingWatchTask = new PingWatchTask(System.currentTimeMillis() + 1000 * 25, null);
+                try {
+                    //如果targetApp假死，那么这个调用将会阻塞，需要监控这个任务的执行时间，如果长时间ping没有响应，那么需要强杀targetApp
+                    pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
+                    daemonBinderCopy.ping();
+                } catch (DeadObjectException deadObjectException) {
+                    Log.e(TAG, "remote service dead,wait for re register");
+                    daemonBinder = null;
+                    startDaemonProcess();
+                } catch (RemoteException e) {
+                    Log.e(TAG, "failed to ping agent", e);
+                } finally {
+                    pingWatchTaskLinkedBlockingDeque.remove(pingWatchTask);
+                    pingWatchTask.isDone = true;
+                }
+
+            }
+        }, 5 * 60 * 1000, 5 * 60 * 1000);
+
         if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             timer.scheduleAtFixedRate(new ReportTask(this, this),
@@ -397,5 +452,40 @@ public class FontService extends Service {
             timer.scheduleAtFixedRate(new RefreshConfigTask(this), 120000, 120000);
         }
 
+    }
+
+    private static DelayQueue<PingWatchTask> pingWatchTaskLinkedBlockingDeque = new DelayQueue<>();
+
+
+    static {
+        Thread thread = new Thread("pingWatchTask") {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        PingWatchTask poll = pingWatchTaskLinkedBlockingDeque.take();
+                        if (poll.isDone) {
+                            continue;
+                        }
+                        List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
+                        for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
+                            if (!StringUtils.equalsIgnoreCase(androidAppProcess.getPackageName(), BuildConfig.APPLICATION_ID)) {
+                                continue;
+                            }
+                            if (StringUtils.containsIgnoreCase(androidAppProcess.name, ":daemon")) {
+                                SUShell.run("kill -9 " + androidAppProcess.pid);
+                                return;
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        return;
+                    } catch (Exception e) {
+                        Log.e("pingWatchTask", "handle ping task failed", e);
+                    }
+                }
+            }
+        };
+        thread.setDaemon(false);
+        thread.start();
     }
 }

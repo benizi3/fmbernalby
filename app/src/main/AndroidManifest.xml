@@ -54,6 +54,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+        <service
+            android:name=".host.service.DaemonService"
+            android:enabled="true"
+            android:process=":daemon" />
 
         <receiver
             android:name=".host.broadcast.StartOnBootBroadcastReceiver"

@@ -227,7 +227,10 @@ public class CommonUtils {
     }
 
     public static String pingServer(String sourcePackage) {
-        String url = localServerBaseURL() + Constant.httpServerPingPath + "?source_package=" + EscapeUtil.escape(sourcePackage);
+        String url = localServerBaseURL() + Constant.httpServerPingPath;
+        if (StringUtils.isNotBlank(sourcePackage)) {
+            url += "?source_package=" + EscapeUtil.escape(sourcePackage);
+        }
         try {
             Log.i(TAG, "ping hermes server:" + url);
             String pingResponse = HttpClientUtils.getRequest(url);
@@ -408,7 +411,7 @@ public class CommonUtils {
     }
 
 
-    public static ClassLoader xposedBridgeClassLoader = null;
+    private static ClassLoader xposedBridgeClassLoader = null;
 
     public static ClassLoader createXposedClassLoadBridgeClassLoader(Context context) {
         if (xposedBridgeClassLoader != null) {
@@ -434,6 +437,17 @@ public class CommonUtils {
         } catch (IOException e) {
             Log.e("weijia", "release xposed bridge apk file failed", e);
             throw new IllegalStateException(e);
+        }
+    }
+
+    public static void sleep(long duration) {
+        if (duration <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            //ignore
         }
     }
 }

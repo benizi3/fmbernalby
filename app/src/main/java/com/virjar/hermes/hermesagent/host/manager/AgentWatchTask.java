@@ -19,6 +19,7 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.service.FontService;
+import com.virjar.hermes.hermesagent.host.service.PingWatchTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 
@@ -187,27 +188,5 @@ public class AgentWatchTask extends TimerTask {
         };
         thread.setDaemon(false);
         thread.start();
-    }
-
-    private static class PingWatchTask implements Delayed {
-        private long needCheckTimestamp;
-        private String targetPackageName;
-        private boolean isDone = false;
-
-        PingWatchTask(long needCheckTimestamp, String targetPackageName) {
-            this.needCheckTimestamp = needCheckTimestamp;
-            this.targetPackageName = targetPackageName;
-        }
-
-
-        @Override
-        public long getDelay(@NonNull TimeUnit unit) {
-            return unit.convert(needCheckTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-        }
-
-        @Override
-        public int compareTo(@NonNull Delayed o) {
-            return Long.valueOf(getDelay(TimeUnit.MILLISECONDS)).compareTo(o.getDelay(TimeUnit.MILLISECONDS));
-        }
     }
 }
