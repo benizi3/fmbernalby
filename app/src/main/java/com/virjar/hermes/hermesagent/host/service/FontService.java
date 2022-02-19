@@ -340,7 +340,7 @@ public class FontService extends Service {
         bindService(intent, new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                daemonBinder = (DaemonBinder) service;
+                daemonBinder = DaemonBinder.Stub.asInterface(service);
             }
 
             @Override
