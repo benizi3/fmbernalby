@@ -78,7 +78,7 @@ public interface Constant {
 
     @SuppressLint("SdCardPath")
     String XPOSED_BASE_DIR = Build.VERSION.SDK_INT >= 24
-            ? "/data/user_de/0/" + xposedInstallerPackage + "/"
+            ? "/data/user_zh/0/" + xposedInstallerPackage + "/"
             : "/data/data/" + xposedInstallerPackage + "/";
 
     int WEBSOCKET_PORT = 19999;
