@@ -107,7 +107,7 @@ public class RCPInvokeCallback implements HttpServerRequestCallback {
                             long endTime = System.currentTimeMillis();
                             APICommonUtils.requestLogI(invokeRequest, "invoke end time:" + endTime + " duration:" + ((endTime - invokeStartTimestamp) / 1000) + "s");
                             if (invokeResult != null) {
-                                APICommonUtils.requestLogI(invokeRequest, " invoke result" + invokeResult.getTheData());
+                                APICommonUtils.requestLogI(invokeRequest, "invoke result: " + invokeResult.getTheData());
                                 String needDeleteFile = invokeResult.needDeleteFile();
                                 if (needDeleteFile != null) {
                                     try {

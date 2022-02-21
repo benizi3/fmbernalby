@@ -287,6 +287,9 @@ public class WeiShiAgent implements AgentCallback {
                 //微视本身是一个异步请求，这里等待5s，等待异步的结果，异步转同步
                 lock.wait(5000);
                 Object remove = queryResult.remove(searchBean);
+                if (remove == null) {
+                    return InvokeResult.failed("timeOut");
+                }
                 return InvokeResult.success(remove, SharedObject.context);
             }
         } catch (InterruptedException e) {
@@ -430,7 +433,13 @@ public class WeiShiAgent implements AgentCallback {
                             Log.i(TAG, "请求error:" + errorMessage);
                             param.setResult(false);
                             queryResult.put(requestBean, errorMessage);
-                            lockes.remove(requestBean).notify();
+                            Object lock = lockes.remove(requestBean);
+                            if (lock == null) {
+                                return;
+                            }
+                            synchronized (lock) {
+                                lock.notify();
+                            }
                         }
                     });
 

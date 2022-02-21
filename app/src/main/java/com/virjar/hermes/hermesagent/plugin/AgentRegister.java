@@ -47,7 +47,7 @@ public class AgentRegister {
                     if (result == null) {
                         APICommonUtils.requestLogW(param, "agent return null");
                     } else {
-                        APICommonUtils.requestLogI(param, "IPC invoke result:" + result.getTheData(false));
+                        APICommonUtils.requestLogI(param, "IPC invoke result: " + result.getTheData(false));
                     }
                     return result;
                 } catch (Exception e) {
