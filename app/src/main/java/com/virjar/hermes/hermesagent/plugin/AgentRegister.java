@@ -43,7 +43,12 @@ public class AgentRegister {
             public InvokeResult invoke(InvokeRequest param) throws RemoteException {
                 try {
                     APICommonUtils.requestLogI(param, "handle IPC invoke request");
-                    InvokeResult result = agentCallback.invoke(param);
+                    InvokeResult result = InvokeInterceptorManager.handleIntercept(param);
+                    if (result == null) {
+                        result = agentCallback.invoke(param);
+                    } else {
+                        APICommonUtils.requestLogI(param, "the request handled by framework interceptor,prevent to call agent callback");
+                    }
                     if (result == null) {
                         APICommonUtils.requestLogW(param, "agent return null");
                     } else {

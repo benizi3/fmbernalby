@@ -53,9 +53,9 @@ public class HotLoadPackageEntry {
             XposedHelpers.setStaticBooleanField(commonUtilClass, "xposedStartSuccess", true);
             return;
         }
-        Timer heartbeatTimer = new Timer(TAG, true);
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
+        Timer heartbeatTimer = new Timer(TAG, true);
 
         Map<String, AgentCallback> callbackMap = Maps.newHashMap();
         //执行所有自定义的回调钩子函数

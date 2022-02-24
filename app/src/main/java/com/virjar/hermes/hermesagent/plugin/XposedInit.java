@@ -12,13 +12,13 @@ import android.os.Binder;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
-import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
+import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
+import com.virjar.hermes.hermesagent.hermes_api.Ones;
 import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -44,7 +44,6 @@ import de.robv.android.xposed.callbacks.XCallback;
  */
 
 public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit {
-    private static volatile boolean hooked = false;
     private static final String TAG = "XposedInit";
 
     @Override
@@ -69,17 +68,18 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 //            }
 //        });
 
-
-        if (hooked) {
-            return;
-        }
-        hooked = true;
-        XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
+        Ones.hookOnes(Application.class, "hermes_application_attach_entry", new Ones.DoOnce() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                hotLoadPlugin((Context) param.args[0], lpparam);
+            public void doOne(Class<?> clazz) {
+                XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        hotLoadPlugin((Context) param.args[0], lpparam);
+                    }
+                });
             }
         });
+
     }
 
 
@@ -252,17 +252,12 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 
     private static Set<String> autoStartWhiteList = Sets.newHashSet(BuildConfig.APPLICATION_ID, Constant.xposedInstallerPackage);
 
-    private static boolean hotLoadFailedDialog = false;
 
-    private void alertHotLoadFailedWarning(Context context) {
-        XposedBridge.hookAllConstructors(Activity.class, new SingletonXC_MethodHook() {
+    private void alertHotLoadFailedWarning() {
+        LifeCycleFire.onFirstPageReady(new LifeCycleFire.OnFire<Activity>() {
             @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                if (hotLoadFailedDialog) {
-                    return;
-                }
-                hotLoadFailedDialog = true;
-                new AlertDialog.Builder((Context) param.thisObject)
+            public void fire(Activity o) {
+                new AlertDialog.Builder(o)
                         .setTitle("HermesAgent热发代码加载失败")
                         .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +
                                 "有两个常见原因可能引发这个问题，请check:\n" +
@@ -289,7 +284,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         try {
             aClass = hotClassLoader.loadClass(Constant.xposedHotloadEntry);
         } catch (ClassNotFoundException e) {
-            alertHotLoadFailedWarning(context);
+            alertHotLoadFailedWarning();
             Log.e(TAG, "hot load failed", e);
             try {
                 aClass = XposedInit.class.getClassLoader().loadClass(Constant.xposedHotloadEntry);

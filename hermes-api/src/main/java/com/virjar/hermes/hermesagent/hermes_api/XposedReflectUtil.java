@@ -17,6 +17,25 @@ import de.robv.android.xposed.XposedHelpers;
  */
 
 public class XposedReflectUtil {
+
+    public static Method findMethodWithSupperClass(Class<?> clazz, String methodName, Object... parameterTypes) {
+        Class theClazz = clazz;
+        NoSuchMethodError error = null;
+        do {
+            try {
+                Method exists = XposedHelpers.findMethodExactIfExists(clazz, methodName, parameterTypes);
+                if (exists != null) {
+                    return exists;
+                }
+            } catch (NoSuchMethodError e) {
+                if (error == null) {
+                    error = e;
+                }
+            }
+        } while ((theClazz = theClazz.getSuperclass()) != null);
+        throw error;
+    }
+
     //能够子子类向父类寻找method
     public static void findAndHookMethodWithSupperClass(Class<?> clazz, String methodName, Object... parameterTypesAndCallback) {
         Class theClazz = clazz;

@@ -42,6 +42,10 @@ public class ClassScanner {
         scan(subClassVisitor, Lists.<String>newArrayList(), null);
     }
 
+    public static <T> void scan(ClassVisitor<T> subClassVisitor, String basePackage) {
+        scan(subClassVisitor, Lists.<String>newArrayList(basePackage), null);
+    }
+
     public static <T> void scan(ClassVisitor<T> subClassVisitor, Collection<String> basePackages, File sourceLocation) {
         scan(subClassVisitor, basePackages, sourceLocation, null);
     }

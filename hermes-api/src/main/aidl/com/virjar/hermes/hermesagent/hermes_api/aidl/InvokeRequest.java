@@ -146,6 +146,17 @@ public class InvokeRequest implements Parcelable {
         throw new IllegalStateException("parameter parse failed");
     }
 
+    public boolean hasParam(String name) {
+        initInnerModel();
+        if (nameValuePairsModel != null) {
+            return nameValuePairsModel.containsKey(name);
+        }
+        if (jsonModel != null) {
+            return jsonModel.containsKey(name);
+        }
+        throw new IllegalStateException("parameter parse failed");
+    }
+
     public JSONObject getJsonParam() {
         initInnerModel();
         return jsonModel;

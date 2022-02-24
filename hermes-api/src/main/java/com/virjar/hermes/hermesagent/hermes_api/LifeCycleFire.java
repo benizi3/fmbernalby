@@ -35,7 +35,14 @@ public class LifeCycleFire {
     private static volatile boolean firstPageReadySetUp = false;
     private static volatile boolean findFirstActivity = false;
 
+    private static Activity firstActivity;
+    private static Application application;
+
     public static void onFirstPageReady(OnFire<Activity> onFire) {
+        if (firstActivity != null) {
+            onFire.fire(firstActivity);
+            return;
+        }
         firstPageReady.add(onFire);
         if (firstPageReadySetUp) {
             return;
@@ -62,6 +69,7 @@ public class LifeCycleFire {
                                     Log.i(TAG, "handle application ready fire failed ", e);
                                 }
                             }
+                            firstActivity = (Activity) param.thisObject;
                         }
                     });
                 }
@@ -71,6 +79,9 @@ public class LifeCycleFire {
     }
 
     public static void onApplicationReady(OnFire<Application> onFire) {
+        if (application != null) {
+            onFire.fire(application);
+        }
         applicationReady.add(onFire);
         if (applicationReadySetUp) {
             return;
@@ -89,6 +100,7 @@ public class LifeCycleFire {
                             Log.i(TAG, "handle application ready fire failed ", e);
                         }
                     }
+                    application = (Application) param.thisObject;
                 }
             });
             applicationReadySetUp = true;
