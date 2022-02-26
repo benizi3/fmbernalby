@@ -26,17 +26,83 @@ public class LifeCycleFire {
         void fire(T o);
     }
 
-    private static Set<OnFire<Context>> contextReady = Sets.newConcurrentHashSet();
-    private static Set<OnFire<Application>> applicationReady = Sets.newConcurrentHashSet();
-    private static Set<OnFire<Activity>> firstPageReady = Sets.newConcurrentHashSet();
+    private static Set<OnFire<Context>> contextReady = Sets.newCopyOnWriteArraySet();
+    private static Set<OnFire<Application>> applicationReady = Sets.newCopyOnWriteArraySet();
+    private static Set<OnFire<Activity>> firstPageReady = Sets.newCopyOnWriteArraySet();
 
-    private static volatile boolean contextReadySetUp = false;
-    private static volatile boolean applicationReadySetUp = false;
-    private static volatile boolean firstPageReadySetUp = false;
-    private static volatile boolean findFirstActivity = false;
 
     private static Activity firstActivity;
     private static Application application;
+
+    public static void init() {
+        Ones.hookOnes(Activity.class, "monitor_first_activity", new Ones.DoOnce() {
+            @Override
+            public void doOne(Class<?> clazz) {
+                XposedBridge.hookAllConstructors(Activity.class, new SingletonXC_MethodHook() {
+                    @Override
+                    protected synchronized void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (firstActivity != null) {
+                            return;
+                        }
+                        Class<?> activityClass = param.thisObject.getClass();
+                        XposedReflectUtil.findAndHookMethodWithSupperClass(activityClass, "onCreate", Bundle.class, new SingletonXC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                for (OnFire<Activity> fire : firstPageReady) {
+                                    try {
+                                        fire.fire((Activity) param.thisObject);
+                                        firstPageReady.remove(fire);
+                                    } catch (Exception e) {
+                                        Log.i(TAG, "handle application ready fire failed ", e);
+                                    }
+                                }
+                                firstActivity = (Activity) param.thisObject;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        Ones.hookOnes(Application.class, "monitor_first_application_set_up", new Ones.DoOnce() {
+            @Override
+            public void doOne(Class<?> clazz) {
+                XposedHelpers.findAndHookMethod(Application.class, "onCreate", new XC_MethodHook(XCallback.PRIORITY_LOWEST * 2) {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        for (OnFire<Application> fire : applicationReady) {
+                            try {
+                                fire.fire((Application) param.thisObject);
+                                applicationReady.remove(fire);
+                            } catch (Exception e) {
+                                Log.i(TAG, "handle application ready fire failed ", e);
+                            }
+                        }
+                        application = (Application) param.thisObject;
+                    }
+                });
+            }
+        });
+
+        Ones.hookOnes(Application.class, "monitor_first_content_available", new Ones.DoOnce() {
+            @Override
+            public void doOne(Class<?> clazz) {
+                XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_LOWEST * 2) {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        for (OnFire<Context> fire : contextReady) {
+                            try {
+                                fire.fire((Context) param.args[0]);
+                                contextReady.remove(fire);
+                            } catch (Exception e) {
+                                Log.i(TAG, "handle context ready fire failed ", e);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     public static void onFirstPageReady(OnFire<Activity> onFire) {
         if (firstActivity != null) {
@@ -44,94 +110,21 @@ public class LifeCycleFire {
             return;
         }
         firstPageReady.add(onFire);
-        if (firstPageReadySetUp) {
-            return;
-        }
-        synchronized (LifeCycleFire.class) {
-            if (firstPageReadySetUp) {
-                return;
-            }
-            XposedBridge.hookAllConstructors(Activity.class, new SingletonXC_MethodHook() {
-                @Override
-                protected synchronized void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    if (findFirstActivity) {
-                        return;
-                    }
-                    findFirstActivity = true;
-                    Class<?> activityClass = param.thisObject.getClass();
-                    XposedReflectUtil.findAndHookMethodWithSupperClass(activityClass, "onCreate", Bundle.class, new SingletonXC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            for (OnFire<Activity> fire : firstPageReady) {
-                                try {
-                                    fire.fire((Activity) param.thisObject);
-                                } catch (Exception e) {
-                                    Log.i(TAG, "handle application ready fire failed ", e);
-                                }
-                            }
-                            firstActivity = (Activity) param.thisObject;
-                        }
-                    });
-                }
-            });
-            firstPageReadySetUp = true;
-        }
+
     }
 
     public static void onApplicationReady(OnFire<Application> onFire) {
         if (application != null) {
             onFire.fire(application);
-        }
-        applicationReady.add(onFire);
-        if (applicationReadySetUp) {
             return;
         }
-        synchronized (LifeCycleFire.class) {
-            if (applicationReadySetUp) {
-                return;
-            }
-            XposedHelpers.findAndHookMethod(Application.class, "onCreate", new XC_MethodHook(XCallback.PRIORITY_LOWEST * 2) {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    for (OnFire<Application> fire : applicationReady) {
-                        try {
-                            fire.fire((Application) param.thisObject);
-                        } catch (Exception e) {
-                            Log.i(TAG, "handle application ready fire failed ", e);
-                        }
-                    }
-                    application = (Application) param.thisObject;
-                }
-            });
-            applicationReadySetUp = true;
-        }
+        applicationReady.add(onFire);
     }
 
     public static void onContextReady(OnFire<Context> onFire) {
         contextReady.add(onFire);
         if (SharedObject.context != null) {
             onFire.fire(SharedObject.context);
-        }
-        if (contextReadySetUp) {
-            return;
-        }
-        synchronized (LifeCycleFire.class) {
-            if (contextReadySetUp) {
-                return;
-            }
-            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_LOWEST * 2) {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    for (OnFire<Context> fire : contextReady) {
-                        try {
-                            fire.fire((Context) param.args[0]);
-                        } catch (Exception e) {
-                            Log.i(TAG, "handle context ready fire failed ", e);
-                        }
-                    }
-                }
-            });
-            contextReadySetUp = true;
         }
     }
 

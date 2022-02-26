@@ -28,7 +28,7 @@ import de.robv.android.xposed.XposedHelpers;
  * Created by virjar on 2018/9/27.<br>
  * 设置代理,该设置仅针对于单个app生效
  */
-
+@SuppressWarnings("unused")
 public class SetProxyInterceptor implements InvokeInterceptor {
     private static final String hermesProxyIPSettingKey = "__hermes_proxy_ip";
     private static final String hermesProxyPortSettingKey = "__hermes_proxy_port";
@@ -123,21 +123,22 @@ public class SetProxyInterceptor implements InvokeInterceptor {
             @Override
             public void onClassLoad(Class clazz) {
                 Class<?> systemDefaultRoutPlannerClass = XposedHelpers.findClassIfExists("org.apache.http.impl.conn.SystemDefaultRoutePlanner", clazz.getClassLoader());
-                if (systemDefaultRoutPlannerClass != null) {
-                    Class<?> defaultSchemaPortResolver = XposedHelpers.findClass("org.apache.http.impl.conn.DefaultSchemePortResolver", clazz.getClassLoader());
-                    final Object systemDefaultRoutePlanner = XposedHelpers.newInstance(systemDefaultRoutPlannerClass, XposedHelpers.getStaticObjectField(defaultSchemaPortResolver, "INSTANCE"), proxySelector);
-
-                    XposedHelpers.findAndHookMethod(clazz, "determineRoute", "org.apache.http.HttpHost", "org.apache.http.HttpRequest", "org.apache.http.protocol.HttpContext", new SingletonXC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            Object host = param.args[0];
-                            if (host == null) {
-                                host = XposedHelpers.callMethod(XposedHelpers.callMethod(param.args[1], "getParams"), "getParameter", "http.default-host");
-                            }
-                            param.setResult(XposedHelpers.callMethod(systemDefaultRoutePlanner, "determineRoute", host, param.args[1], param.args[2]));
-                        }
-                    });
+                if (systemDefaultRoutPlannerClass == null) {
+                    return;
                 }
+                Class<?> defaultSchemaPortResolver = XposedHelpers.findClass("org.apache.http.impl.conn.DefaultSchemePortResolver", clazz.getClassLoader());
+                final Object systemDefaultRoutePlanner = XposedHelpers.newInstance(systemDefaultRoutPlannerClass, XposedHelpers.getStaticObjectField(defaultSchemaPortResolver, "INSTANCE"), proxySelector);
+
+                XposedHelpers.findAndHookMethod(clazz, "determineRoute", "org.apache.http.HttpHost", "org.apache.http.HttpRequest", "org.apache.http.protocol.HttpContext", new SingletonXC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Object host = param.args[0];
+                        if (host == null) {
+                            host = XposedHelpers.callMethod(XposedHelpers.callMethod(param.args[1], "getParams"), "getParameter", "http.default-host");
+                        }
+                        param.setResult(XposedHelpers.callMethod(systemDefaultRoutePlanner, "determineRoute", host, param.args[1], param.args[2]));
+                    }
+                });
             }
         });
 
@@ -147,22 +148,22 @@ public class SetProxyInterceptor implements InvokeInterceptor {
             @Override
             public void onClassLoad(final Class clazz) {
                 Class<?> systemDefaultRoutPlannerClass = XposedHelpers.findClassIfExists("org.apache.http.impl.conn.SystemDefaultRoutePlanner", clazz.getClassLoader());
-                if (systemDefaultRoutPlannerClass != null) {
-                    Class<?> defaultSchemaPortResolver = XposedHelpers.findClass("org.apache.http.impl.conn.DefaultSchemePortResolver", clazz.getClassLoader());
-                    final Object systemDefaultRoutePlanner = XposedHelpers.newInstance(systemDefaultRoutPlannerClass, XposedHelpers.getStaticObjectField(defaultSchemaPortResolver, "INSTANCE"), proxySelector);
-
-                    XposedBridge.hookAllConstructors(clazz, new SingletonXC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            Ones.hookOnes(XposedReflectUtil.findMethodWithSupperClass(param.thisObject.getClass(), "getRoutePlanner").getDeclaringClass(), "hook_getRoutePlanner", new Ones.DoOnce() {
-                                @Override
-                                public void doOne(Class<?> clazz) {
-                                    XposedHelpers.findAndHookMethod(clazz, "getRoutePlanner", XC_MethodReplacement.returnConstant(systemDefaultRoutePlanner));
-                                }
-                            });
-                        }
-                    });
+                if (systemDefaultRoutPlannerClass == null) {
+                    return;
                 }
+                Class<?> defaultSchemaPortResolver = XposedHelpers.findClass("org.apache.http.impl.conn.DefaultSchemePortResolver", clazz.getClassLoader());
+                final Object systemDefaultRoutePlanner = XposedHelpers.newInstance(systemDefaultRoutPlannerClass, XposedHelpers.getStaticObjectField(defaultSchemaPortResolver, "INSTANCE"), proxySelector);
+                XposedBridge.hookAllConstructors(clazz, new SingletonXC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Ones.hookOnes(XposedReflectUtil.findMethodWithSupperClass(param.thisObject.getClass(), "getRoutePlanner").getDeclaringClass(), "hook_getRoutePlanner", new Ones.DoOnce() {
+                            @Override
+                            public void doOne(Class<?> clazz) {
+                                XposedHelpers.findAndHookMethod(clazz, "getRoutePlanner", XC_MethodReplacement.returnConstant(systemDefaultRoutePlanner));
+                            }
+                        });
+                    }
+                });
 
             }
         });

@@ -18,7 +18,7 @@ public class Ones {
         void doOne(Class<?> clazz);
     }
 
-    public static boolean hookOnes(Class clazz, String taskType, DoOnce doOnce) {
+    public static boolean hookOnes(Class<?> clazz, String taskType, DoOnce doOnce) {
         Set<String> tasks = completedTasks.get(clazz);
         if (tasks == null) {
             completedTasks.putIfAbsent(clazz, Sets.<String>newConcurrentHashSet());

@@ -7,6 +7,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.hermes_api.Ones;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
@@ -47,6 +48,21 @@ public class InvokeInterceptorManager {
                 return input != null;
             }
         })));
+    }
+
+    public static void setUp() {
+        Ones.hookOnes(InvokeInterceptorManager.class, "setupAllInterceptor", new Ones.DoOnce() {
+            @Override
+            public void doOne(Class<?> clazz) {
+                for (InvokeInterceptor invokeInterceptor : invokeInterceptors) {
+                    try {
+                        invokeInterceptor.setup();
+                    } catch (Throwable throwable) {
+                        Log.e(TAG, "interceptor setup failed", throwable);
+                    }
+                }
+            }
+        });
     }
 
     public static InvokeResult handleIntercept(InvokeRequest invokeRequest) {

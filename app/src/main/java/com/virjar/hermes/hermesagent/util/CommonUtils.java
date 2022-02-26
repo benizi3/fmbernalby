@@ -28,6 +28,8 @@ import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.HermesCommonConfig;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 
 import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.ApkMeta;
@@ -449,5 +451,14 @@ public class CommonUtils {
         } catch (InterruptedException e) {
             //ignore
         }
+    }
+
+    public static boolean configChange(String key, InvokeRequest invokeRequest) {
+        if (!invokeRequest.hasParam(key)) {
+            return false;
+        }
+        String requestValue = invokeRequest.getString(key);
+        String configValue = HermesCommonConfig.getString(key);
+        return !StringUtils.equals(requestValue, configValue);
     }
 }

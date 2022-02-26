@@ -15,6 +15,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
@@ -53,8 +54,19 @@ public class HotLoadPackageEntry {
             XposedHelpers.setStaticBooleanField(commonUtilClass, "xposedStartSuccess", true);
             return;
         }
+        //初始的上下文数据，有了她就可以访问很多系统功能了，这个需要第一步完成
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
+
+        //拦截几个app关键声明周期，插件可以挂在在特定声明周期上面完成特定逻辑
+        //比如有些有些apk的api，在Application中进行初始化，然后才能使用功能。我们需要让自己的hook代码在Application的oncreate执行之后才能植入
+        LifeCycleFire.init();
+
+        /*
+         * 拦截器初始化，这些一般是状态还原，比如我们设置了代理，那么app重启之后，将会还原代理配置
+         */
+        InvokeInterceptorManager.setUp();
+
         Timer heartbeatTimer = new Timer(TAG, true);
 
         Map<String, AgentCallback> callbackMap = Maps.newHashMap();
@@ -93,11 +105,11 @@ public class HotLoadPackageEntry {
         if (!hint) {
             heartbeatTimer.cancel();
         } else {
-            exitIfMasterReInstall(context, loadPackageParam.packageName);
+            exitIfMasterReInstall(context);
         }
     }
 
-    private static void exitIfMasterReInstall(Context context, final String slavePackageName) {
+    private static void exitIfMasterReInstall(Context context) {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
@@ -122,6 +134,7 @@ public class HotLoadPackageEntry {
                     @Override
                     public void run() {
                         //不能马上自杀，这可能会触发slave进程去更新master的代码dex-cache。但是由于权限问题无法remove历史版本的apk代码缓存，进而热加载失败
+                        //sleep似乎无效，继续排查原因
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {

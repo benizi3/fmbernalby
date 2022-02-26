@@ -44,6 +44,9 @@ public class AgentRegister {
                 try {
                     APICommonUtils.requestLogI(param, "handle IPC invoke request");
                     InvokeResult result = InvokeInterceptorManager.handleIntercept(param);
+                    if (param.hasParam(Constant.HERMES_IGNORE_INTERCEPTOR_FILTER)) {
+                        result = null;
+                    }
                     if (result == null) {
                         result = agentCallback.invoke(param);
                     } else {
