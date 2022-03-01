@@ -105,7 +105,7 @@ public class J2Executor {
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
             if (r instanceof RejectedMonitorRunnable) {
-                ((RejectedMonitorRunnable) r).setRejected(true);
+                ((RejectedMonitorRunnable) r).setRejected();
                 return;
             }
             originRejectExecutionHandler.rejectedExecution(r, executor);
@@ -120,8 +120,8 @@ public class J2Executor {
             this.delegate = delegate;
         }
 
-        public void setRejected(boolean rejected) {
-            this.rejected = rejected;
+        public void setRejected() {
+            this.rejected = true;
         }
 
         public boolean isRejected() {
