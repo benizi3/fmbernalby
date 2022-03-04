@@ -7,6 +7,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Ones;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -56,22 +57,26 @@ public class InvokeInterceptorManager {
             public void doOne(Class<?> clazz) {
                 for (InvokeInterceptor invokeInterceptor : invokeInterceptors) {
                     try {
+                        Log.i("weijia", "setup invoke interceptor: " + invokeInterceptor.getClass().getName());
                         invokeInterceptor.setup();
-                    } catch (Throwable throwable) {
-                        Log.e(TAG, "interceptor setup failed", throwable);
+                    } catch (Exception e) {
+                        invokeInterceptors.remove(invokeInterceptor);
+                        Log.e(TAG, "interceptor setup failed", e);
                     }
                 }
             }
         });
     }
 
-    public static InvokeResult handleIntercept(InvokeRequest invokeRequest) {
+    static InvokeResult handleIntercept(InvokeRequest invokeRequest) {
         if (invokeInterceptors == null || invokeInterceptors.size() == 0) {
             return null;
         }
         for (InvokeInterceptor invokeInterceptor : invokeInterceptors) {
             InvokeResult invokeResult = invokeInterceptor.intercept(invokeRequest);
             if (invokeResult != null) {
+                APICommonUtils.requestLogI(invokeRequest, "the interceptor \"" + invokeInterceptor.getClass().getName() + "\" " +
+                        "has a invoke result,invoke maybe return early");
                 return invokeResult;
             }
         }

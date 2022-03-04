@@ -107,8 +107,11 @@ public class LocationMockInterceptor implements InvokeInterceptor {
                 hookLocationManager();
             }
         });
+        mockEnabled = true;
         fireLocationEvent();
     }
+
+    private static boolean mockEnabled = false;
 
     private static void fireLocationEvent() {
         Location location = fakeLocation("gps");
@@ -155,6 +158,10 @@ public class LocationMockInterceptor implements InvokeInterceptor {
 
         @Override
         public void onLocationChanged(Location location) {
+            if (!mockEnabled) {
+                delegate.onLocationChanged(location);
+                return;
+            }
             Location fakeLocation = fakeLocation(location.getProvider());
             if (fakeLocation == null) {
                 fakeLocation = location;
@@ -164,6 +171,10 @@ public class LocationMockInterceptor implements InvokeInterceptor {
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
+            if (!mockEnabled) {
+                delegate.onStatusChanged(provider, status, extras);
+                return;
+            }
             if (!StringUtils.equalsIgnoreCase(provider, "gps")) {
                 return;
             }
@@ -172,12 +183,22 @@ public class LocationMockInterceptor implements InvokeInterceptor {
 
         @Override
         public void onProviderEnabled(String provider) {
+            if (!mockEnabled) {
+                delegate.onProviderEnabled(provider);
+                return;
+            }
             delegate.onProviderEnabled("gps");
         }
 
         @Override
         public void onProviderDisabled(String provider) {
-            delegate.onProviderDisabled(provider);
+            if (!mockEnabled) {
+                delegate.onProviderDisabled(provider);
+                return;
+            }
+            if (!StringUtils.equalsIgnoreCase(provider, "gps")) {
+                delegate.onProviderDisabled(provider);
+            }
         }
     }
 

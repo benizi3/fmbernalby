@@ -25,7 +25,8 @@ import java.io.File;
 import eu.chainfire.libsuperuser.Shell;
 
 /**
- * Created by virjar on 2018/8/23.
+ * Created by virjar on 2018/8/23.<br>
+ * 将扫描得到的agent，注册到master的注册中心去，完成hermesAgent和targetApp的连接
  */
 
 public class AgentRegister {
