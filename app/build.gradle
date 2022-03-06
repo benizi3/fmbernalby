@@ -19,7 +19,7 @@ android {
 
     signingConfigs {
         release {
-            storeFile rootProject.file('hermes_key')
+            storeFile rootProject.file('deploy/hermes_key')
             storePassword "hermes"
             keyAlias "hermes"
             keyPassword "hermes"
