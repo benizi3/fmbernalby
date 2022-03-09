@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -26,6 +27,10 @@ public class ClassLoadMonitor {
 
     static {
         enableClassMonitor();
+    }
+
+    public static void setUp() {
+        //do nothing
     }
 
     private static void enableClassMonitor() {
@@ -126,5 +131,35 @@ public class ClassLoadMonitor {
         }
         onClassLoaders.add(onClassLoader);
         fireCallBack();
+    }
+
+    private static Map<String, Class<?>> classCache = Maps.newConcurrentMap();
+
+    /**
+     * 尝试加载一个class，无需感知classloader，的存在
+     *
+     * @param className className
+     * @return class对象，如果无法加载，返回null
+     */
+    public static Class tryLoadClass(String className) {
+        Class<?> ret = classCache.get(className);
+        if (ret != null) {
+            return ret;
+        }
+        ret = tryLoadClassInternal(className);
+        if (ret != null) {
+            classCache.put(className, ret);
+        }
+        return ret;
+    }
+
+    private static Class tryLoadClassInternal(String className) {
+        for (ClassLoader classLoader : hookedClassLoader) {
+            Class<?> aClass = XposedHelpers.findClassIfExists(className, classLoader);
+            if (aClass != null) {
+                return aClass;
+            }
+        }
+        return XposedHelpers.findClassIfExists(className, null);
     }
 }

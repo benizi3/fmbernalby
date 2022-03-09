@@ -2,6 +2,8 @@ package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
 
+import java.util.Timer;
+
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
@@ -12,4 +14,5 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class SharedObject {
     public static Context context;
     public static XC_LoadPackage.LoadPackageParam loadPackageParam;
+    public static Timer agentTimer = null;
 }

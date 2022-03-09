@@ -15,6 +15,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
 import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
@@ -58,6 +59,9 @@ public class HotLoadPackageEntry {
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
+        //收集所有存在的classloader
+        ClassLoadMonitor.setUp();
+
         //拦截几个app关键声明周期，插件可以挂在在特定声明周期上面完成特定逻辑
         //比如有些有些apk的api，在Application中进行初始化，然后才能使用功能。我们需要让自己的hook代码在Application的oncreate执行之后才能植入
         LifeCycleFire.init();
@@ -67,7 +71,10 @@ public class HotLoadPackageEntry {
          */
         InvokeInterceptorManager.setUp();
 
-        Timer heartbeatTimer = new Timer(TAG, true);
+        /**
+         * 插件中，维护一个全局的timer，用来执行一些简单的调度任务
+         */
+        SharedObject.agentTimer = new Timer("hermesAgentTimer", true);
 
         Map<String, AgentCallback> callbackMap = Maps.newHashMap();
         //执行所有自定义的回调钩子函数
@@ -96,15 +103,18 @@ public class HotLoadPackageEntry {
                 //将agent注册到server端，让server可以rpc到agent
                 AgentRegister.registerToServer(agentCallback, context);
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
-                heartbeatTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
+                SharedObject.agentTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
                 hint = true;
             } catch (Exception e) {
                 XposedBridge.log(e);
             }
         }
         if (!hint) {
-            heartbeatTimer.cancel();
+            //该app不需要控制，撤销timer，减少内存消耗
+            SharedObject.agentTimer.cancel();
         } else {
+            //在hermesAgent（master重新安装的时候，程序自身自杀，这是因为hermesAgent作为框架代码注入到本程序，
+            //hermesAgent重新安装可能意味着框架逻辑发生了更新，新版的交互协议可能和当前app中植入的框架代码协议不一致）
             exitIfMasterReInstall(context);
         }
     }

@@ -43,7 +43,8 @@ public class WeiShiAgent implements AgentCallback {
     @Override
     public boolean needHook(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         //微视大约有三个子进程，这里只拦截主进程
-        return StringUtils.equalsIgnoreCase(loadPackageParam.processName, "com.tencent.weishi");
+        // return StringUtils.equalsIgnoreCase(loadPackageParam.processName, "com.tencent.weishi");
+        return false;
     }
 
 

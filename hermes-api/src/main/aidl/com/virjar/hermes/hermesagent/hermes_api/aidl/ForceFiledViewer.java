@@ -1,8 +1,12 @@
 package com.virjar.hermes.hermesagent.hermes_api.aidl;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -27,11 +31,14 @@ public class ForceFiledViewer {
      * build a plain object from any flex object,the output is a view ,witch access all private & public field,ignore getter on input object
      *
      * @param input any object
-     * @return a view,just contain string,number,list,map;or combination
+     * @return a view,just contain string,number,list,map;or it`s combination
      */
     public static Object toView(Object input) {
         if (input == null) {
             return Collections.emptyMap();
+        }
+        if (input instanceof JSON || input instanceof JSONObject || input instanceof JSONArray) {
+            return input;
         }
         return toView(input, Sets.newHashSet());
     }
