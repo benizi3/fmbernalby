@@ -46,6 +46,7 @@ function connect()
 cd `dirname $0`
 cd ..
 echo "build hermes agent apk"
+./gradlew app:clean
 ./gradlew app:assembleDebug
 if [ ! $? -eq 0 ] ;then
     echo 'apk assemble failed'
@@ -81,6 +82,7 @@ do
         continue
     fi
     #adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+
     echo "adb -s $line:4555 push ${apk_location} /data/local/tmp/com.virjar.hermes.hermesagent"
     adb -s $line:4555 push $apk_location /data/local/tmp/com.virjar.hermes.hermesagent
 
