@@ -319,6 +319,9 @@ public class FontService extends Service {
             scanCallBack();
         }
 
+        //确保HermesAgent后台联网正常
+        makeSureMIUINetworkPermissionOnBackground(BuildConfig.APPLICATION_ID);
+
         //启动httpServer
         HttpServer.getInstance().setFontService(this);
         HttpServer.getInstance().startServer(this);
