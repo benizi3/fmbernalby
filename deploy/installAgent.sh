@@ -76,11 +76,18 @@ do
     fi
     echo 'connect device' $line
     connect $line
-    if [ ! $? -eq 0 ] ;then
-        echo "device ${line} shutdown,skip it"
-        offline_list[${#offline_list[@]}]=$line
-        continue
+    if [[ $adb_status =~ 'offline' ]] ;then
+           echo "device offline"
+           offline_list[${#offline_list[@]}]=$line
+           continue
+       fi
+
+    if [[ -z "$adb_status" ]] ;then
+           echo "device offline"
+           offline_list[${#offline_list[@]}]=$line
+           continue
     fi
+
     #adb -s $line:4555 shell am start -n "de.robv.android.xposed.installer/de.robv.android.xposed.installer.WelcomeActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
 
     echo "adb -s $line:4555 push ${apk_location} /data/local/tmp/com.virjar.hermes.hermesagent"
