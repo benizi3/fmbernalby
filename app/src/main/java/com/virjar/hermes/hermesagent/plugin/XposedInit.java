@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.plugin;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -9,7 +10,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Binder;
-import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
 import com.google.common.collect.Maps;
@@ -274,7 +274,6 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                         .create().show();
             }
         });
-
     }
 
     private void hotLoadPlugin(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
