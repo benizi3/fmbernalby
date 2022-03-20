@@ -29,9 +29,11 @@ public class LifeCycleFire {
     private static Set<OnFire<Context>> contextReady = Sets.newCopyOnWriteArraySet();
     private static Set<OnFire<Application>> applicationReady = Sets.newCopyOnWriteArraySet();
     private static Set<OnFire<Activity>> firstPageReady = Sets.newCopyOnWriteArraySet();
+    private static Set<OnFire<Activity>> firstPageCreate = Sets.newCopyOnWriteArraySet();
 
 
     private static Activity firstActivity;
+    private static Activity firstCreatedActivity;
     private static Application application;
 
     public static void init() {
@@ -44,6 +46,15 @@ public class LifeCycleFire {
                         if (firstActivity != null) {
                             return;
                         }
+                        for (OnFire<Activity> fire : firstPageCreate) {
+                            try {
+                                fire.fire((Activity) param.thisObject);
+                                firstPageCreate.remove(fire);
+                            } catch (Exception e) {
+                                Log.i(TAG, "handle application ready fire failed ", e);
+                            }
+                        }
+                        firstCreatedActivity = (Activity) param.thisObject;
                         Class<?> activityClass = param.thisObject.getClass();
                         XposedReflectUtil.findAndHookMethodWithSupperClass(activityClass, "onCreate", Bundle.class, new SingletonXC_MethodHook() {
                             @Override
@@ -110,6 +121,15 @@ public class LifeCycleFire {
             return;
         }
         firstPageReady.add(onFire);
+
+    }
+
+    public static void onFirstPageCreate(OnFire<Activity> onFire) {
+        if (firstCreatedActivity != null) {
+            onFire.fire(firstCreatedActivity);
+            return;
+        }
+        firstPageCreate.add(onFire);
 
     }
 
