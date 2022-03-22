@@ -76,6 +76,11 @@ do
     fi
     echo 'connect device' $line
     connect $line
+
+    echo "test adb status"
+    adb_status=`adb devices | grep $line`
+    echo $adb_status
+
     if [[ $adb_status =~ 'offline' ]] ;then
            echo "device offline"
            offline_list[${#offline_list[@]}]=$line
