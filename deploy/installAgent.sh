@@ -108,9 +108,10 @@ do
     sleep 10s
     #这里超时时间设置的长一些，因为hermes刚刚安装重启，可能需要一点时间http服务才会开启。hermesAgent的安装，需要重启所有slave
 
-    echo "curl --connect-timeout 10 \"http://$line:5597/reloadService\""
-    curl --connect-timeout 10 "http://$line:5597/reloadService"
-    #adb -s $line:4555 shell reboot
+    #echo "curl --connect-timeout 10 \"http://$line:5597/reloadService\""
+    #curl --connect-timeout 10 "http://$line:5597/reloadService"
+    echo "reboot devices"
+    adb -s $line:4555 shell reboot
     echo
     echo "$line deploy success"
 done
