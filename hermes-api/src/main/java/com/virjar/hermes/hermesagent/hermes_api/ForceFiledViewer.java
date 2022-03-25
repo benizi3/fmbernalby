@@ -1,4 +1,4 @@
-package com.virjar.hermes.hermesagent.hermes_api.aidl;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
