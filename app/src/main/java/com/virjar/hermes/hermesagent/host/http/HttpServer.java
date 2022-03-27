@@ -5,7 +5,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -39,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import eu.chainfire.libsuperuser.Shell;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
@@ -49,15 +49,15 @@ import okhttp3.ResponseBody;
  * http 服务器相关实现
  */
 
+@Slf4j
 public class HttpServer {
 
-    private static final String TAG = "httpServer";
     private static AsyncHttpServer server = null;
     private static AsyncServer mAsyncServer = null;
     private static HttpServer instance = new HttpServer();
     private int httpServerPort = 0;
     private FontService fontService;
-    private RCPInvokeCallback httpServerRequestCallback = null;
+    private RPCInvokeCallback httpServerRequestCallback = null;
     private J2Executor j2Executor;
     private StartServiceHandler handler = new StartServiceHandler(Looper.getMainLooper(), this);
 
@@ -103,8 +103,8 @@ public class HttpServer {
                 new ThreadPoolExecutor(10, 10, 0L,
                         TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10), new NamedThreadFactory("httpServer-public-pool"))
         );
-        httpServerRequestCallback = new RCPInvokeCallback(fontService, j2Executor);
-
+        httpServerRequestCallback = new RPCInvokeCallback(fontService, j2Executor);
+        log.info("register http request handler");
         bindRootCommand();
         bindPingCommand();
         bindStartAppCommand(context);
@@ -119,10 +119,10 @@ public class HttpServer {
         try {
             httpServerPort = Constant.httpServerPort;
             server.listen(mAsyncServer, httpServerPort);
-            Log.i(TAG, "start server success...");
-            Log.i(TAG, "server running on: " + CommonUtils.localServerBaseURL());
+            log.info("start server success...");
+            log.info("server running on: " + CommonUtils.localServerBaseURL());
         } catch (Exception e) {
-            Log.e(TAG, "startServer error", e);
+            log.error("startServer error", e);
         }
     }
 
@@ -142,11 +142,12 @@ public class HttpServer {
                     ResponseBody body = response.body();
                     if (body != null) {
                         if (body.string().equalsIgnoreCase("true")) {
-                            Log.i(TAG, "ping http server success");
+                            log.info("ping http server success,skip restart http server");
                             return;
                         }
                     }
                 }
+                log.info("ping http server failed ,start http server");
                 Message obtain = Message.obtain();
                 obtain.obj = context;
                 handler.sendMessage(obtain);
@@ -160,6 +161,7 @@ public class HttpServer {
         if (server == null) {
             return;
         }
+        log.info("stop http server");
         server.stop();
         mAsyncServer.stop();
         server = null;

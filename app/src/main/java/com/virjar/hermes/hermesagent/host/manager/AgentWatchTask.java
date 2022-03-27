@@ -5,9 +5,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
-import android.util.Log;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -26,21 +25,19 @@ import com.virjar.hermes.hermesagent.util.Constant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by virjar on 2018/8/24.<br>
  * server端，监控所有agent的状态，无法调通agent的话，尝试拉起agent
  */
-
-public class AgentWatchTask extends TimerTask {
-    private String TAG = "agent_watch_task";
+@Slf4j
+public class AgentWatchTask extends LoggerTimerTask {
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService;
     private Set<String> allCallback;
     private Context context;
@@ -54,11 +51,12 @@ public class AgentWatchTask extends TimerTask {
     }
 
     @Override
-    public void run() {
+    public void doRun() {
         Set<String> needRestartApp;
         if (CommonUtils.isLocalTest()) {
             //本地测试模式，监控所有agent，死亡拉起
             needRestartApp = Sets.newConcurrentHashSet(allCallback);
+            log.info("local test mode, watch all wrapper:{}", JSONObject.toJSONString(needRestartApp));
         } else {
             List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
             needRestartApp =
@@ -74,18 +72,21 @@ public class AgentWatchTask extends TimerTask {
                             return input.getAppPackage();
                         }
                     }));
+            log.info("production mode,watch wrapper,form hermes admin configuration:{}", JSONObject.toJSONString(needRestartApp));
 
         }
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
             if (agentInfo != null) {
+                log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
                 onlineServices.add(agentInfo.getPackageName());
                 needRestartApp.remove(agentInfo.getPackageName());
             }
         }
         fontService.setOnlineServices(onlineServices);
         if (needRestartApp.size() == 0) {
+            log.info("all wrapper online");
             return;
         }
 
@@ -99,16 +100,16 @@ public class AgentWatchTask extends TimerTask {
                 needInstallApp.remove(packageName);
 
                 if (runningProcess.contains(packageName)) {
-                    Log.w(TAG, "app :" + packageName + " 正常运行，但是agent没有正常注册,请检查xposed模块加载是否失败（日志中显示file not exist，在高版本Android中容易出现）");
+                    log.warn("app: {} 正常运行，但是agent没有正常注册,请检查xposed模块加载是否失败（日志中显示file not exist，在高版本Android中容易出现）", packageName);
                     continue;
                 }
 
                 if ("127.0.0.1".equalsIgnoreCase(CommonUtils.getLocalIp())) {
-                    Log.w(TAG, "手机未联网");
+                    log.warn("手机未联网");
                     continue;
                 }
 
-                Log.i(TAG, "启动app：" + packageName);
+                log.warn("start app：" + packageName);
                 Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(packageName);
                 context.startActivity(launchIntentForPackage);
             } catch (PackageManager.NameNotFoundException e) {
@@ -116,6 +117,7 @@ public class AgentWatchTask extends TimerTask {
             }
         }
 
+        log.info("some app is configured install on this device,but not presented on the system, we will install this,install list:{}", JSONObject.toJSONString(needInstallApp));
         for (String needInstall : needInstallApp) {
             TargetAppInstallTaskQueue.getInstance().install(needInstall, context);
         }
@@ -153,10 +155,10 @@ public class AgentWatchTask extends TimerTask {
             pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
             return hookAgentService.ping();
         } catch (DeadObjectException deadObjectException) {
-            Log.e(TAG, "remote service dead,wait for re register");
+            log.error("remote service dead,wait for re register");
             fontService.releaseDeadAgent(targetPackageName);
         } catch (RemoteException e) {
-            Log.e(TAG, "failed to ping agent", e);
+            log.error("failed to ping agent", e);
         } finally {
             pingWatchTaskLinkedBlockingDeque.remove(pingWatchTask);
             pingWatchTask.isDone = true;
@@ -177,11 +179,13 @@ public class AgentWatchTask extends TimerTask {
                         if (poll.isDone) {
                             continue;
                         }
+                        log.info("the package:{} is zombie,now kill it", poll.targetPackageName);
                         CommonUtils.killService(poll.targetPackageName);
                     } catch (InterruptedException e) {
+                        log.info("ping task waite task interrupted,stop loop", e);
                         return;
                     } catch (Exception e) {
-                        Log.e("pingWatchTask", "handle ping task failed", e);
+                        log.error("handle ping task failed", e);
                     }
                 }
             }

@@ -14,7 +14,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
-import com.virjar.hermes.hermesagent.util.EscapeUtil;
+import com.virjar.hermes.hermesagent.hermes_api.EscapeUtil;
 
 import org.apache.commons.lang3.StringUtils;
 

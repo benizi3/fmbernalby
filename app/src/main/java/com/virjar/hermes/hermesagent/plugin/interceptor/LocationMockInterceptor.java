@@ -31,6 +31,7 @@ import java.util.Set;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedHelpers;
+import lombok.extern.slf4j.Slf4j;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -39,6 +40,7 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
  * 对地理位置进行mock
  */
 @SuppressWarnings("unused")
+@Slf4j
 public class LocationMockInterceptor implements InvokeInterceptor {
 
     private static final String latitudeKey = "__hermes_Latitude";
@@ -50,6 +52,7 @@ public class LocationMockInterceptor implements InvokeInterceptor {
                 && !CommonUtils.configChange(longitudeKey, invokeRequest)) {
             return null;
         }
+        log.info("location interceptor hinted,config for latitude and longitude");
         String latitude = invokeRequest.getString(latitudeKey);
         String longitude = invokeRequest.getString(longitudeKey);
         try {
@@ -68,6 +71,7 @@ public class LocationMockInterceptor implements InvokeInterceptor {
         HermesCommonConfig.putString(latitudeKey, latitude);
         HermesCommonConfig.putString(longitudeKey, longitude);
         setup();
+        log.info("location mock config success");
         return null;
     }
 

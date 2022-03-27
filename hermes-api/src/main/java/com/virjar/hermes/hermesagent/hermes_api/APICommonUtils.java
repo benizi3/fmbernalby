@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by virjar on 2018/9/13.
  */
-
 public class APICommonUtils {
     private static AtomicLong fileSequence = new AtomicLong(1);
 

@@ -3,7 +3,6 @@ package com.virjar.hermes.hermesagent.host.manager;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
@@ -15,21 +14,21 @@ import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 import com.virjar.hermes.hermesagent.util.SamplerUtils;
 
 import java.io.IOException;
-import java.util.TimerTask;
 
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * Created by virjar on 2018/8/24.
  */
-
-public class ReportTask extends TimerTask {
-    private static final String tag = "ReportTask";
+@Slf4j
+public class ReportTask extends LoggerTimerTask {
     private Context context;
     private FontService fontService;
 
@@ -43,7 +42,7 @@ public class ReportTask extends TimerTask {
     }
 
     @Override
-    public void run() {
+    public void doRun() {
         ReportModel reportModel = new ReportModel();
         reportModel.setAgentServerIP(CommonUtils.getLocalIp());
         reportModel.setAgentServerPort(HttpServer.getInstance().getHttpServerPort());
@@ -54,21 +53,29 @@ public class ReportTask extends TimerTask {
         reportModel.setBrand(Build.BRAND);
         reportModel.setSystemVersion(Build.VERSION.SDK);
 
+        String reportContent = JSONObject.toJSONString(reportModel);
+        log.info("device report request,url:{} body:{}", Constant.serverBaseURL + Constant.reportPath, reportContent);
         final Request request = new Request.Builder()
                 .url(Constant.serverBaseURL + Constant.reportPath)
-                .post(RequestBody.create(mediaType, JSONObject.toJSONString(reportModel)))
+                .post(RequestBody.create(mediaType, reportContent))
                 .build();
         HttpClientUtils.getClient().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 failedTimes++;
-                Log.e(tag, "report failed ", e);
+                log.error("report failed ", e);
                 rebootIfNeed();
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 failedTimes = 0;
+                String responseContent = "";
+                ResponseBody body = response.body();
+                if (body != null) {
+                    responseContent = body.string();
+                }
+                log.info("report response:{}", responseContent);
             }
         });
     }

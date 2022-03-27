@@ -26,8 +26,8 @@ import com.google.common.io.Files;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.EscapeUtil;
 import com.virjar.hermes.hermesagent.hermes_api.HermesCommonConfig;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 
@@ -60,6 +60,7 @@ import javax.annotation.Nullable;
 
 import dalvik.system.PathClassLoader;
 import eu.chainfire.libsuperuser.Shell;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 
 import static android.content.Context.TELEPHONY_SERVICE;
@@ -67,13 +68,12 @@ import static android.content.Context.TELEPHONY_SERVICE;
 /**
  * Created by virjar on 2018/8/22.<br>
  */
-
+@Slf4j
 public class CommonUtils {
-    private static String TAG = "weijia";
 
     public static boolean isLocalTest() {
-        return BuildConfig.DEBUG;
-        //   return false;
+        //return BuildConfig.DEBUG;
+        return false;
     }
 
 
@@ -103,7 +103,7 @@ public class CommonUtils {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "query local ip failed", e);
+            log.warn("query local ip failed", e);
         }
 
 
@@ -147,10 +147,10 @@ public class CommonUtils {
 
 
     public static String execCmd(String cmd, boolean useRoot) {
-        Log.i(TAG, "execute command:{" + cmd + "} useRoot:" + useRoot);
+       log.info("execute command:{" + cmd + "} useRoot:" + useRoot);
         List<String> strings = useRoot ? SUShell.run(cmd) : Shell.SH.run(cmd);
         String result = StringUtils.join(strings, "\r\n");
-        Log.i(TAG, "command execute result:" + result);
+        log.info( "command execute result:" + result);
         return result;
     }
 
@@ -234,12 +234,12 @@ public class CommonUtils {
             url += "?source_package=" + EscapeUtil.escape(sourcePackage);
         }
         try {
-            Log.i(TAG, "ping hermes server:" + url);
+            log.info( "ping hermes server:" + url);
             String pingResponse = HttpClientUtils.getRequest(url);
-            Log.i(TAG, "ping hermes server response: " + pingResponse);
+            log.info( "ping hermes server response: " + pingResponse);
             return pingResponse;
         } catch (IOException e) {
-            Log.i(TAG, "ping server failed", e);
+            log.error( "ping server failed", e);
             return Constant.unknown;
         }
     }
@@ -291,15 +291,14 @@ public class CommonUtils {
         }
         // Debug.setDebug(true);
         isSettingADB = true;
-        String adbTag = "tcpADB";
         try {
             //check if adb running on 4555 port
             if (checkTcpAdbRunning()) {
-                Log.i(adbTag, "the adb service already running on " + Constant.ADBD_PORT);
+                log.info("the adb service already running on " + Constant.ADBD_PORT);
                 return;
             }
             if (!CommonUtils.isSuAvailable()) {
-                Log.w(adbTag, "acquire root permission failed,can not enable adbd service with tcp protocol mode");
+                log.warn( "acquire root permission failed,can not enable adbd service with tcp protocol mode");
                 return;
             }
 
@@ -310,21 +309,21 @@ public class CommonUtils {
                     continue;
                 }
                 if (!StringUtils.equalsIgnoreCase(str, String.valueOf(Constant.ADBD_PORT))) {
-                    Log.w(adbTag, "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
+                    log.info( "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
                     break;
                 } else {
                     List<String> executeOutput =
                             SUShell.run(Lists.newArrayList("stop adbd", "start adbd"));
-                    Log.i(adbTag, "adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
+                    log.info( "adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
                     return;
                 }
             }
 
             //将文件系统挂载为可读写
             List<String> executeOutput = SUShell.run("mount -o remount,rw /system");
-            Log.i(adbTag, "remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
+            log.info( "remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
 
-            Log.i(adbTag, "edit file /system/build.prop");
+            log.info( "edit file /system/build.prop");
             List<String> buildProperties = SUShell.run("cat /system/build.prop");
             List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
             for (String property : buildProperties) {
@@ -360,15 +359,15 @@ public class CommonUtils {
             //do not use the mv command , maybe some things will wrong
             String mvCommand = "cat " + file.getAbsolutePath() + " >  /system/build.prop";
             executeOutput = SUShell.run(mvCommand);
-            Log.i(adbTag, "write content to /system/build.prop  " + mvCommand + "  " + Joiner.on("\n").skipNulls().join(executeOutput));
+            log.info("write content to /system/build.prop  " + mvCommand + "  " + Joiner.on("\n").skipNulls().join(executeOutput));
             SUShell.run("chmod 644 /system/build.prop");
             SUShell.run("rm -f " + file.getAbsolutePath());
 
             executeOutput = SUShell.run("mount -o remount ro /system");
-            Log.i(adbTag, "re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
+            log.info("re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
 
             SUShell.run(Lists.newArrayList("setprop service.adb.tcp.port  " + Constant.ADBD_PORT, "stop adbd", "start adbd"));
-            Log.i(adbTag, "restart adbd service on port " + Constant.ADBD_PORT + " ,service will auto startup on this port when android device startup next time");
+            log.info( "restart adbd service on port " + Constant.ADBD_PORT + " ,service will auto startup on this port when android device startup next time");
         } finally {
             isSettingADB = false;
         }

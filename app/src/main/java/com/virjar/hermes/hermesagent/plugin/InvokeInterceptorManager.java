@@ -1,7 +1,5 @@
 package com.virjar.hermes.hermesagent.plugin;
 
-import android.util.Log;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -19,13 +17,14 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Created by virjar on 2018/9/27.<br>
  * 框架统一插件功能，可以对单个app，实现统一的操作功能
  */
-
+@Slf4j
 public class InvokeInterceptorManager {
-    private static final String TAG = "InvokeInterceptor";
     private static Set<InvokeInterceptor> invokeInterceptors;
 
     static {
@@ -39,7 +38,7 @@ public class InvokeInterceptorManager {
                 try {
                     return input.newInstance();
                 } catch (Exception e) {
-                    Log.w(TAG, "agent callback plugin load failed", e);
+                    log.warn("agent callback plugin load failed", e);
                 }
                 return null;
             }
@@ -57,11 +56,11 @@ public class InvokeInterceptorManager {
             public void doOne(Class<?> clazz) {
                 for (InvokeInterceptor invokeInterceptor : invokeInterceptors) {
                     try {
-                        Log.i("weijia", "setup invoke interceptor: " + invokeInterceptor.getClass().getName());
+                        log.info("setup invoke interceptor: " + invokeInterceptor.getClass().getName());
                         invokeInterceptor.setup();
                     } catch (Exception e) {
                         invokeInterceptors.remove(invokeInterceptor);
-                        Log.e(TAG, "interceptor setup failed", e);
+                        log.error("interceptor setup failed", e);
                     }
                 }
             }

@@ -17,8 +17,8 @@ import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -37,6 +37,7 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
+import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
 import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
@@ -55,9 +56,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.DelayQueue;
+
+import lombok.extern.slf4j.Slf4j;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 
@@ -65,9 +67,8 @@ import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
  * Created by virjar on 2018/8/22.<br>
  * 远程调用服务注册器，代码注入到远程apk之后，远程apk通过发现这个服务。注册自己的匿名binder，到这个容器里面来
  */
-
+@Slf4j
 public class FontService extends Service {
-    private static final String TAG = "AIDLRegisterService";
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService = Maps.newConcurrentMap();
     public static RemoteCallbackList<IHookAgentService> mCallbacks = new RemoteCallbackList<>();
     public static Timer timer = null;
@@ -94,10 +95,11 @@ public class FontService extends Service {
         ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
 
         allCallback = transformAgentNames(subClassVisitor);
-        Log.i("weijia", "扫描class:" + allCallback);
+        log.info("scan all embed wrapper class:{}", JSONObject.toJSONString(allCallback));
         File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
             //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
+            log.info("hermesModules 文件为空，无外置HermesWrapper");
             return;
         }
 
@@ -107,7 +109,7 @@ public class FontService extends Service {
                 return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
-            //Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
+            log.info("scan external wrapper,read file:{}", apkFile.getAbsolutePath());
             try {
                 ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
                 String packageName = apkMeta.getPackageName();
@@ -115,7 +117,7 @@ public class FontService extends Service {
                 ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFile, CommonUtils.createXposedClassLoadBridgeClassLoader(this));
                 allCallback.addAll(transformAgentNames(subClassVisitor));
             } catch (Exception e) {
-                Log.e("weijia", "failed to load hermes-wrapper module", e);
+                log.error("failed to load hermes-wrapper module", e);
             }
         }
 
@@ -132,7 +134,7 @@ public class FontService extends Service {
                 try {
                     return input.newInstance().targetPackageName();
                 } catch (InstantiationException | IllegalAccessException e) {
-                    Log.e("weijia", "failed to load create plugin", e);
+                    log.error("failed to load create plugin", e);
                 }
                 return null;
             }
@@ -157,6 +159,7 @@ public class FontService extends Service {
             //非小米系统，不做该适配
             return;
         }
+        log.info("grant network permission for miui system");
         Uri uri = Uri.parse(Constant.MIUIPowerKeeperContentProviderURI);
         //CREATE TABLE userTable (
         // _id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -230,7 +233,7 @@ public class FontService extends Service {
             }
         } catch (Exception e) {
             //这个异常，暂时忽略，如果失败，则需要手动去开启后台网络权限
-            Log.e("weijia", "call miui system content provider failed", e);
+            log.error("call miui system content provider failed", e);
         }
     }
 
@@ -242,11 +245,11 @@ public class FontService extends Service {
             }
             AgentInfo agentInfo = hookAgentService.ping();
             if (agentInfo == null) {
-                Log.w(TAG, "service register,ping failed");
+                log.warn("service register,ping failed");
                 return;
             }
             makeSureMIUINetworkPermissionOnBackground(agentInfo.getPackageName());
-            Log.i(TAG, "service " + agentInfo.getPackageName() + " register success");
+            log.info("service :{} register success", agentInfo.getPackageName());
             mCallbacks.register(hookAgentService);
             allRemoteHookService.putIfAbsent(agentInfo.getServiceAlis(), hookAgentService);
         }
@@ -314,7 +317,7 @@ public class FontService extends Service {
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
 
-
+        log.info("start hermes font service");
         if (allCallback == null) {
             scanCallBack();
         }
@@ -323,14 +326,16 @@ public class FontService extends Service {
         makeSureMIUINetworkPermissionOnBackground(BuildConfig.APPLICATION_ID);
 
         //启动httpServer
+        log.info("start http server...");
         HttpServer.getInstance().setFontService(this);
         HttpServer.getInstance().startServer(this);
 
+        log.info("start daemon process..");
         startDaemonProcess();
 
         if (CommonUtils.xposedStartSuccess && lastCheckTimerCheck + timerCheckThreashHold < System.currentTimeMillis()) {
             if (lastCheckTimerCheck != 0) {
-                Log.i(TAG, "timer 假死，重启timer");
+                log.info("timer 假死，重启timer");
             }
             restartTimer();
         }
@@ -371,25 +376,25 @@ public class FontService extends Service {
         timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
 
         //半个小时，check一下adb的状态，守护adb进程
-        timer.scheduleAtFixedRate(new TimerTask() {
+        timer.scheduleAtFixedRate(new LoggerTimerTask("adbCheck") {
             @Override
-            public void run() {
+            public void doRun() {
                 try {
                     CommonUtils.enableADBTCPProtocol(FontService.this);
                 } catch (Exception e) {
-                    Log.e("weijia", "enable adb remote exception", e);
+                    log.error("enable adb remote exception", e);
                 }
             }
         }, 10, 1000 * 60 * 30);
 
 
         //平均每半个小时重启所有的targetApp
-        timer.scheduleAtFixedRate(new TimerTask() {
+        timer.scheduleAtFixedRate(new LoggerTimerTask("restartTargetApp") {
             @Override
-            public void run() {
+            public void doRun() {
                 for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
                     try {
-                        Log.i(TAG, "杀死targetApp");
+                        log.info("杀死targetApp");
                         entry.getValue().killSelf();
                     } catch (RemoteException e) {
                         //ignore
@@ -399,9 +404,9 @@ public class FontService extends Service {
         }, 30 * 60 * 1000 + new Random().nextLong() % (30 * 60 * 1000), 60 * 60 * 1000);
 
         //半天，重启一次手机系统，避免系统跑死
-        timer.scheduleAtFixedRate(new TimerTask() {
+        timer.scheduleAtFixedRate(new LoggerTimerTask("rebootTask") {
             @Override
-            public void run() {
+            public void doRun() {
                 if (!CommonUtils.isSuAvailable()) {
                     //TODO test for jadb
                     return;
@@ -412,17 +417,17 @@ public class FontService extends Service {
 
 
         //注册存活检测，如果timer线程存活，那么lastCheckTimerCheck将会刷新，如果长时间不刷新，证明timer已经挂了
-        timer.scheduleAtFixedRate(new TimerTask() {
+        timer.scheduleAtFixedRate(new LoggerTimerTask("timerResponseCheck") {
             @Override
-            public void run() {
+            public void doRun() {
                 lastCheckTimerCheck = System.currentTimeMillis();
             }
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        timer.scheduleAtFixedRate(new LoggerTimerTask("daemonProcessCheck") {
             @Override
-            public void run() {
+            public void doRun() {
                 DaemonBinder daemonBinderCopy = daemonBinder;
                 if (daemonBinderCopy == null) {
                     startDaemonProcess();
@@ -434,11 +439,11 @@ public class FontService extends Service {
                     pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
                     daemonBinderCopy.ping();
                 } catch (DeadObjectException deadObjectException) {
-                    Log.e(TAG, "remote service dead,wait for re register");
+                    log.error("remote service dead,wait for re register");
                     daemonBinder = null;
                     startDaemonProcess();
                 } catch (RemoteException e) {
-                    Log.e(TAG, "failed to ping agent", e);
+                    log.error("failed to ping agent", e);
                 } finally {
                     pingWatchTaskLinkedBlockingDeque.remove(pingWatchTask);
                     pingWatchTask.isDone = true;
@@ -450,7 +455,7 @@ public class FontService extends Service {
         if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             timer.scheduleAtFixedRate(new ReportTask(this, this),
-                    3000, 3000);
+                    15000, 15000);
             //每隔2分钟拉取一次配置
             timer.scheduleAtFixedRate(new RefreshConfigTask(this), 120000, 120000);
         }
@@ -483,7 +488,7 @@ public class FontService extends Service {
                     } catch (InterruptedException e) {
                         return;
                     } catch (Exception e) {
-                        Log.e("pingWatchTask", "handle ping task failed", e);
+                        log.error("handle ping task failed", e);
                     }
                 }
             }

@@ -3,12 +3,13 @@ package com.virjar.hermes.hermesagent;
 import android.app.Application;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.util.Log;
 
 import com.google.common.base.Joiner;
 import com.raizlabs.android.dbflow.config.FlowManager;
+import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.util.SUShell;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -16,16 +17,18 @@ import java.util.Iterator;
 import java.util.List;
 
 import eu.chainfire.libsuperuser.Shell;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by virjar on 2018/9/7.<br>
  * for FlowManager
  */
-
+@Slf4j
 public class HermesApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        LogConfigurator.confifure(this);
         FlowManager.init(this);
         fixXposedConfigFile();
     }
@@ -34,7 +37,7 @@ public class HermesApplication extends Application {
 
     private void fixXposedConfigFile() {
         if (!CommonUtils.isSuAvailable()) {
-            Log.w("weijia", "need root permission ");
+            log.warn("need root permission ");
             return;
         }
         String sourcePath;
@@ -53,6 +56,7 @@ public class HermesApplication extends Application {
 
         List<String> xposedModules = Shell.SU.run("cat " + xposedModuleConfigFile);
         if (xposedModules.size() == 0) {
+            log.info("xposed config file empty");
             return;
         }
         Iterator<String> iterator = xposedModules.iterator();
@@ -61,6 +65,7 @@ public class HermesApplication extends Application {
             String str = iterator.next();
             if (StringUtils.containsIgnoreCase(str, BuildConfig.APPLICATION_ID)) {
                 if (StringUtils.equals(sourcePath, sourcePath)) {
+                    log.info("xposed 配置正常");
                     return;
                 } else {
                     iterator.remove();
@@ -72,9 +77,9 @@ public class HermesApplication extends Application {
         if (!hinted) {
             return;
         }
-        Log.i("weijia", "xposed installer模块地址维护有误，hermes自动修复hermes关联代码地址");
+        log.info("xposed installer模块地址维护有误，hermes自动修复hermes关联代码地址");
         xposedModules.add(sourcePath);
         String newConfig = Joiner.on("\\\n").join(xposedModules);
-        Shell.SU.run("echo \"" + newConfig + "\" > " + xposedModuleConfigFile);
+        SUShell.run("echo \"" + newConfig + "\" > " + xposedModuleConfigFile);
     }
 }

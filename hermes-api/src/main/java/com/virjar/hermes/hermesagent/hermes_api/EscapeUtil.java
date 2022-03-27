@@ -1,4 +1,4 @@
-package com.virjar.hermes.hermesagent.util;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import com.google.common.collect.Sets;
 

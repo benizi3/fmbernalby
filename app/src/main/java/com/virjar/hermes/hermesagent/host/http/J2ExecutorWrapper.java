@@ -1,7 +1,5 @@
 package com.virjar.hermes.hermesagent.host.http;
 
-import android.util.Log;
-
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.bean.CommonRes;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -10,10 +8,12 @@ import com.virjar.hermes.hermesagent.util.Constant;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Created by virjar on 2018/8/25.
  */
-
+@Slf4j
 public class J2ExecutorWrapper {
     private ThreadPoolExecutor threadPoolExecutor;
     private Runnable runnable;
@@ -29,13 +29,14 @@ public class J2ExecutorWrapper {
         Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                Log.w("HermesAgent", "request process failed, ", e);
+                log.warn("request process failed, ", e);
                 CommonUtils.sendJSON(response, CommonRes.failed(CommonUtils.translateSimpleExceptionMessage(e)));
             }
         });
         try {
             threadPoolExecutor.execute(runnable);
         } catch (RejectedExecutionException e) {
+            log.warn(Constant.rateLimitedMessage);
             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_rate_limited, Constant.rateLimitedMessage));
         }
     }

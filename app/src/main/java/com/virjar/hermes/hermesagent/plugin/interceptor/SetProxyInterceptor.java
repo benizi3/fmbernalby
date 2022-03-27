@@ -23,12 +23,14 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by virjar on 2018/9/27.<br>
  * 设置代理,该设置仅针对于单个app生效
  */
 @SuppressWarnings("unused")
+@Slf4j
 public class SetProxyInterceptor implements InvokeInterceptor {
     private static final String hermesProxyIPSettingKey = "__hermes_proxy_ip";
     private static final String hermesProxyPortSettingKey = "__hermes_proxy_port";
@@ -41,6 +43,7 @@ public class SetProxyInterceptor implements InvokeInterceptor {
         if (StringUtils.isBlank(invokeProxy)) {
             return null;
         }
+        log.info("proxy interceptor hinted,config for proxy：{}", invokeProxy);
         APICommonUtils.requestLogI(invokeRequest, "setting proxy info:" + invokeProxy);
         String[] ipAndPort = invokeProxy.split(":");
         if (ipAndPort.length != 2) {
@@ -68,6 +71,7 @@ public class SetProxyInterceptor implements InvokeInterceptor {
             HermesCommonConfig.putBoolean(forceProxyFlag, StringUtils.equalsIgnoreCase(invokeRequest.getString(forceProxyFlag), "true"));
             setup();
         }
+        log.info("proxy mock config success");
         return null;
     }
 

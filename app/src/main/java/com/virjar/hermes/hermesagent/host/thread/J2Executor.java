@@ -10,6 +10,8 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Created by virjar on 2018/2/25.<br>
  * 主入口
@@ -17,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  * @author virjar
  * @since 1.0
  */
+@Slf4j
 public class J2Executor {
     private ThreadPoolExecutor parentThreadPoolExecutor;
     private BlockingQueue<Runnable> parentBlockingQueue;
@@ -65,6 +68,7 @@ public class J2Executor {
                 public boolean consume(Runnable runnable) {
                     if (parentBlockingQueue.size() > 0 || parentThreadPoolExecutor
                             .getActiveCount() >= parentThreadPoolExecutor.getCorePoolSize()) {
+                        log.warn("parent thread pool full,task maybe busy");
                         return false;
                     }
                     RejectedMonitorRunnable rejectedMonitorRunnable = new RejectedMonitorRunnable(runnable);

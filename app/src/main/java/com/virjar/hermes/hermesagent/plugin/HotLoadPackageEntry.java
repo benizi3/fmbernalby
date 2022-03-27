@@ -17,6 +17,7 @@ import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
 import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
+import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
@@ -36,14 +37,15 @@ import java.util.Timer;
 
 import javax.annotation.Nullable;
 
-import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by virjar on 2017/12/21.<br/>插件热加载器
  */
 @SuppressWarnings("unused")
+@Slf4j
 public class HotLoadPackageEntry {
     private static final String TAG = "HotPluginLoader";
 
@@ -59,16 +61,22 @@ public class HotLoadPackageEntry {
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
+        LogConfigurator.confifure(context);
+        log.info("plugin startup");
+
         //收集所有存在的classloader
+        log.info("setup classloader monitor");
         ClassLoadMonitor.setUp();
 
         //拦截几个app关键声明周期，插件可以挂在在特定声明周期上面完成特定逻辑
         //比如有些有些apk的api，在Application中进行初始化，然后才能使用功能。我们需要让自己的hook代码在Application的oncreate执行之后才能植入
+        log.info("setup lifecycle monitor");
         LifeCycleFire.init();
 
         /*
          * 拦截器初始化，这些一般是状态还原，比如我们设置了代理，那么app重启之后，将会还原代理配置
          */
+        log.info("setup interceptor");
         InvokeInterceptorManager.setUp();
 
         /**
@@ -78,16 +86,20 @@ public class HotLoadPackageEntry {
 
         Map<String, AgentCallback> callbackMap = Maps.newHashMap();
         //执行所有自定义的回调钩子函数
+        log.info("scan embed wrapper implementation");
         Set<AgentCallback> allCallBack = findEmbedCallBack();
+        log.info("find :{} embed wrapper", allCallBack.size());
         for (AgentCallback agentCallback : allCallBack) {
             callbackMap.put(agentCallback.targetPackageName(), agentCallback);
         }
         //安装在容器中的扩展代码，优先级比内嵌的模块高
+        log.info("scan external wrapper implementation");
         allCallBack = findExternalCallBack();
+        log.info("find :{} external wrapper", allCallBack.size());
         for (AgentCallback agentCallback : allCallBack) {
             AgentCallback old = callbackMap.put(agentCallback.targetPackageName(), agentCallback);
             if (old != null) {
-                Log.w(TAG, "duplicate hermes wrapper found , hermes agent only load single one hermes wrapper");
+                log.warn("duplicate hermes wrapper found , hermes agent only load single one hermes wrapper");
             }
         }
 
@@ -97,20 +109,24 @@ public class HotLoadPackageEntry {
                 continue;
             }
             try {
-                XposedBridge.log("执行回调: " + agentCallback.getClass());
+                String wrapperName = agentCallback.getClass().getName();
+                log.info("执行回调: {}", wrapperName);
                 //挂载钩子函数
                 agentCallback.onXposedHotLoad();
                 //将agent注册到server端，让server可以rpc到agent
+                log.info("注册:{} 到hermes server registry", wrapperName);
                 AgentRegister.registerToServer(agentCallback, context);
                 //启动timer，保持和server的心跳，发现server死掉的话，拉起server
+                log.info("启动到server 心跳保持timer");
                 SharedObject.agentTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
                 hint = true;
             } catch (Exception e) {
-                XposedBridge.log(e);
+                log.error("wrapper:{} 调度挂钩失败", e);
             }
         }
         if (!hint) {
             //该app不需要控制，撤销timer，减少内存消耗
+            log.info("该app没有命中任何wrapper");
             SharedObject.agentTimer.cancel();
         } else {
             //在hermesAgent（master重新安装的时候，程序自身自杀，这是因为hermesAgent作为框架代码注入到本程序，
@@ -138,7 +154,7 @@ public class HotLoadPackageEntry {
                 if (!StringUtils.equalsIgnoreCase(packageName, BuildConfig.APPLICATION_ID)) {
                     return;
                 }
-                Log.i(TAG, "master  重新安装，重启slave 进程");
+                log.info("master  重新安装，重启slave 进程");
 
                 new Thread("kill-self-thread") {
                     @Override
@@ -187,7 +203,7 @@ public class HotLoadPackageEntry {
                 Set<AgentCallback> filtered = filter(subClassVisitor);
                 ret.addAll(filtered);
             } catch (Exception e) {
-                Log.e("weijia", "failed to load hermes-wrapper module", e);
+                log.error("failed to load hermes-wrapper module", e);
             }
         }
         return ret;
@@ -201,7 +217,7 @@ public class HotLoadPackageEntry {
                 try {
                     return input.newInstance();
                 } catch (InstantiationException | IllegalAccessException e) {
-                    Log.e("weijia", "failed to load create plugin", e);
+                    log.error("failed to load create plugin", e);
                 }
                 return null;
             }

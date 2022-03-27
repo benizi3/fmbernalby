@@ -33,7 +33,9 @@ public interface Constant {
     String serviceRegisterAction = "com.virjar.hermes.hermesagent.aidl.IServiceRegister";
 
 
-    String serverHost = "hermesadmin.virjar.com";
+    //String serverHost = "hermesadmin.virjar.com";
+    //10.8.126.249为测试服务器地址，暂时使用这个
+    String serverHost = "10.8.126.249";
     int serverHttpPort = 5597;
     int serverNettyPort = 5598;
 
