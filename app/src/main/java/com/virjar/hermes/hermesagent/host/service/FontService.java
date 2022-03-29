@@ -409,6 +409,7 @@ public class FontService extends Service {
             public void doRun() {
                 if (!CommonUtils.isSuAvailable()) {
                     //TODO test for jadb
+                    log.warn("reboot command need root permission");
                     return;
                 }
                 SUShell.run("reboot");

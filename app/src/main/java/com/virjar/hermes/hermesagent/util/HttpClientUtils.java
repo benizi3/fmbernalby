@@ -1,5 +1,6 @@
 package com.virjar.hermes.hermesagent.util;
 
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.common.collect.Lists;
@@ -12,9 +13,13 @@ import java.net.ProxySelector;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.ConnectionPool;
+import okhttp3.Dispatcher;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -51,7 +56,16 @@ public class HttpClientUtils {
                     public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
 
                     }
-                })
+                }).dispatcher(new Dispatcher(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
+                    @Override
+                    public Thread newThread(@NonNull Runnable runnable) {
+                        Thread result = new Thread(runnable, "OkHttp Dispatcher");
+                        result.setDaemon(false);
+                        result.setUncaughtExceptionHandler(LogedExceptionHandler.wrap(result.getUncaughtExceptionHandler()));
+                        return result;
+                    }
+                })))
                 .build();
     }
 
