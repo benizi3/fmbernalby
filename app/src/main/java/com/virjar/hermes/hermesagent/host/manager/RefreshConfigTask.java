@@ -59,10 +59,12 @@ public class RefreshConfigTask extends LoggerTimerTask {
                     log.error("query config,response body is empty");
                     return;
                 }
-                log.info("response body:{}", body.string());
+                //注意这个string，只能调用一次
+                String bodySting = body.string();
+                log.info("response body:{}", bodySting);
                 JSONObject jsonRes;
                 try {
-                    jsonRes = JSONObject.parseObject(body.string());
+                    jsonRes = JSONObject.parseObject(bodySting);
                 } catch (JSONException e) {
                     log.warn("get config failed,system error", e);
 
