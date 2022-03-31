@@ -33,65 +33,13 @@ hermesAdmin用来管理多个hermesAgent，进行简单的服务治理和agent�
 2. xposed启用本模块之后，第一次需要重启，后续不需要重启了
 3. 钩子函数写到com.virjar.hermes.hermesagent.hookagent路径下，能够被框架自动识别，其他地方不会识别
 4. agent必须提供空参构造（我们是类扫描机制实现的）
-5. 开启网络访问权限，有些手机在后台运行之后，将会禁止后台访问网络。请放开这个配置
-```
-设置——无线和网络——WLAN设置——高级设置——WLAN休眠策略——永不休眠
-
-     小米手机：
-     1、设置--其他高级设置--电源和性能--神隐模式
-     2、标准(限制后台应用的网络和定位功能)
-     3、关闭(不限制后台应用的功能)
-     4、默认是标准,在屏保后4分钟左右会限制后台应用的网络功能
-
-```
-关于小米系统神隐模式拆解方案：对应的设置app为``com.miui.powerkeeper``，用户权限为：``android:sharedUserId="android.uid.system"``
-代码地址：``/data/dalvik-cache/arm/system@app@PowerKeeper@PowerKeeper.apk@classes.dex``,apk地址：``/system/app/PowerKeeper/PowerKeeper.apk``
-apk设置api：``com.miui.powerkeeper.provider.UserConfigureHelper.updateToTable``,方法内使用ContentResolver：
-```
-    public static void updateToTable(Context context, ContentValues contentValues) {
-        ContentResolver contentResolverForUser = ContextHelper.getContentResolverForUser(context, UserHandle.OWNER);
-        if (contentValues.getAsInteger("userId") == null) {
-            Log.e(TAG, "Missed userId");
-        } else if (contentValues.getAsString("pkgName") == null) {
-            Log.e(TAG, "Missed pkgName");
-        } else if (contentValues.containsKey("_id")) {
-            contentResolverForUser.update(ContentUris.withAppendedId(UserConfigure.CONTENT_URI, contentValues.getAsLong("_id").longValue()), contentValues, null, null);
-        } else {
-            contentResolverForUser.insert(UserConfigure.CONTENT_URI, contentValues);
-        }
-    }
-```
-两条关于微视由无限制到小米只能策略切换日志：
-```
- content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=noRestrict, _id=5264, userId=0, pkgName=com.tencent.weishi]
- content resolver update, URI content://com.miui.powerkeeper.configure/userTable/5264 contentValues:[bgControl=miuiAuto, _id=5264, userId=0, pkgName=com.tencent.weishi]
-```
-```
-09-22 17:35:16.240  4829  5917 I weijia  : content provider update, URI content://com.miui.powerkeeper.configure/userTable/1112 contentValues:[bgControl=noRestrict, _id=1112, userId=0, pkgName=tv.danmaku.bili]
-09-22 17:35:16.240  4829  5917 I weijia  : 接收到神隐模式配置命令,process: com.miui.powerkeeper:service package:com.miui.powerkeeper providerClass:com.miui.powerkeeper.provider.PowerKeeperConfigureProvider
-```
-输入入库了，数据库建库代码：``com.miui.powerkeeper.provider.UserDatabaseHelper``，数据库地址：``/data/data/com.miui.powerkeeper/databases/user_configure.db``
-数据库内容：
-```
-sqlite> select * from userTable;
-3|0|com.miui.gallery|1520247935689|miuiAuto||
-9|0|com.android.providers.downloads.ui|1520247936451|miuiAuto||
-12|0|com.xiaomi.gamecenter|1520247936886|miuiAuto||
-..
-723|0|com.umetrip.android.msky.app|1524650024364|miuiAuto||
-1111|0|com.sina.weibo|1525451454542|miuiAuto||
-1112|0|tv.danmaku.bili|1537608916242|noRestrict||
-```
-对应的控制指令为noRestrict，就是不限制后台了。逻辑基本破解
-
+5. 开启网络访问权限，有些手机在后台运行之后，将会禁止后台访问网络。请放开这个配置（小米系统hermes已经做了适配，无需关心此设置）
 6. 如果在AndroidStudio上面编译本项目，需要安装lombok插件，见：[projectlombok](https://projectlombok.org/setup/android)
-
-7. 允许程序开机自启
+7. 允许程序开机自启（小米系统hermes已经做了适配，无需关心此设置）
 为了让app全自动提供服务，需要让手机开机便启动agent，有些系统会禁止该行为。如果你的手机有存在该行为的话，请放开自启动限制
 [stackoverflow](https://stackoverflow.com/questions/32032329/process-is-not-permitted-to-autostart-boot-complete-broadcast-receiver)
 *一定要打开自启动，每个相关的都要打开*
-
-对于小米系统来说，已经默认拆解了自启动拦截问题。可以不关心程序自启动配置
+8. 保持屏幕唤醒，在锁屏状态下，不允许拉起app的launcherActivity（小米系统hermes已经做了适配，无需关心此设置）
 
 
 ### 演示
@@ -137,11 +85,11 @@ A:服务注册的原理是，在slave中注入钩子代码，驱动slave主动�
 #### todo list
 
 1. 自动配置网络，如果系统系统启动，网络不正常，根据配置策略配置网络连接参数。如wiki账号密码，系统代理等
-2. 拆解后台网络流量拦截限制（小米系统）。目前app安装之后，需要放开多个app的网络后台限制配置。可以通过app内嵌代码统一拆解
+2. 拆解后台网络流量拦截限制（小米系统）。目前app安装之后，需要放开多个app的网络后台限制配置。可以通过app内嵌代码统一拆解（done）
 3. 垃圾文件异步清理，在IPC过程中，可能存在大问题传递，由于某种原因，可能临时文件没有清除成功。这可能导致手机存储被无效文件占用。导致磁盘被打爆
-4. Hermes系统日志整理，目前hermes相关日志没有统一tag。无法方便排查Hermes本身的问题，需要考虑串联Hermes系统日志
+4. Hermes系统日志整理，目前hermes相关日志没有统一tag。无法方便排查Hermes本身的问题，需要考虑串联Hermes系统日志（done，区分业务日志和hermes系统日志，业务日志在logcat，系统日志存文件按小时拆分，12小时翻滚）
 5. 内网穿透方案，考虑Android手机运行在私有网络，server在公有网络。server可以转发invoke请求到达处于私有网络下面的Android手机中
-6. 定时重启adb远程服务，
+6. 定时重启adb远程服务，（done）
 
 #### 捐赠
 如果你觉得作者辛苦了，可以的话请我喝杯咖啡
