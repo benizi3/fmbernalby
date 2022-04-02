@@ -160,6 +160,10 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
             } catch (com.alibaba.fastjson.JSONException e) {
                 //ignore
             }
+        } else if (o instanceof Multimap) {
+            query = (Multimap) o;
+            invokePackage = query.getString(Constant.invokePackage);
+            invokeSessionID = query.getString(Constant.invokeSessionID);
         }
         result.put(Constant.invokePackage, invokePackage);
         result.put(Constant.invokeSessionID, invokeSessionID);

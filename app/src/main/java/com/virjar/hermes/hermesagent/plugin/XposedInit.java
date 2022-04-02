@@ -10,6 +10,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Binder;
+import android.os.Process;
 import android.util.Log;
 
 import com.google.common.collect.Maps;
@@ -67,6 +68,12 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 //                });
 //            }
 //        });
+
+        // skip if system app
+        //对应系统app来说，就不要加载插件逻辑了，否则大量app都会进行文件扫描
+        if (Process.myUid() < Process.FIRST_APPLICATION_UID) {
+            return;
+        }
 
         Ones.hookOnes(Application.class, "hermes_application_attach_entry", new Ones.DoOnce() {
             @Override
