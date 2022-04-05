@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.os.Binder;
 import android.os.Process;
 import android.util.Log;
 
@@ -353,38 +352,26 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceReadPermissionInner", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                int pid = Binder.getCallingPid();
-                if (pid <= 0) {
+                if (param.args.length <= 1) {
                     return;
                 }
-                try {
-                    AndroidProcess androidProcess = new AndroidProcess(pid);
-                    if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
-                        //如果是hermes，读取任何一个content provider，直接放过权限
-                        Log.i("weijia", "hermes  申请" + param.args[0] + " 的读取权限，直接放过");
-                        param.setResult(null);
-                    }
-                } catch (Exception e) {
-                    Log.w("weijia", "get process info failed", e);
+                String callingPkg = APICommonUtils.safeToString(param.args[1]);
+                if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
+                    Log.i("weijia", "hermes  申请" + param.args[0] + " 的写入权限，直接放过");
+                    param.setResult(null);
                 }
             }
         });
         XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceWritePermissionInner", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                int pid = Binder.getCallingPid();
-                if (pid <= 0) {
+                if (param.args.length <= 1) {
                     return;
                 }
-                try {
-                    AndroidProcess androidProcess = new AndroidProcess(pid);
-                    if (StringUtils.equalsIgnoreCase(androidProcess.name, BuildConfig.APPLICATION_ID)) {
-                        //如果是hermes，读取任何一个content provider，直接放过权限
-                        Log.i("weijia", "hermes  申请" + param.args[0] + " 的写入权限，直接放过");
-                        param.setResult(null);
-                    }
-                } catch (Exception e) {
-                    Log.w("weijia", "get process info failed", e);
+                String callingPkg = APICommonUtils.safeToString(param.args[1]);
+                if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
+                    Log.i("weijia", "hermes  申请" + param.args[0] + " 的写入权限，直接放过");
+                    param.setResult(null);
                 }
             }
         });
