@@ -69,7 +69,7 @@ public interface Constant {
     String httpServerLooperThreadName = "httpServerLooper";
     @SuppressLint("SdCardPath")
     String BASE_DIR = Build.VERSION.SDK_INT >= 24
-            ? "/data/user_de/0/" + BuildConfig.APPLICATION_ID + "/"
+            ? "/data/user_zh/0/" + BuildConfig.APPLICATION_ID + "/"
             : "/data/data/" + BuildConfig.APPLICATION_ID + "/";
     String HERMES_WRAPPER_DIR = Constant.BASE_DIR + "hermesModules/";
 
@@ -80,7 +80,7 @@ public interface Constant {
 
     @SuppressLint("SdCardPath")
     String XPOSED_BASE_DIR = Build.VERSION.SDK_INT >= 24
-            ? "/data/user_zh/0/" + xposedInstallerPackage + "/"
+            ? "/data/user_de/0/" + xposedInstallerPackage + "/"
             : "/data/data/" + xposedInstallerPackage + "/";
 
     int WEBSOCKET_PORT = 19999;
