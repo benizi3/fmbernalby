@@ -69,6 +69,9 @@ A:服务注册的原理是，在slave中注入钩子代码，驱动slave主动�
 我们使用xposed作为代码注入的base lib，可以观察是否xposed本身模块启动失败。1.xposed未安装完整；2.xposed中没有开启本插件；3.高版本中，xposed存在一个bug，导致在Android启动的时候，使用错误的插件apk地址进行加载，进而无法加载到插件代码（同一个apk，覆盖安装，系统重启之后，apk代码地址将会被系统整理而改变路径，xposed模块管理使用的整理之前的apk地址）
 第三个原因，是系统拦截了xposedInstaller自启动广播导致的。目前Hermes已经自动处理了这个问题，只要是Hermes模块正常启动的过程，XposedInstall安装过程会放开对应广播传递
 
+Q: 安装hermesAgent之后，手机频繁重启，大约开机10分钟之后重启一次    
+A: 这可能是hermes拆解小米神隐模式失败导致的，hermes daemon会有心跳检查hermes的http server是否存活，如果检查到hermes没有响应，那么认为hermesAgent的主进程变为僵尸状态了，此时会重启系统。此心跳使用http接口探测，如果网络被系统省电模式拦截，由于网络不通，daemon会假定是server假死
+
 #### 参与贡献
 
 1. Fork 本项目

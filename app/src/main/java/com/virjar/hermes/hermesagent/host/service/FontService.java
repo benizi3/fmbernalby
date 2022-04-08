@@ -373,7 +373,7 @@ public class FontService extends Service {
         //之前的time可能死掉了
         timer = new Timer("FontServiceTimer", true);
         //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 2000);
+        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 30000);
 
         //半个小时，check一下adb的状态，守护adb进程
         timer.scheduleAtFixedRate(new LoggerTimerTask("adbCheck") {
