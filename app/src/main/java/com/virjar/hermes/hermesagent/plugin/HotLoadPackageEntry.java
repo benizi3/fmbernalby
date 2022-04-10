@@ -18,6 +18,7 @@ import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
 import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
+import com.virjar.hermes.hermesagent.hermes_api.Ones;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.ClassScanner;
@@ -61,7 +62,64 @@ public class HotLoadPackageEntry {
         SharedObject.context = context;
         SharedObject.loadPackageParam = loadPackageParam;
 
-        LogConfigurator.confifure(context);
+        //在回调没有扫描完成之前，我们不能使用logback，因为此时没有配置日志组件
+        Map<String, AgentCallback> callbackMap = Maps.newHashMap();
+        //执行所有自定义的回调钩子函数
+        Log.i("weijia", "scan embed wrapper implementation");
+        Set<AgentCallback> allCallBack = findEmbedCallBack();
+        Log.i("weijia", "find :{" + allCallBack.size() + "} embed wrapper");
+        for (AgentCallback agentCallback : allCallBack) {
+            callbackMap.put(agentCallback.targetPackageName(), agentCallback);
+        }
+        //安装在容器中的扩展代码，优先级比内嵌的模块高
+        Log.i("weijia", "scan external wrapper implementation");
+        allCallBack = findExternalCallBack();
+        Log.i("weijia", "find :{" + allCallBack.size() + "} external wrapper");
+        for (AgentCallback agentCallback : allCallBack) {
+            AgentCallback old = callbackMap.put(agentCallback.targetPackageName(), agentCallback);
+            if (old != null) {
+                Log.i("weijia", "duplicate hermes wrapper found , hermes agent only load single one hermes wrapper");
+            }
+        }
+
+        for (AgentCallback agentCallback : callbackMap.values()) {
+            if (agentCallback == null) {
+                continue;
+            }
+            try {
+                Ones.hookOnes(HotLoadPackageEntry.class, "setupInternalComponent", new Ones.DoOnce() {
+                    @Override
+                    public void doOne(Class<?> clazz) {
+                        setupInternalComponent();
+                    }
+                });
+                String wrapperName = agentCallback.getClass().getName();
+                log.info("执行回调: {}", wrapperName);
+                //挂载钩子函数
+                agentCallback.onXposedHotLoad();
+                //将agent注册到server端，让server可以rpc到agent
+                log.info("注册:{} 到hermes server registry", wrapperName);
+                AgentRegister.registerToServer(agentCallback, context);
+                //启动timer，保持和server的心跳，发现server死掉的话，拉起server
+                log.info("启动到server 心跳保持timer");
+                SharedObject.agentTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
+
+                Ones.hookOnes(HotLoadPackageEntry.class, "registerExitByHermesInstallHook", new Ones.DoOnce() {
+                    @Override
+                    public void doOne(Class<?> clazz) {
+                        //在hermesAgent（master重新安装的时候，程序自身自杀，这是因为hermesAgent作为框架代码注入到本程序，
+                        //hermesAgent重新安装可能意味着框架逻辑发生了更新，新版的交互协议可能和当前app中植入的框架代码协议不一致）
+                        exitIfMasterReInstall(SharedObject.context);
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("weijai", "wrapper:{" + agentCallback.targetPackageName() + "} 调度挂钩失败", e);
+            }
+        }
+    }
+
+    private static void setupInternalComponent() {
+        LogConfigurator.confifure(SharedObject.context);
         log.info("plugin startup");
 
         //收集所有存在的classloader
@@ -79,60 +137,11 @@ public class HotLoadPackageEntry {
         log.info("setup interceptor");
         InvokeInterceptorManager.setUp();
 
-        /**
+        /*
          * 插件中，维护一个全局的timer，用来执行一些简单的调度任务
          */
         SharedObject.agentTimer = new Timer("hermesAgentTimer", true);
 
-        Map<String, AgentCallback> callbackMap = Maps.newHashMap();
-        //执行所有自定义的回调钩子函数
-        log.info("scan embed wrapper implementation");
-        Set<AgentCallback> allCallBack = findEmbedCallBack();
-        log.info("find :{} embed wrapper", allCallBack.size());
-        for (AgentCallback agentCallback : allCallBack) {
-            callbackMap.put(agentCallback.targetPackageName(), agentCallback);
-        }
-        //安装在容器中的扩展代码，优先级比内嵌的模块高
-        log.info("scan external wrapper implementation");
-        allCallBack = findExternalCallBack();
-        log.info("find :{} external wrapper", allCallBack.size());
-        for (AgentCallback agentCallback : allCallBack) {
-            AgentCallback old = callbackMap.put(agentCallback.targetPackageName(), agentCallback);
-            if (old != null) {
-                log.warn("duplicate hermes wrapper found , hermes agent only load single one hermes wrapper");
-            }
-        }
-
-        boolean hint = false;
-        for (AgentCallback agentCallback : callbackMap.values()) {
-            if (agentCallback == null) {
-                continue;
-            }
-            try {
-                String wrapperName = agentCallback.getClass().getName();
-                log.info("执行回调: {}", wrapperName);
-                //挂载钩子函数
-                agentCallback.onXposedHotLoad();
-                //将agent注册到server端，让server可以rpc到agent
-                log.info("注册:{} 到hermes server registry", wrapperName);
-                AgentRegister.registerToServer(agentCallback, context);
-                //启动timer，保持和server的心跳，发现server死掉的话，拉起server
-                log.info("启动到server 心跳保持timer");
-                SharedObject.agentTimer.scheduleAtFixedRate(new AgentDaemonTask(context, agentCallback), 1000, 4000);
-                hint = true;
-            } catch (Exception e) {
-                log.error("wrapper:{} 调度挂钩失败", e);
-            }
-        }
-        if (!hint) {
-            //该app不需要控制，撤销timer，减少内存消耗
-            log.info("该app没有命中任何wrapper");
-            SharedObject.agentTimer.cancel();
-        } else {
-            //在hermesAgent（master重新安装的时候，程序自身自杀，这是因为hermesAgent作为框架代码注入到本程序，
-            //hermesAgent重新安装可能意味着框架逻辑发生了更新，新版的交互协议可能和当前app中植入的框架代码协议不一致）
-            exitIfMasterReInstall(context);
-        }
     }
 
     private static void exitIfMasterReInstall(Context context) {
