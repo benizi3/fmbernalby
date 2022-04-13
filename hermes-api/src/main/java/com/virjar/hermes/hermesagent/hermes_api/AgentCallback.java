@@ -11,12 +11,6 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  */
 
 public interface AgentCallback {
-    /**
-     * 该回调，依赖某个app，一个回调函数，只能允许hook一个app，避免功能错乱
-     *
-     * @return app包名
-     */
-    String targetPackageName();
 
     /**
      * 即使知道目标package，也可能该包名存在多个子进程，仍然需要对进程信息进行判定，最终决定那个进程注入代码

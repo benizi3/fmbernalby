@@ -8,6 +8,7 @@ import com.google.common.collect.Maps;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
+import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -30,7 +31,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * 一个agent的测试，他可以通过传入的关键字，搜索微视的小姐姐页面数据
  */
 
-public class WeiShiAgent implements AgentCallback {
+public class WeiShiAgent implements EmbedWrapper {
     private static ClassLoader hostClassLoader = null;
     private static ClassLoader frameworkClassLoader = null;
     private static final String TAG = "WeiShiHook";

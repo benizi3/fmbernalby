@@ -37,8 +37,11 @@ import net.dongliu.apk.parser.bean.ApkMeta;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -57,6 +60,9 @@ import java.util.Enumeration;
 import java.util.List;
 
 import javax.annotation.Nullable;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import dalvik.system.PathClassLoader;
 import eu.chainfire.libsuperuser.Shell;
@@ -147,10 +153,10 @@ public class CommonUtils {
 
 
     public static String execCmd(String cmd, boolean useRoot) {
-       log.info("execute command:{" + cmd + "} useRoot:" + useRoot);
+        log.info("execute command:{" + cmd + "} useRoot:" + useRoot);
         List<String> strings = useRoot ? SUShell.run(cmd) : Shell.SH.run(cmd);
         String result = StringUtils.join(strings, "\r\n");
-        log.info( "command execute result:" + result);
+        log.info("command execute result:" + result);
         return result;
     }
 
@@ -234,18 +240,52 @@ public class CommonUtils {
             url += "?source_package=" + EscapeUtil.escape(sourcePackage);
         }
         try {
-            log.info( "ping hermes server:" + url);
+            log.info("ping hermes server:" + url);
             String pingResponse = HttpClientUtils.getRequest(url);
-            log.info( "ping hermes server response: " + pingResponse);
+            log.info("ping hermes server response: " + pingResponse);
             return pingResponse;
         } catch (IOException e) {
-            log.error( "ping server failed", e);
+            log.error("ping server failed", e);
             return Constant.unknown;
         }
     }
 
     public static String localServerBaseURL() {
         return "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
+    }
+
+    private static final String ACCESS_EXTERNAL_DTD = "http://javax.xml.XMLConstants/property/accessExternalDTD";
+    private static final String ACCESS_EXTERNAL_SCHEMA = "http://javax.xml.XMLConstants/property/accessExternalSchema";
+    private static final String FEATURE_LOAD_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
+    private static final String FEATURE_DISABLE_DOCTYPE_DECL = "http://apache.org/xml/features/disallow-doctype-decl";
+
+    /**
+     * @param data File to load into Document
+     * @return Document
+     * @throws IOException
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     */
+    public static Document loadDocument(String data)
+            throws IOException, SAXException, ParserConfigurationException {
+
+        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setFeature(FEATURE_DISABLE_DOCTYPE_DECL, true);
+        docFactory.setFeature(FEATURE_LOAD_DTD, false);
+
+        try {
+            docFactory.setAttribute(ACCESS_EXTERNAL_DTD, " ");
+            docFactory.setAttribute(ACCESS_EXTERNAL_SCHEMA, " ");
+        } catch (IllegalArgumentException ex) {
+            log.warn("JAXP 1.5 Support is required to validate XML");
+        }
+
+        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        // Not using the parse(File) method on purpose, so that we can control when
+        // to close it. Somehow parse(File) does not seem to close the file in all cases.
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data.getBytes())) {
+            return docBuilder.parse(inputStream);
+        }
     }
 
     public static ApkMeta parseApk(File file) {
@@ -298,7 +338,7 @@ public class CommonUtils {
                 return;
             }
             if (!CommonUtils.isSuAvailable()) {
-                log.warn( "acquire root permission failed,can not enable adbd service with tcp protocol mode");
+                log.warn("acquire root permission failed,can not enable adbd service with tcp protocol mode");
                 return;
             }
 
@@ -309,21 +349,21 @@ public class CommonUtils {
                     continue;
                 }
                 if (!StringUtils.equalsIgnoreCase(str, String.valueOf(Constant.ADBD_PORT))) {
-                    log.info( "adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
+                    log.info("adbd daemon server need running on :" + Constant.ADBD_PORT + " now is: " + str + "  we will switch it");
                     break;
                 } else {
                     List<String> executeOutput =
                             SUShell.run(Lists.newArrayList("stop adbd", "start adbd"));
-                    log.info( "adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
+                    log.info("adb tcp port settings already , just restart adbd: " + Joiner.on("\n").skipNulls().join(executeOutput));
                     return;
                 }
             }
 
             //将文件系统挂载为可读写
             List<String> executeOutput = SUShell.run("mount -o remount,rw /system");
-            log.info( "remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
+            log.info("remount file system: " + Joiner.on("\n").skipNulls().join(executeOutput));
 
-            log.info( "edit file /system/build.prop");
+            log.info("edit file /system/build.prop");
             List<String> buildProperties = SUShell.run("cat /system/build.prop");
             List<String> newProperties = Lists.newArrayListWithCapacity(buildProperties.size());
             for (String property : buildProperties) {
@@ -367,7 +407,7 @@ public class CommonUtils {
             log.info("re mount file system to read only" + Joiner.on("\n").skipNulls().join(executeOutput));
 
             SUShell.run(Lists.newArrayList("setprop service.adb.tcp.port  " + Constant.ADBD_PORT, "stop adbd", "start adbd"));
-            log.info( "restart adbd service on port " + Constant.ADBD_PORT + " ,service will auto startup on this port when android device startup next time");
+            log.info("restart adbd service on port " + Constant.ADBD_PORT + " ,service will auto startup on this port when android device startup next time");
         } finally {
             isSettingADB = false;
         }

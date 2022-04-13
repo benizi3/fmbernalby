@@ -32,11 +32,6 @@ public class WeishiAgentWrapper implements AgentCallback {
     private static final String TAG = "WeiShiHook";
 
     @Override
-    public String targetPackageName() {
-        return "com.tencent.weishi";
-    }
-
-    @Override
     public boolean needHook(XC_LoadPackage.LoadPackageParam loadPackageParam) {
         //微视大约有三个子进程，这里只拦截主进程
         return StringUtils.equalsIgnoreCase(loadPackageParam.processName, "com.tencent.weishi");

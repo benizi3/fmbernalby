@@ -30,7 +30,8 @@ import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
-import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.DaemonBinder;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
@@ -45,9 +46,13 @@ import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.SUShell;
 
-import net.dongliu.apk.parser.bean.ApkMeta;
+import net.dongliu.apk.parser.ApkFile;
 
 import org.apache.commons.lang3.StringUtils;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -90,7 +95,7 @@ public class FontService extends Service {
             throw new IllegalStateException(e);
             //not happen
         }
-        ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
+        ClassScanner.SubClassVisitor<EmbedWrapper> subClassVisitor = new ClassScanner.SubClassVisitor(true, EmbedWrapper.class);
         //这里欺骗了xposed
         ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
 
@@ -103,19 +108,41 @@ public class FontService extends Service {
             return;
         }
 
-        for (File apkFile : modulesDir.listFiles(new FilenameFilter() {
+        for (File apkFilePath : modulesDir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
-            log.info("scan external wrapper,read file:{}", apkFile.getAbsolutePath());
-            try {
-                ApkMeta apkMeta = CommonUtils.parseApk(apkFile);
-                String packageName = apkMeta.getPackageName();
-                subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
-                ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFile, CommonUtils.createXposedClassLoadBridgeClassLoader(this));
-                allCallback.addAll(transformAgentNames(subClassVisitor));
+            log.info("scan external wrapper,read file:{}", apkFilePath.getAbsolutePath());
+            try (ApkFile apkFile = new ApkFile(apkFilePath)) {
+                Document androidManifestDocument = CommonUtils.loadDocument(apkFile.getManifestXml());
+                NodeList applicationNodeList = androidManifestDocument.getElementsByTagName("application");
+                if (applicationNodeList.getLength() == 0) {
+                    log.warn("the manifest xml file must has application node");
+                    continue;
+                }
+                Element applicationItem = (Element) applicationNodeList.item(0);
+                NodeList childNodes = applicationItem.getChildNodes();
+                String forTargetPackageName = null;
+                for (int i = 0; i < childNodes.getLength(); i++) {
+                    Node item = childNodes.item(i);
+                    if (!(item instanceof Element)) {
+                        continue;
+                    }
+                    Element metaItem = (Element) item;
+                    if (!StringUtils.equals(metaItem.getTagName(), "meta-data")) {
+                        continue;
+                    }
+                    if (!StringUtils.equals(metaItem.getAttribute("android:name"), APICommonUtils.HERMES_EXTERNAL_WRAPPER_FLAG_KEY)) {
+                        continue;
+                    }
+                    forTargetPackageName = metaItem.getAttribute("android:value");
+                    break;
+                }
+                if (StringUtils.isNotBlank(forTargetPackageName)) {
+                    allCallback.add(forTargetPackageName);
+                }
             } catch (Exception e) {
                 log.error("failed to load hermes-wrapper module", e);
             }
@@ -123,11 +150,11 @@ public class FontService extends Service {
 
     }
 
-    private Set<String> transformAgentNames(ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor) {
-        return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends AgentCallback>, String>() {
+    private Set<String> transformAgentNames(ClassScanner.SubClassVisitor<? extends EmbedWrapper> subClassVisitor) {
+        return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends EmbedWrapper>, String>() {
             @javax.annotation.Nullable
             @Override
-            public String apply(@javax.annotation.Nullable Class<? extends AgentCallback> input) {
+            public String apply(@javax.annotation.Nullable Class<? extends EmbedWrapper> input) {
                 if (input == null) {
                     return null;
                 }

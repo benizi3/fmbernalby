@@ -77,4 +77,5 @@ public class APICommonUtils {
         return input.toString();
     }
 
+    public static final String HERMES_EXTERNAL_WRAPPER_FLAG_KEY = "hermes_target_package";
 }
