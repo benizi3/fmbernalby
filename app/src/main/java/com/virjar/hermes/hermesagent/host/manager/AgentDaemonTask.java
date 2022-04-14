@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import com.virjar.hermes.hermesagent.BuildConfig;
-import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.plugin.AgentRegister;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
@@ -22,10 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AgentDaemonTask extends LoggerTimerTask {
     private Context context;
-    private AgentCallback agentCallback;
+    private EmbedWrapper agentCallback;
     private int retryTimes = 0;
 
-    public AgentDaemonTask(Context context, AgentCallback agentCallback) {
+    public AgentDaemonTask(Context context, EmbedWrapper agentCallback) {
         this.context = context;
         this.agentCallback = agentCallback;
     }

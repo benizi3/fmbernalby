@@ -249,8 +249,7 @@ public class HotLoadPackageEntry {
                 String packageName = apkFile.getApkMeta().getPackageName();
                 ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
                 ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFilePath);
-                Set<EmbedWrapper> filtered = filter(subClassVisitor.getSubClass());
-                ret.addAll(filtered);
+                ret.addAll(transform(subClassVisitor.getSubClass()));
             } catch (Exception e) {
                 log.error("failed to load hermes-wrapper module", e);
             }
@@ -258,7 +257,52 @@ public class HotLoadPackageEntry {
         return ret;
     }
 
-    private static Set<EmbedWrapper> filter(List<Class<? extends AgentCallback>> subClassVisitor) {
+    private static List<EmbedWrapper> transform(List<Class<? extends AgentCallback>> classList) {
+        return Lists.newArrayList(Iterables.filter(Iterables.transform(classList, new Function<Class<? extends AgentCallback>, EmbedWrapper>() {
+            @Nullable
+            @Override
+            public EmbedWrapper apply(@Nullable Class<? extends AgentCallback> input) {
+                if (input == null) {
+                    return null;
+                }
+                final AgentCallback agentCallback;
+                try {
+                    agentCallback = input.newInstance();
+                } catch (Exception e) {
+                    log.error("failed to load create plugin", e);
+                    return null;
+                }
+                return new EmbedWrapper() {
+                    @Override
+                    public String targetPackageName() {
+                        return SharedObject.loadPackageParam.packageName;
+                    }
+
+                    @Override
+                    public boolean needHook(XC_LoadPackage.LoadPackageParam loadPackageParam) {
+                        return agentCallback.needHook(loadPackageParam);
+                    }
+
+                    @Override
+                    public InvokeResult invoke(InvokeRequest invokeRequest) {
+                        return agentCallback.invoke(invokeRequest);
+                    }
+
+                    @Override
+                    public void onXposedHotLoad() {
+                        agentCallback.onXposedHotLoad();
+                    }
+                };
+            }
+        }), new Predicate<EmbedWrapper>() {
+            @Override
+            public boolean apply(@Nullable EmbedWrapper input) {
+                return input != null;
+            }
+        }));
+    }
+
+    private static Set<EmbedWrapper> filter(List<Class<? extends EmbedWrapper>> subClassVisitor) {
         return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor, new Function<Class<? extends AgentCallback>, EmbedWrapper>() {
             @Nullable
             @Override
@@ -268,27 +312,7 @@ public class HotLoadPackageEntry {
                     if (agentCallback instanceof EmbedWrapper) {
                         return (EmbedWrapper) agentCallback;
                     }
-                    return new EmbedWrapper() {
-                        @Override
-                        public String targetPackageName() {
-                            return SharedObject.loadPackageParam.packageName;
-                        }
 
-                        @Override
-                        public boolean needHook(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-                            return agentCallback.needHook(loadPackageParam);
-                        }
-
-                        @Override
-                        public InvokeResult invoke(InvokeRequest invokeRequest) {
-                            return agentCallback.invoke(invokeRequest);
-                        }
-
-                        @Override
-                        public void onXposedHotLoad() {
-                            agentCallback.onXposedHotLoad();
-                        }
-                    };
                 } catch (InstantiationException | IllegalAccessException e) {
                     log.error("failed to load create plugin", e);
                 }
@@ -312,6 +336,6 @@ public class HotLoadPackageEntry {
         ClassScanner.SubClassVisitor<EmbedWrapper> subClassVisitor = new ClassScanner.SubClassVisitor(true, EmbedWrapper.class);
         ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), null);
         List<Class<? extends EmbedWrapper>> subClass = subClassVisitor.getSubClass();
-        return filter((List<Class<? extends AgentCallback>>) subClass);
+        return filter(subClass);
     }
 }
