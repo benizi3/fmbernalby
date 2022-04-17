@@ -59,7 +59,7 @@ public class AgentRegister {
                         APICommonUtils.requestLogI(param, "IPC invoke result: " + result.getTheData(false));
                     }
                     return result;
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     APICommonUtils.requestLogW(param, "invoke callback failed", e);
                     return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(e));
                 }
