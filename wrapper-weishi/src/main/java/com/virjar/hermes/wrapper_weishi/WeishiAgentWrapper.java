@@ -7,10 +7,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.Multimap;
-import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
-import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
+import com.virjar.xposed_extention.SharedObject;
+import com.virjar.xposed_extention.XposedReflectUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -144,7 +144,7 @@ public class WeishiAgentWrapper implements AgentCallback {
                             break;
                         }
                     }
-                    XposedReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onReply", new XC_MethodHook() {
+                    XposedReflectUtil.findAndHookOneMethod(tingListServiceClass, "onReply", new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
                             Object requestBean = param.args[0];
@@ -171,7 +171,7 @@ public class WeishiAgentWrapper implements AgentCallback {
                         }
                     });
 
-                    XposedReflectUtil.findAndHookMethodOnlyByMethodName(tingListServiceClass, "onError", new XC_MethodHook() {
+                    XposedReflectUtil.findAndHookOneMethod(tingListServiceClass, "onError", new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             Object requestBean = param.args[0];

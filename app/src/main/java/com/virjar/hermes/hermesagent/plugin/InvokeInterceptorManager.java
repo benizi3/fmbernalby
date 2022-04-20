@@ -6,12 +6,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Ones;
-import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
-import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.xposed_extention.ClassScanner;
+import com.virjar.xposed_extention.Ones;
+import com.virjar.xposed_extention.SharedObject;
 
 import java.util.Set;
 

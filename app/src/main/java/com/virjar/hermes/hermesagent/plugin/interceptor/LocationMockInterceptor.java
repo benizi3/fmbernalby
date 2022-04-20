@@ -15,13 +15,13 @@ import android.util.Log;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.HermesCommonConfig;
-import com.virjar.hermes.hermesagent.hermes_api.Ones;
-import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.plugin.InvokeInterceptor;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
+import com.virjar.xposed_extention.CommonConfig;
+import com.virjar.xposed_extention.Ones;
+import com.virjar.xposed_extention.SingletonXC_MethodHook;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -68,8 +68,8 @@ public class LocationMockInterceptor implements InvokeInterceptor {
             return InvokeResult.failed("param format error,latitude & latitude must be double  ");
         }
 
-        HermesCommonConfig.putString(latitudeKey, latitude);
-        HermesCommonConfig.putString(longitudeKey, longitude);
+        CommonConfig.putString(latitudeKey, latitude);
+        CommonConfig.putString(longitudeKey, longitude);
         setup();
         log.info("location mock config success");
         return null;
@@ -98,8 +98,8 @@ public class LocationMockInterceptor implements InvokeInterceptor {
             }
         });
 
-        final String latitude = HermesCommonConfig.getString(latitudeKey);
-        final String longitude = HermesCommonConfig.getString(longitudeKey);
+        final String latitude = CommonConfig.getString(latitudeKey);
+        final String longitude = CommonConfig.getString(longitudeKey);
         if (StringUtils.isBlank(latitude)
                 || StringUtils.isBlank(longitude)) {
             return;
@@ -133,8 +133,8 @@ public class LocationMockInterceptor implements InvokeInterceptor {
 
 
     private static Location fakeLocation(String provider) {
-        final String latitude = HermesCommonConfig.getString(latitudeKey);
-        final String longitude = HermesCommonConfig.getString(longitudeKey);
+        final String latitude = CommonConfig.getString(latitudeKey);
+        final String longitude = CommonConfig.getString(longitudeKey);
         if (StringUtils.isBlank(latitude)
                 || StringUtils.isBlank(longitude)) {
             return null;
@@ -311,13 +311,13 @@ public class LocationMockInterceptor implements InvokeInterceptor {
         findAndHookMethod(Location.class, "getLatitude", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                param.setResult(Double.parseDouble(HermesCommonConfig.getString(latitudeKey)));
+                param.setResult(Double.parseDouble(CommonConfig.getString(latitudeKey)));
             }
         });
         findAndHookMethod(Location.class, "getLongitude", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                param.setResult(Double.parseDouble(HermesCommonConfig.getString(longitudeKey)));
+                param.setResult(Double.parseDouble(CommonConfig.getString(longitudeKey)));
             }
         });
         findAndHookMethod(Location.class, "getSpeed", XC_MethodReplacement.returnConstant(5.0f));

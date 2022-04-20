@@ -16,18 +16,17 @@ import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
-import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
 import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
-import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
-import com.virjar.hermes.hermesagent.hermes_api.Ones;
-import com.virjar.hermes.hermesagent.hermes_api.SharedObject;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
-import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.xposed_extention.ClassScanner;
+import com.virjar.xposed_extention.Ones;
+import com.virjar.xposed_extention.SharedObject;
+import com.virjar.xposed_extention.XposedExtentionInstaller;
 
 import net.dongliu.apk.parser.ApkFile;
 
@@ -132,14 +131,8 @@ public class HotLoadPackageEntry {
         log.info("plugin startup");
 
         //收集所有存在的classloader
-        log.info("setup classloader monitor");
-        ClassLoadMonitor.setUp();
-
-        //拦截几个app关键声明周期，插件可以挂在在特定声明周期上面完成特定逻辑
-        //比如有些有些apk的api，在Application中进行初始化，然后才能使用功能。我们需要让自己的hook代码在Application的oncreate执行之后才能植入
-        log.info("setup lifecycle monitor");
-        LifeCycleFire.init();
-
+        log.info("setup Xposed Extention component");
+        XposedExtentionInstaller.initConponent();
         /*
          * 拦截器初始化，这些一般是状态还原，比如我们设置了代理，那么app重启之后，将会还原代理配置
          */

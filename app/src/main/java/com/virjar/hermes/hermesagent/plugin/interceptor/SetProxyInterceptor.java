@@ -4,15 +4,14 @@ import android.app.Activity;
 import android.util.Log;
 
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.ClassLoadMonitor;
-import com.virjar.hermes.hermesagent.hermes_api.HermesCommonConfig;
-import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
-import com.virjar.hermes.hermesagent.hermes_api.Ones;
-import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
-import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.plugin.InvokeInterceptor;
+import com.virjar.xposed_extention.ClassLoadMonitor;
+import com.virjar.xposed_extention.CommonConfig;
+import com.virjar.xposed_extention.LifeCycleFire;
+import com.virjar.xposed_extention.Ones;
+import com.virjar.xposed_extention.SingletonXC_MethodHook;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -61,14 +60,14 @@ public class SetProxyInterceptor implements InvokeInterceptor {
             return InvokeResult.failed("setting proxy failed,the proxy  must be a host name,domain or ip number，your config is：" + invokeProxy + " ,please check it!!");
         }
 
-        String hermesProxyIp = HermesCommonConfig.getString(hermesProxyIPSettingKey);
-        String hermesProxyPort = HermesCommonConfig.getString(hermesProxyPortSettingKey);
+        String hermesProxyIp = CommonConfig.getString(hermesProxyIPSettingKey);
+        String hermesProxyPort = CommonConfig.getString(hermesProxyPortSettingKey);
 
         if (!StringUtils.equals(ip, hermesProxyIp)
                 || !StringUtils.equals(portStr, hermesProxyPort)) {
-            HermesCommonConfig.putString(hermesProxyIPSettingKey, ip);
-            HermesCommonConfig.putString(hermesProxyPortSettingKey, hermesProxyPort);
-            HermesCommonConfig.putBoolean(forceProxyFlag, StringUtils.equalsIgnoreCase(invokeRequest.getString(forceProxyFlag), "true"));
+            CommonConfig.putString(hermesProxyIPSettingKey, ip);
+            CommonConfig.putString(hermesProxyPortSettingKey, hermesProxyPort);
+            CommonConfig.putBoolean(forceProxyFlag, StringUtils.equalsIgnoreCase(invokeRequest.getString(forceProxyFlag), "true"));
             setup();
         }
         log.info("proxy mock config success");
@@ -77,8 +76,8 @@ public class SetProxyInterceptor implements InvokeInterceptor {
 
     @Override
     public void setup() {
-        final String hermesProxyIp = HermesCommonConfig.getString(hermesProxyIPSettingKey);
-        final String hermesProxyPort = HermesCommonConfig.getString(hermesProxyPortSettingKey);
+        final String hermesProxyIp = CommonConfig.getString(hermesProxyIPSettingKey);
+        final String hermesProxyPort = CommonConfig.getString(hermesProxyPortSettingKey);
 
         if (StringUtils.isBlank(hermesProxyIp)
                 || StringUtils.isBlank(hermesProxyPort)) {
@@ -92,7 +91,7 @@ public class SetProxyInterceptor implements InvokeInterceptor {
         });
         setProxy(hermesProxyIp, hermesProxyPort);
         //强制使用我们提供的代理
-        if (HermesCommonConfig.getBoolean(forceProxyFlag)) {
+        if (CommonConfig.getBoolean(forceProxyFlag)) {
             Ones.hookOnes(SetProxyInterceptor.class, "forceUseSystemProxySetUp", new Ones.DoOnce() {
                 @Override
                 public void doOne(Class<?> clazz) {
@@ -160,7 +159,7 @@ public class SetProxyInterceptor implements InvokeInterceptor {
                 XposedBridge.hookAllConstructors(clazz, new SingletonXC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        Ones.hookOnes(XposedReflectUtil.findMethodWithSupperClass(param.thisObject.getClass(), "getRoutePlanner").getDeclaringClass(), "hook_getRoutePlanner", new Ones.DoOnce() {
+                        Ones.hookOnes(XposedHelpers.findMethodBestMatch(param.thisObject.getClass(), "getRoutePlanner").getDeclaringClass(), "hook_getRoutePlanner", new Ones.DoOnce() {
                             @Override
                             public void doOne(Class<?> clazz) {
                                 XposedHelpers.findAndHookMethod(clazz, "getRoutePlanner", XC_MethodReplacement.returnConstant(systemDefaultRoutePlanner));

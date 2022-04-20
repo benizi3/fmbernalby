@@ -17,13 +17,13 @@ import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.LifeCycleFire;
-import com.virjar.hermes.hermesagent.hermes_api.Ones;
-import com.virjar.hermes.hermesagent.hermes_api.SingletonXC_MethodHook;
-import com.virjar.hermes.hermesagent.hermes_api.XposedReflectUtil;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.Constant;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
+import com.virjar.xposed_extention.LifeCycleFire;
+import com.virjar.xposed_extention.Ones;
+import com.virjar.xposed_extention.SingletonXC_MethodHook;
+import com.virjar.xposed_extention.XposedReflectUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -112,7 +112,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
         Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);
         if (activityManagerServiceClass != null) {
-            XposedReflectUtil.findAndHookMethodOnlyByMethodName(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
+            XposedReflectUtil.findAndHookOneMethod(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     if (param.args.length < 2) {
@@ -150,7 +150,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
             Log.i("weijia", "grant hermes agent system permission failed");
             return;
         }
-        XposedReflectUtil.findAndHookMethodOnlyByMethodName(packageManagerServiceClass, "isPrivilegedApp", new SingletonXC_MethodHook() {
+        XposedReflectUtil.findAndHookOneMethod(packageManagerServiceClass, "isPrivilegedApp", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 if (param.args.length == 0) {
@@ -182,7 +182,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         Class<?> extraActivityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
         if (extraActivityManagerServiceClass != null) {
             try {
-                XposedReflectUtil.findAndHookMethodOnlyByMethodName(extraActivityManagerServiceClass, "isAllowedStartActivity", new SingletonXC_MethodHook() {
+                XposedReflectUtil.findAndHookOneMethod(extraActivityManagerServiceClass, "isAllowedStartActivity", new SingletonXC_MethodHook() {
 
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -207,7 +207,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         // static  bool checkApplicationAutoStart (com.android.server.am.BroadcastQueue, com.android.server.am.ActivityManagerService, com.android.server.am.BroadcastRecord, android.content.pm.ResolveInfo);
         Class<?> broadcastQueueInjectorClass = ReflectUtil.findClassIfExists("com.android.server.am.BroadcastQueueInjector", lpparam.classLoader);
         if (broadcastQueueInjectorClass != null) {
-            XposedReflectUtil.findAndHookMethodOnlyByMethodName(broadcastQueueInjectorClass, "checkApplicationAutoStart", new SingletonXC_MethodHook() {
+            XposedReflectUtil.findAndHookOneMethod(broadcastQueueInjectorClass, "checkApplicationAutoStart", new SingletonXC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     if (param.args.length < 2) {
@@ -349,7 +349,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 
     @Override
     public void initZygote(StartupParam startupParam) throws Throwable {
-        XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceReadPermissionInner", new SingletonXC_MethodHook() {
+        XposedReflectUtil.findAndHookOneMethod(android.content.ContentProvider.class, "enforceReadPermissionInner", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 if (param.args.length <= 1) {
@@ -362,7 +362,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                 }
             }
         });
-        XposedReflectUtil.findAndHookMethodOnlyByMethodName(android.content.ContentProvider.class, "enforceWritePermissionInner", new SingletonXC_MethodHook() {
+        XposedReflectUtil.findAndHookOneMethod(android.content.ContentProvider.class, "enforceWritePermissionInner", new SingletonXC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 if (param.args.length <= 1) {
