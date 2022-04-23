@@ -18,7 +18,7 @@ import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
-import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -26,7 +26,7 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -58,7 +58,7 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
         if (!CommonUtils.xposedStartSuccess) {
             log.error("hermes startup failed,xposed module not inject");
             CommonUtils.sendJSON(response, CommonRes.failed("hermes startup failed,please contact hermes administrator; android device info{mac: " +
-                    CommonUtils.deviceID(fontService) + " ,ip:" + CommonUtils.getLocalIp() + "}"));
+                    CommonUtils.deviceID(fontService) + " ,ip:" + APICommonUtils.getLocalIp() + "}"));
             return;
         }
         Map<String, String> innerParam = determineInnerParam(request);

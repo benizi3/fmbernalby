@@ -1,7 +1,4 @@
-package com.virjar.hermes.hermesagent.bean;
-
-import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 /**
  * Created by virjar on 2018/8/23.
@@ -33,7 +30,7 @@ public class CommonRes {
     }
 
     public static CommonRes failed(Exception e) {
-        return failed(CommonUtils.translateSimpleExceptionMessage(e));
+        return failed(APICommonUtils.translateSimpleExceptionMessage(e));
     }
 
     public CommonRes(int status, String errorMessage, Object data, String requestId) {

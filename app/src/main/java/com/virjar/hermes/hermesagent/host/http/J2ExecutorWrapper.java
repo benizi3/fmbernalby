@@ -1,9 +1,9 @@
 package com.virjar.hermes.hermesagent.host.http;
 
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;

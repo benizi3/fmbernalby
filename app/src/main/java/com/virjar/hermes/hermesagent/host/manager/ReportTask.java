@@ -9,7 +9,7 @@ import com.virjar.hermes.hermesagent.bean.ReportModel;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 import com.virjar.hermes.hermesagent.util.SamplerUtils;
 

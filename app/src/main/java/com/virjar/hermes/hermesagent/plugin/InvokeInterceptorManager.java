@@ -8,7 +8,7 @@ import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.xposed_extention.ClassScanner;
 import com.virjar.xposed_extention.Ones;
 import com.virjar.xposed_extention.SharedObject;

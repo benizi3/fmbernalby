@@ -15,7 +15,7 @@ import com.google.common.base.Joiner;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import java.util.Timer;
 import java.util.TimerTask;

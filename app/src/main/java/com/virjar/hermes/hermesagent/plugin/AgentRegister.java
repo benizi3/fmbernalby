@@ -18,7 +18,7 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import java.io.File;
 

@@ -26,10 +26,13 @@ import com.google.common.io.Files;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.BuildConfig;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EscapeUtil;
-import com.virjar.hermes.hermesagent.hermes_api.HermesCommonConfig;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
+import com.virjar.xposed_extention.CommonConfig;
 
 import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.ApkMeta;
@@ -50,13 +53,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.net.Socket;
 import java.security.MessageDigest;
-import java.util.Enumeration;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -83,42 +82,6 @@ public class CommonUtils {
     }
 
 
-    /**
-     * 获取本机IP
-     */
-    public static String getLocalIp() {
-        String ipV6Ip = null;
-        String lookUpIP = null;
-        try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
-                NetworkInterface intf = en.nextElement();
-                if (StringUtils.startsWithIgnoreCase(intf.getName(), "usbnet")) {
-                    continue;
-                }
-                for (Enumeration<InetAddress> ipAddr = intf.getInetAddresses(); ipAddr.hasMoreElements(); ) {
-                    InetAddress inetAddress = ipAddr.nextElement();
-                    if (inetAddress.isLoopbackAddress()) {
-                        lookUpIP = inetAddress.getHostAddress();
-                        continue;
-                    }
-                    if (inetAddress instanceof Inet4Address) {
-                        return inetAddress.getHostAddress();
-                    } else {
-                        ipV6Ip = inetAddress.getHostAddress();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("query local ip failed", e);
-        }
-
-
-        if (lookUpIP != null) {
-            return lookUpIP;
-        }
-        return ipV6Ip;
-    }
-
     public static String getStackTrack(Throwable throwable) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(byteArrayOutputStream));
@@ -127,13 +90,7 @@ public class CommonUtils {
         return byteArrayOutputStream.toString(Charsets.UTF_8);
     }
 
-    public static String translateSimpleExceptionMessage(Throwable exception) {
-        String message = exception.getMessage();
-        if (StringUtils.isBlank(message)) {
-            message = exception.getClass().getName();
-        }
-        return message;
-    }
+
 
     public static void sendJSON(AsyncHttpServerResponse response, CommonRes commonRes) {
         response.send(Constant.jsonContentType, JSONObject.toJSONString(commonRes));
@@ -251,7 +208,7 @@ public class CommonUtils {
     }
 
     public static String localServerBaseURL() {
-        return "http://" + CommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
+        return "http://" + APICommonUtils.getLocalIp() + ":" + Constant.httpServerPort;
     }
 
     private static final String ACCESS_EXTERNAL_DTD = "http://javax.xml.XMLConstants/property/accessExternalDTD";
@@ -301,7 +258,7 @@ public class CommonUtils {
 
     private static boolean checkTcpAdbRunning() {
         Socket socket = new Socket();
-        String localIp = getLocalIp();
+        String localIp = APICommonUtils.getLocalIp();
         boolean localBindSuccess = false;
         try {
             socket.bind(new InetSocketAddress(localIp, 0));
@@ -497,7 +454,13 @@ public class CommonUtils {
             return false;
         }
         String requestValue = invokeRequest.getString(key);
-        String configValue = HermesCommonConfig.getString(key);
+        String configValue = CommonConfig.getString(key);
         return !StringUtils.equals(requestValue, configValue);
     }
+
+    @SuppressLint("SdCardPath")
+    public static String BASE_DIR = Build.VERSION.SDK_INT >= 24
+            ? "/data/user_zh/0/" + BuildConfig.APPLICATION_ID + "/"
+            : "/data/data/" + BuildConfig.APPLICATION_ID + "/";
+    public static String HERMES_WRAPPER_DIR = BASE_DIR + "hermesModules/";
 }

@@ -41,7 +41,7 @@ public class InvokeRequest implements Parcelable {
 
     public InvokeRequest(String paramContent, Context context, String requestID) {
         this.requestID = requestID;
-        if (paramContent.length() < 4096) {
+        if (paramContent.length() < 4096 || context == null) {
             this.paramContent = paramContent;
         } else {
             File file = APICommonUtils.genTempFile(context);

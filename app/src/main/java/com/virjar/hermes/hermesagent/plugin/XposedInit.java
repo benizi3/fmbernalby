@@ -18,7 +18,7 @@ import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
 import com.virjar.xposed_extention.LifeCycleFire;
 import com.virjar.xposed_extention.Ones;

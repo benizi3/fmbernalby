@@ -11,7 +11,7 @@ import com.raizlabs.android.dbflow.sql.language.Operator;
 import com.raizlabs.android.dbflow.sql.language.SQLite;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 
 import java.io.IOException;

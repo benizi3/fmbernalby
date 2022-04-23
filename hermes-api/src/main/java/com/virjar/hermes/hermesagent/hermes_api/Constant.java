@@ -1,14 +1,13 @@
-package com.virjar.hermes.hermesagent.util;
+package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
 
-import com.virjar.hermes.hermesagent.BuildConfig;
 
 /**
  * Created by virjar on 2018/8/23.
+ * <br>通用的常量定义，TODO 需要整理，不是所有都是hermes-api的常量
  */
-
 public interface Constant {
     int httpServerPort = 5597;
     String httpServerPingPath = "/ping";
@@ -67,11 +66,7 @@ public interface Constant {
 
     //http的server，使用NIO模式，单线程事件驱动，请注意不要在server逻辑里面执行耗时任务
     String httpServerLooperThreadName = "httpServerLooper";
-    @SuppressLint("SdCardPath")
-    String BASE_DIR = Build.VERSION.SDK_INT >= 24
-            ? "/data/user_zh/0/" + BuildConfig.APPLICATION_ID + "/"
-            : "/data/data/" + BuildConfig.APPLICATION_ID + "/";
-    String HERMES_WRAPPER_DIR = Constant.BASE_DIR + "hermesModules/";
+
 
     //adb 远程接口，运行在4555端口,默认端口为5555，但是貌似有其他配置会和5555冲突，引起device offline，所以这里避开冲突
     int ADBD_PORT = 4555;

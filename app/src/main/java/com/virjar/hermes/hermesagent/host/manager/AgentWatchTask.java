@@ -20,7 +20,7 @@ import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.service.PingWatchTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import java.util.List;
 import java.util.Map;

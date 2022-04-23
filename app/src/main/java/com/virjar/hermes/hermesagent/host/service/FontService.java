@@ -41,10 +41,10 @@ import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
 import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
-import com.virjar.hermes.hermesagent.util.ClassScanner;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.xposed_extention.ClassScanner;
 
 import net.dongliu.apk.parser.ApkFile;
 
@@ -101,7 +101,7 @@ public class FontService extends Service {
 
         allCallback = transformAgentNames(subClassVisitor);
         log.info("scan all embed wrapper class:{}", JSONObject.toJSONString(allCallback));
-        File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
+        File modulesDir = new File(CommonUtils.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
             //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
             log.info("hermesModules 文件为空，无外置HermesWrapper");

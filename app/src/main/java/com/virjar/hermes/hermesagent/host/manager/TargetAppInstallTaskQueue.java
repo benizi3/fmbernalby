@@ -13,7 +13,7 @@ import android.widget.Toast;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EscapeUtil;
 
 import org.apache.commons.lang3.StringUtils;

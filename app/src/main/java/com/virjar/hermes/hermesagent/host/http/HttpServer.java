@@ -14,14 +14,14 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
-import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.host.thread.NamedThreadFactory;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
 

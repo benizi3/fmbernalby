@@ -6,15 +6,23 @@ import android.util.Log;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by virjar on 2018/9/13.
  */
+
 public class APICommonUtils {
+    private static final Logger log = LoggerFactory.getLogger(APICommonUtils.class);
     private static AtomicLong fileSequence = new AtomicLong(1);
 
     public static File genTempFile(Context context) {
@@ -78,4 +86,48 @@ public class APICommonUtils {
     }
 
     public static final String HERMES_EXTERNAL_WRAPPER_FLAG_KEY = "hermes_target_package";
+
+    /**
+     * 获取本机IP
+     */
+    public static String getLocalIp() {
+        String ipV6Ip = null;
+        String lookUpIP = null;
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
+                NetworkInterface intf = en.nextElement();
+                if (intf.getName() != null && intf.getName().equalsIgnoreCase("usbnet")) {
+                    continue;
+                }
+                for (Enumeration<InetAddress> ipAddr = intf.getInetAddresses(); ipAddr.hasMoreElements(); ) {
+                    InetAddress inetAddress = ipAddr.nextElement();
+                    if (inetAddress.isLoopbackAddress()) {
+                        lookUpIP = inetAddress.getHostAddress();
+                        continue;
+                    }
+                    if (inetAddress instanceof Inet4Address) {
+                        return inetAddress.getHostAddress();
+                    } else {
+                        ipV6Ip = inetAddress.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("query local ip failed", e);
+        }
+
+
+        if (lookUpIP != null) {
+            return lookUpIP;
+        }
+        return ipV6Ip;
+    }
+
+    public static String translateSimpleExceptionMessage(Throwable exception) {
+        String message = exception.getMessage();
+        if (message == null || message.trim().length() == 0) {
+            message = exception.getClass().getName();
+        }
+        return message;
+    }
 }

@@ -8,7 +8,7 @@ import com.google.common.base.Joiner;
 import com.raizlabs.android.dbflow.config.FlowManager;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.SUShell;
 
 import org.apache.commons.lang3.StringUtils;

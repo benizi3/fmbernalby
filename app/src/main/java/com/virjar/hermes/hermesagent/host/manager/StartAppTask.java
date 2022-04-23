@@ -8,7 +8,7 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.virjar.hermes.hermesagent.bean.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 
 /**

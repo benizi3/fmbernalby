@@ -8,7 +8,7 @@ import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.plugin.AgentRegister;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 
