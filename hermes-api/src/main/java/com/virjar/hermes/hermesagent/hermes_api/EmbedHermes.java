@@ -50,8 +50,8 @@ public class EmbedHermes {
 
         try {
             server.listen(mAsyncServer, serverPort);
-            log.info("start server success...");
-            log.info("server running on: " + localServerBaseURL());
+            Log.i("weijia","start server success...");
+            Log.i("weijia","server running on: " + localServerBaseURL());
         } catch (Exception e) {
             log.error("startServer error", e);
         }
