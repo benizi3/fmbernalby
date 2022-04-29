@@ -29,7 +29,7 @@ public class CommonRes {
         return failed(Constant.status_failed, errorMessage);
     }
 
-    public static CommonRes failed(Exception e) {
+    public static CommonRes failed(Throwable e) {
         return failed(APICommonUtils.translateSimpleExceptionMessage(e));
     }
 

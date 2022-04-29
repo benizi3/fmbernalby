@@ -1,5 +1,7 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
+import android.util.Log;
+
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -50,8 +52,8 @@ public class EmbedHermes {
 
         try {
             server.listen(mAsyncServer, serverPort);
-            Log.i("weijia","start server success...");
-            Log.i("weijia","server running on: " + localServerBaseURL());
+            Log.i("weijia", "start server success...");
+            Log.i("weijia", "server running on: " + localServerBaseURL());
         } catch (Exception e) {
             log.error("startServer error", e);
         }

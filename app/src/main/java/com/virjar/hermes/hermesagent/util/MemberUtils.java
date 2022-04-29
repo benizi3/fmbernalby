@@ -15,7 +15,6 @@ import java.lang.reflect.Modifier;
  * @since 2.5
  */
 public abstract class MemberUtils {
-    // TODO extract an interface to implement compareParameterSets(...)?
 
     private static final int ACCESS_TEST = Modifier.PUBLIC | Modifier.PROTECTED | Modifier.PRIVATE;
 

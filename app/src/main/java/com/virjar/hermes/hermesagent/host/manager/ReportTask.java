@@ -6,6 +6,7 @@ import android.support.annotation.NonNull;
 
 import com.alibaba.fastjson.JSONObject;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
@@ -44,7 +45,7 @@ public class ReportTask extends LoggerTimerTask {
     @Override
     public void doRun() {
         ReportModel reportModel = new ReportModel();
-        reportModel.setAgentServerIP(CommonUtils.getLocalIp());
+        reportModel.setAgentServerIP(APICommonUtils.getLocalIp());
         reportModel.setAgentServerPort(HttpServer.getInstance().getHttpServerPort());
         reportModel.setOnlineServices(fontService.onlineAgentServices());
         reportModel.setCpuLoader(SamplerUtils.sampleCPU());

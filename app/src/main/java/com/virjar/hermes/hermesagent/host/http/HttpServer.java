@@ -114,7 +114,6 @@ public class HttpServer {
         bindExecuteShellCommand();
         bindRestartADBDCommand();
         bindReloadServiceCommand();
-        //TODO adb命令，需要维持会话
 
         try {
             httpServerPort = Constant.httpServerPort;
@@ -241,7 +240,7 @@ public class HttpServer {
                     CommonUtils.sendJSON(response, CommonRes.failed("parameter {cmd} not present!!"));
                     return;
                 }
-                //TODO org.apache.commons.lang3.BooleanUtils.toBooleanObject(java.lang.String) 在这里对卡死线程，具体原因待分析
+                // org.apache.commons.lang3.BooleanUtils.toBooleanObject(java.lang.String) 在这里对卡死线程，具体原因待分析
                 final boolean useRoot = StringUtils.equalsIgnoreCase(query.getString("useRoot"), "true");
                 new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
                     @Override
