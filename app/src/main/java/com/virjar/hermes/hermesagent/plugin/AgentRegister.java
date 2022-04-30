@@ -61,7 +61,7 @@ public class AgentRegister {
                     return result;
                 } catch (Throwable e) {
                     APICommonUtils.requestLogW(param, "invoke callback failed", e);
-                    return InvokeResult.failed(CommonUtils.translateSimpleExceptionMessage(e));
+                    return InvokeResult.failed(APICommonUtils.translateSimpleExceptionMessage(e));
                 }
             }
 

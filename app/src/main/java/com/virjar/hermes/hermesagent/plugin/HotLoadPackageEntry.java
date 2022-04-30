@@ -192,7 +192,7 @@ public class HotLoadPackageEntry {
 
     @SuppressWarnings("unchecked")
     private synchronized static Set<EmbedWrapper> findExternalCallBack() {
-        File modulesDir = new File(Constant.HERMES_WRAPPER_DIR);
+        File modulesDir = new File(CommonUtils.HERMES_WRAPPER_DIR);
         if (!modulesDir.exists() || !modulesDir.canRead()) {
             //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
             return Collections.emptySet();

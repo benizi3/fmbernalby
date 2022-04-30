@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.host.http;
 
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
@@ -30,7 +31,7 @@ public class J2ExecutorWrapper {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 log.warn("request process failed, ", e);
-                CommonUtils.sendJSON(response, CommonRes.failed(CommonUtils.translateSimpleExceptionMessage(e)));
+                CommonUtils.sendJSON(response, CommonRes.failed(APICommonUtils.translateSimpleExceptionMessage(e)));
             }
         });
         try {

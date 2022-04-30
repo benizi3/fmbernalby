@@ -14,6 +14,7 @@ import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.raizlabs.android.dbflow.sql.language.SQLite;
+import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
@@ -104,7 +105,7 @@ public class AgentWatchTask extends LoggerTimerTask {
                     continue;
                 }
 
-                if ("127.0.0.1".equalsIgnoreCase(CommonUtils.getLocalIp())) {
+                if ("127.0.0.1".equalsIgnoreCase(APICommonUtils.getLocalIp())) {
                     log.warn("手机未联网");
                     continue;
                 }
