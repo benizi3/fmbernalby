@@ -16,17 +16,17 @@ import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.xposed_extention.ClassScanner;
 import com.virjar.xposed_extention.Ones;
 import com.virjar.xposed_extention.SharedObject;
-import com.virjar.xposed_extention.XposedExtentionInstaller;
+import com.virjar.xposed_extention.XposedExtensionInstaller;
 
 import net.dongliu.apk.parser.ApkFile;
 
@@ -132,7 +132,7 @@ public class HotLoadPackageEntry {
 
         //收集所有存在的classloader
         log.info("setup Xposed Extention component");
-        XposedExtentionInstaller.initConponent();
+        XposedExtensionInstaller.initComponent();
         /*
          * 拦截器初始化，这些一般是状态还原，比如我们设置了代理，那么app重启之后，将会还原代理配置
          */
