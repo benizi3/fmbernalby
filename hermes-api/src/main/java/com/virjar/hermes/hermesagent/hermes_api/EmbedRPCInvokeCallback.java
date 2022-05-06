@@ -85,11 +85,10 @@ public class EmbedRPCInvokeCallback implements HttpServerRequestCallback {
                     } else {
                         sendJSON(response, CommonRes.success(invokeResult.getTheData()));
                     }
-                }catch( Throwable t){
-                    log.error("wrapper handle exception:",t);
+                } catch (Throwable t) {
+                    log.error("wrapper handle exception:", t);
                     sendJSON(response, CommonRes.failed(t));
-                }
-                finally {
+                } finally {
                     long endTime = System.currentTimeMillis();
                     APICommonUtils.requestLogI(invokeRequest, "invoke end time:" + endTime + " duration:" + ((endTime - invokeStartTimestamp) / 1000) + "s");
                     if (invokeResult != null) {
