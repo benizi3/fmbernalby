@@ -56,6 +56,7 @@ public class AgentWatchTask extends LoggerTimerTask {
         Set<String> needRestartApp;
         if (CommonUtils.isLocalTest()) {
             //本地测试模式，监控所有agent，死亡拉起
+            //TODO admin开发完成，本地测试模式，不应该监控所有app了
             needRestartApp = Sets.newConcurrentHashSet(allCallback);
             log.info("local test mode, watch all wrapper:{}", JSONObject.toJSONString(needRestartApp));
         } else {

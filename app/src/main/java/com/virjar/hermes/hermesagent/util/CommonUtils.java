@@ -77,8 +77,8 @@ import static android.content.Context.TELEPHONY_SERVICE;
 public class CommonUtils {
 
     public static boolean isLocalTest() {
-        //return BuildConfig.DEBUG;
-        return false;
+        return BuildConfig.DEBUG;
+        //return false;
     }
 
 

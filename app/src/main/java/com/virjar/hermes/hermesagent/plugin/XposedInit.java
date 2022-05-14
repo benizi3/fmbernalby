@@ -356,6 +356,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                     return;
                 }
                 String callingPkg = APICommonUtils.safeToString(param.args[1]);
+                Log.i("weijia", callingPkg + " 申请：" + param.args[0] + " 的读取权限");
                 if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
                     Log.i("weijia", "hermes  申请" + param.args[0] + " 的读取权限，直接放过");
                     param.setResult(null);
