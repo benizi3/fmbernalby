@@ -127,7 +127,7 @@ public class HotLoadPackageEntry {
     }
 
     private static void setupInternalComponent() {
-        LogConfigurator.confifure(SharedObject.context);
+        LogConfigurator.configure(SharedObject.context);
         log.info("plugin startup");
 
         //收集所有存在的classloader

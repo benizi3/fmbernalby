@@ -28,7 +28,7 @@ public class HermesApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        LogConfigurator.confifure(this);
+        LogConfigurator.configure(this);
         FlowManager.init(this);
         fixXposedConfigFile();
     }
