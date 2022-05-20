@@ -95,12 +95,14 @@ public class LogConfigurator {
     private static RollingFileAppender<ILoggingEvent> wrapperLogAppender(LoggerContext context, String log_dir, String filePrefix) {
         RollingFileAppender<ILoggingEvent> rollingFileAppender = new RollingFileAppender<>();
         rollingFileAppender.setAppend(true);
+        rollingFileAppender.setFile(log_dir + "/" + filePrefix + "hermes_wrapper.log");
         rollingFileAppender.setContext(context);
 
         FixedWindowRollingPolicy fixedWindowRollingPolicy = new FixedWindowRollingPolicy();
         fixedWindowRollingPolicy.setFileNamePattern(log_dir + "/" + filePrefix + "hermes_wrapper_%i.log");
         fixedWindowRollingPolicy.setMaxIndex(5);
         fixedWindowRollingPolicy.setMinIndex(1);
+        fixedWindowRollingPolicy.setParent(rollingFileAppender);
         fixedWindowRollingPolicy.setContext(context);
         fixedWindowRollingPolicy.start();
 
