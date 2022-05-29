@@ -12,10 +12,10 @@ import android.util.Log;
 import android.widget.TextView;
 
 import com.google.common.base.Joiner;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -112,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!CommonUtils.isSuAvailable() && !CommonUtils.requestSuPermission()) {
                     text += "\n  HermesAgent需要root权限，请放开HermesAgent的root授权";
                 }
+                text += "\n\nAndroidId:" + CommonUtils.deviceID(MainActivity.this);
                 tv.setText(text);
             }
         });
