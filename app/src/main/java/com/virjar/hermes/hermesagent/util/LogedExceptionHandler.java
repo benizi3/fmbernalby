@@ -17,7 +17,9 @@ public class LogedExceptionHandler implements Thread.UncaughtExceptionHandler {
     @Override
     public void uncaughtException(Thread t, Throwable e) {
         log.error("uncaughtException for thread:{}", t.getName(), e);
-        origin.uncaughtException(t, e);
+        if (origin != null) {
+            origin.uncaughtException(t, e);
+        }
     }
 
     public static LogedExceptionHandler wrap(Thread.UncaughtExceptionHandler origin) {

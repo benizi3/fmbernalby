@@ -4,17 +4,26 @@ import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Maps;
+import com.raizlabs.android.dbflow.sql.language.SQLite;
 import com.virjar.hermes.hermesagent.bean.ReportModel;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
+import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
+import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
+import com.virjar.hermes.hermesagent.util.SUShell;
 import com.virjar.hermes.hermesagent.util.SamplerUtils;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.IOException;
+import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
@@ -77,17 +86,91 @@ public class ReportTask extends LoggerTimerTask {
                     responseContent = body.string();
                 }
                 log.info("report response:{}", responseContent);
+                if (StringUtils.isBlank(responseContent)) {
+                    return;
+                }
+                handleServiceConfig(responseContent);
             }
         });
     }
 
+    private synchronized void handleServiceConfig(String configData) {
+        JSONObject jsonObject = JSONObject.parseObject(configData);
+        if (jsonObject.getIntValue("status") != 0) {
+            log.error(jsonObject.getString("message"));
+            return;
+        }
+        Map<Long, ServiceModel> historyModelMap = Maps.newHashMap();
+        for (ServiceModel serviceModel : SQLite.select().from(ServiceModel.class).queryList()) {
+            historyModelMap.put(serviceModel.getServiceId(), serviceModel);
+        }
+
+        JSONArray serviceList = jsonObject.getJSONArray("data");
+        String deviceID = CommonUtils.deviceID(context);
+        for (int i = 0; i < serviceList.size(); i++) {
+            JSONObject serviceItem = serviceList.getJSONObject(i);
+            String deviceMac = serviceItem.getString("deviceMac");
+            if (!StringUtils.equals(deviceMac, deviceID)) {
+                log.warn("get an unrecognized device config {},ignore it", deviceMac);
+                continue;
+            }
+            ServiceModel serviceModel = SQLite.select().from(ServiceModel.class)
+                    .where(ServiceModel_Table.targetAppPackage.is(serviceItem.getString("targetAppPackage"))).querySingle();
+            //正常情况就只有一个
+            boolean isNew = false;
+            if (serviceModel == null) {
+                serviceModel = new ServiceModel();
+                isNew = true;
+            }
+            boolean needReInstallWrapper = false;
+            Long wrapperVersionCode = serviceItem.getLong("wrapperVersionCode");
+            if (wrapperVersionCode != null && (wrapperVersionCode > 0)
+                    && !wrapperVersionCode.equals(serviceModel.getWrapperVersionCode())) {
+                needReInstallWrapper = true;
+            }
+            serviceModel.setTargetAppPackage(serviceItem.getString("targetAppPackage"));
+            serviceModel.setServiceId(serviceItem.getLong("serviceId"));
+            serviceModel.setDeviceMac(serviceItem.getString("deviceMac"));
+            serviceModel.setStatus(serviceItem.getBoolean("status"));
+            if (serviceModel.isStatus()) {
+                try {
+                    fillData(serviceModel, serviceItem);
+                } catch (Exception e) {
+                    log.warn("config broken for service:{} ,disable deploy the service", serviceModel.getDeviceMac(), e);
+                    serviceModel.setStatus(false);
+                }
+            }
+            if (isNew) {
+                serviceModel.save();
+            } else {
+                historyModelMap.remove(serviceModel.getServiceId());
+                serviceModel.update();
+            }
+
+            if (needReInstallWrapper) {
+                InstallTaskQueue.getInstance().installWrapper(serviceModel, context);
+            }
+        }
+        //disable service，if server not push config
+        for (ServiceModel serviceModel : historyModelMap.values()) {
+            serviceModel.setStatus(false);
+            serviceModel.update();
+        }
+    }
+
+    private void fillData(ServiceModel serviceModel, JSONObject serviceItem) {
+        serviceModel.setTargetAppVersionCode(serviceItem.getLong("targetAppVersionCode"));
+        serviceModel.setTargetAppDownloadUrl(serviceItem.getString("targetAppDownloadUrl"));
+        serviceModel.setWrapperPackage(serviceItem.getString("wrapperPackage"));
+        serviceModel.setWrapperVersionCode(serviceItem.getLong("wrapperVersionCode"));
+        serviceModel.setWrapperAppDownloadUrl(serviceItem.getString("wrapperAppDownloadUrl"));
+    }
+
     private void rebootIfNeed() {
-        //TODO 由服务器下发的配置控制
-        //TODO 调用成功，记录清零
         if (failedTimes < 15) {
             return;
         }
-        //CommonUtils.restartAndroidSystem();
-
+        log.info("can not connect hermes admin,maybe network config error,now restart device");
+        SUShell.run("reboot");
     }
 }

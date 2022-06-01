@@ -17,22 +17,57 @@ public class ServiceModel extends BaseModel {
     @Getter
     @Setter
     @PrimaryKey
-    private Long id;
+    private Long serviceId;
 
-    @Getter
-    @Setter
-    @Column
-    private Integer status;
 
-    @Getter
-    @Setter
     @Column
-    private String appPackage;
+    private boolean status;
+
+    // status lombok生成存在错误，需要使用is，而不是get
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
 
     @Getter
     @Setter
     @Column
     private String deviceMac;
+
+
+    @Getter
+    @Setter
+    @Column
+    private String targetAppPackage;
+
+
+    @Getter
+    @Setter
+    @Column
+    private Long targetAppVersionCode;
+
+    @Getter
+    @Setter
+    @Column
+    private String targetAppDownloadUrl;
+
+    @Getter
+    @Setter
+    @Column
+    private String wrapperPackage;
+
+    @Getter
+    @Setter
+    @Column
+    private Long wrapperVersionCode;
+
+    @Getter
+    @Setter
+    @Column
+    private String wrapperAppDownloadUrl;
 
     @Getter
     @Setter

@@ -39,7 +39,6 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
-import com.virjar.hermes.hermesagent.host.manager.RefreshConfigTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
@@ -399,8 +398,7 @@ public class FontService extends Service {
         }
         //之前的time可能死掉了
         timer = new Timer("FontServiceTimer", true);
-        //监控所有agent状态
-        timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, allCallback, this), 1000, 30000);
+
 
         //半个小时，check一下adb的状态，守护adb进程
         timer.scheduleAtFixedRate(new LoggerTimerTask("adbCheck") {
@@ -482,9 +480,9 @@ public class FontService extends Service {
         if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             timer.scheduleAtFixedRate(new ReportTask(this, this),
-                    15000, 15000);
-            //每隔2分钟拉取一次配置
-            timer.scheduleAtFixedRate(new RefreshConfigTask(this), 120000, 120000);
+                    15000, 120000);
+            //监控所有agent状态
+            timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, this), 1000, 30000);
         }
 
     }

@@ -56,13 +56,9 @@ public interface Constant {
     int status_rate_limited = -4;
     String rateLimitedMessage = "rate limited";
     String rebind = "rebind";
-    String restartServer = "restartServer";
+
     String unknown = "unknown";
 
-    int serviceStatusOnline = 0;
-    int serviceStatusOffline = 1;
-    int serviceStatusInstalling = 3;
-    int serviceStatusUnInstall = 4;
 
     //http的server，使用NIO模式，单线程事件驱动，请注意不要在server逻辑里面执行耗时任务
     String httpServerLooperThreadName = "httpServerLooper";
@@ -88,7 +84,6 @@ public interface Constant {
 
     int HEAD_LENGTH = 4;
 
-    String xposedBridgeClassLoaderName = "com.virjar.hermes.hermesagent.xposed_classloader_bridge.XposedRelateClassLoader";
     String xposedBridgeApkFileName = "xposedbridge-release.apk";
 
     String MIUIPowerKeeperContentProviderURI = "content://com.miui.powerkeeper.configure/userTable";

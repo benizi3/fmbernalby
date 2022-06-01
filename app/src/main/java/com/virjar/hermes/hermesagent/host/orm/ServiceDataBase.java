@@ -8,5 +8,5 @@ import com.raizlabs.android.dbflow.annotation.Database;
 @Database(name = ServiceDataBase.NAME, version = ServiceDataBase.VERSION)
 public class ServiceDataBase {
     public static final String NAME = "db_hermes_service";
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 }

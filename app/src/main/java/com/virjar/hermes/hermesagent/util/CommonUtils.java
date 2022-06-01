@@ -37,6 +37,7 @@ import com.virjar.xposed_extention.CommonConfig;
 import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.ApkMeta;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -89,7 +90,6 @@ public class CommonUtils {
         printWriter.close();
         return byteArrayOutputStream.toString(Charsets.UTF_8);
     }
-
 
 
     public static void sendJSON(AsyncHttpServerResponse response, CommonRes commonRes) {
@@ -456,6 +456,16 @@ public class CommonUtils {
         String requestValue = invokeRequest.getString(key);
         String configValue = CommonConfig.getString(key);
         return !StringUtils.equals(requestValue, configValue);
+    }
+
+    public static ApkMeta getAPKMeta(File file) {
+        try (ApkFile apkFile = new ApkFile(file)) {
+            return apkFile.getApkMeta();
+        } catch (IOException e) {
+            log.warn("broken apk file:{}", file.getAbsoluteFile(), e);
+            FileUtils.deleteQuietly(file);
+        }
+        return null;
     }
 
     @SuppressLint("SdCardPath")

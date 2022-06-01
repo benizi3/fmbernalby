@@ -2,14 +2,13 @@ package com.virjar.hermes.hermesagent.host.manager;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
 
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
@@ -18,18 +17,17 @@ import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
+import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.service.PingWatchTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
+import com.virjar.hermes.hermesagent.util.SUShell;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.DelayQueue;
-
-import javax.annotation.Nullable;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,50 +38,31 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AgentWatchTask extends LoggerTimerTask {
     private ConcurrentMap<String, IHookAgentService> allRemoteHookService;
-    private Set<String> allCallback;
     private Context context;
     private FontService fontService;
 
-    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Set<String> allCallback, Context context) {
+    public AgentWatchTask(FontService fontService, ConcurrentMap<String, IHookAgentService> allRemoteHookService, Context context) {
         this.fontService = fontService;
         this.allRemoteHookService = allRemoteHookService;
         this.context = context;
-        this.allCallback = allCallback;
     }
 
     @Override
     public void doRun() {
-        Set<String> needRestartApp;
-        if (CommonUtils.isLocalTest()) {
-            //本地测试模式，监控所有agent，死亡拉起
-            //TODO admin开发完成，本地测试模式，不应该监控所有app了
-            needRestartApp = Sets.newConcurrentHashSet(allCallback);
-            log.info("local test mode, watch all wrapper:{}", JSONObject.toJSONString(needRestartApp));
-        } else {
-            List<ServiceModel> serviceModels = SQLite.select().from(ServiceModel.class).queryList();
-            needRestartApp =
-                    Sets.newConcurrentHashSet(Iterables.transform(Iterables.filter(serviceModels, new Predicate<ServiceModel>() {
-                        @Override
-                        public boolean apply(@Nullable ServiceModel input) {
-                            return input != null && input.getStatus() != Constant.serviceStatusUnInstall;
-                        }
-                    }), new Function<ServiceModel, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(ServiceModel input) {
-                            return input.getAppPackage();
-                        }
-                    }));
-            log.info("production mode,watch wrapper,form hermes admin configuration:{}", JSONObject.toJSONString(needRestartApp));
-
+        List<ServiceModel> needRestartApp = SQLite.select().from(ServiceModel.class).where(ServiceModel_Table.status.is(true)).queryList();
+        log.info("production mode,watch wrapper,form hermes admin configuration:{}", JSONObject.toJSONString(needRestartApp));
+        Map<String, ServiceModel> watchServiceMap = Maps.newHashMap();
+        for (ServiceModel serviceModel : needRestartApp) {
+            watchServiceMap.put(serviceModel.getTargetAppPackage(), serviceModel);
         }
+
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
             if (agentInfo != null) {
                 log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
                 onlineServices.add(agentInfo.getPackageName());
-                needRestartApp.remove(agentInfo.getPackageName());
+                needRestartApp.remove(watchServiceMap.get(agentInfo.getPackageName()));
             }
         }
         fontService.setOnlineServices(onlineServices);
@@ -92,17 +71,27 @@ public class AgentWatchTask extends LoggerTimerTask {
             return;
         }
 
-        Set<String> needInstallApp = Sets.newCopyOnWriteArraySet(needRestartApp);
+
+        Set<ServiceModel> needInstallApps = Sets.newHashSet(needRestartApp);
+        Set<ServiceModel> needUnInstallApps = Sets.newHashSet();
+        Set<ServiceModel> needCheckWrapperApps = Sets.newHashSet();
+
         PackageManager packageManager = context.getPackageManager();
         Set<String> runningProcess = runningProcess(context);
 
-        for (String packageName : needInstallApp) {
+        for (ServiceModel testInstallApp : needInstallApps) {
             try {
-                packageManager.getPackageInfo(packageName, PackageManager.GET_META_DATA);
-                needInstallApp.remove(packageName);
+                PackageInfo packageInfo = packageManager.getPackageInfo(testInstallApp.getTargetAppPackage(), PackageManager.GET_META_DATA);
+                needInstallApps.remove(testInstallApp);
 
-                if (runningProcess.contains(packageName)) {
-                    log.warn("app: {} 正常运行，但是agent没有正常注册,请检查xposed模块加载是否失败（日志中显示file not exist，在高版本Android中容易出现）", packageName);
+                if (testInstallApp.getTargetAppVersionCode() != packageInfo.versionCode) {
+                    log.info("target:{} app versionCode update, uninstall it", testInstallApp.getTargetAppPackage());
+                    needUnInstallApps.add(testInstallApp);
+                    continue;
+                }
+
+                if (runningProcess.contains(testInstallApp.getTargetAppPackage())) {
+                    needCheckWrapperApps.add(testInstallApp);
                     continue;
                 }
 
@@ -110,19 +99,27 @@ public class AgentWatchTask extends LoggerTimerTask {
                     log.warn("手机未联网");
                     continue;
                 }
-
-                log.warn("start app：" + packageName);
-                Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(packageName);
+                log.warn("start app：" + testInstallApp);
+                Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(testInstallApp.getTargetAppPackage());
                 context.startActivity(launchIntentForPackage);
             } catch (PackageManager.NameNotFoundException e) {
                 //ignore
             }
         }
 
-        log.info("some app is configured install on this device,but not presented on the system, we will install this,install list:{}", JSONObject.toJSONString(needInstallApp));
-        for (String needInstall : needInstallApp) {
-            TargetAppInstallTaskQueue.getInstance().install(needInstall, context);
+        for (ServiceModel needInstall : needInstallApps) {
+            InstallTaskQueue.getInstance().installTargetApk(needInstall, context);
         }
+
+        for (ServiceModel needReInstall : needUnInstallApps) {
+            SUShell.run("pm uninstall " + needReInstall.getTargetAppPackage());
+            InstallTaskQueue.getInstance().installTargetApk(needReInstall, context);
+        }
+
+        for (ServiceModel needInstallWrapper : needCheckWrapperApps) {
+            InstallTaskQueue.getInstance().installWrapper(needInstallWrapper, context);
+        }
+
     }
 
     private Set<String> runningProcess(Context context) {

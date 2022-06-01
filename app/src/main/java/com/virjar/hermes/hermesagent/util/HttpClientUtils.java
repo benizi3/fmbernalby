@@ -62,7 +62,8 @@ public class HttpClientUtils {
                     public Thread newThread(@NonNull Runnable runnable) {
                         Thread result = new Thread(runnable, "OkHttp Dispatcher");
                         result.setDaemon(false);
-                        result.setUncaughtExceptionHandler(LogedExceptionHandler.wrap(result.getUncaughtExceptionHandler()));
+                        //这里，如果网络handler发生了异常，那么只记录日志，而不进行程序中断
+                        result.setUncaughtExceptionHandler(LogedExceptionHandler.wrap(null));
                         return result;
                     }
                 })))
