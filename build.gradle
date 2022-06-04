@@ -22,6 +22,10 @@ allprojects {
             name "aliyunmaven"
             url "https://maven.aliyun.com/repository/public"
         }
+        maven {
+            name "contralSnapshot"
+            url "https://oss.sonatype.org/content/repositories/snapshots/"
+        }
         maven { url 'https://www.jitpack.io' }
         google()
         jcenter()

@@ -35,13 +35,6 @@ android {
     }
 }
 
-repositories {
-    maven {
-        name "contralSnapshot"
-        url "https://oss.sonatype.org/content/repositories/snapshots/"
-    }
-}
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -58,7 +51,7 @@ dependencies {
     //日志模块
     compile 'org.slf4j:slf4j-api:1.7.25'
     compile 'com.github.tony19:logback-android:1.3.0-2'
-    compile 'com.virjar:xposed-extention:1.0.3'
+    compile 'com.virjar:xposed-extention:1.0.4-SNAPSHOT'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.2'
     compileOnly 'org.projectlombok:lombok:1.18.2'
