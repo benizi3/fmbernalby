@@ -479,8 +479,9 @@ public class FontService extends Service {
 
         if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
+            //重启之后，马上进行上报
             timer.scheduleAtFixedRate(new ReportTask(this, this),
-                    15000, 120000);
+                    1, 120000);
             //监控所有agent状态
             timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, this), 1000, 30000);
         }

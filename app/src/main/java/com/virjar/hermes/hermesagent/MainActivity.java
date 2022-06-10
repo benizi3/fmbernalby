@@ -112,7 +112,10 @@ public class MainActivity extends AppCompatActivity {
                 if (!CommonUtils.isSuAvailable() && !CommonUtils.requestSuPermission()) {
                     text += "\n  HermesAgent需要root权限，请放开HermesAgent的root授权";
                 }
-                text += "\n\nAndroidId:" + CommonUtils.deviceID(MainActivity.this);
+                text += "\n\nAndroidId: " + CommonUtils.deviceID(MainActivity.this);
+                if (CommonUtils.isLocalTest()) {
+                    text += "\n\n本地测试版本";
+                }
                 tv.setText(text);
             }
         });

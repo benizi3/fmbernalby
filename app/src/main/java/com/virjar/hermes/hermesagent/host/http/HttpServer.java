@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +62,8 @@ public class HttpServer {
     private RPCInvokeCallback httpServerRequestCallback = null;
     private J2Executor j2Executor;
     private StartServiceHandler handler = new StartServiceHandler(Looper.getMainLooper(), this);
+    private volatile boolean started = false;
+    private Set<HttpServerStartupEvent> startupEventSet = Sets.newCopyOnWriteArraySet();
 
     private static class StartServiceHandler extends Handler {
         private HttpServer httpServer;
@@ -97,6 +101,7 @@ public class HttpServer {
 
     private void startServerInternal(Context context) {
         stopServer();
+        started = false;
         server = new AsyncHttpServer();
         mAsyncServer = new AsyncServer(Constant.httpServerLooperThreadName);
         j2Executor = new J2Executor(
@@ -120,8 +125,22 @@ public class HttpServer {
             server.listen(mAsyncServer, httpServerPort);
             log.info("start server success...");
             log.info("server running on: " + CommonUtils.localServerBaseURL());
+            started = true;
+            for (HttpServerStartupEvent callback : startupEventSet) {
+                callback.onHttpServerStartUp(this);
+                startupEventSet.remove(callback);
+            }
         } catch (Exception e) {
             log.error("startServer error", e);
+        }
+    }
+
+
+    public void onHttpServerStartUp(HttpServerStartupEvent httpServerStartupEvent) {
+        if (started) {
+            httpServerStartupEvent.onHttpServerStartUp(this);
+        } else {
+            startupEventSet.add(httpServerStartupEvent);
         }
     }
 

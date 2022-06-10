@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 
 public class APICommonUtils {
-    private static final Logger log = LoggerFactory.getLogger(APICommonUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
     private static AtomicLong fileSequence = new AtomicLong(1);
 
     public static File genTempFile(Context context) {
@@ -52,26 +52,25 @@ public class APICommonUtils {
         }
     }
 
-    private static String invokeLogTag = "hermes_IPC_Invoke";
 
     public static void requestLogI(InvokeRequest invokeRequest, String msg) {
-        Log.i(invokeLogTag, buildMessageBody(invokeRequest, msg));
+        log.info(buildMessageBody(invokeRequest, msg));
     }
 
     public static void requestLogW(InvokeRequest invokeRequest, String msg, Throwable throwable) {
-        Log.w(invokeLogTag, buildMessageBody(invokeRequest, msg), throwable);
+        log.warn(buildMessageBody(invokeRequest, msg), throwable);
     }
 
     public static void requestLogW(InvokeRequest invokeRequest, String msg) {
-        Log.w(invokeLogTag, buildMessageBody(invokeRequest, msg));
+        log.warn(buildMessageBody(invokeRequest, msg));
     }
 
     public static void requestLogE(InvokeRequest invokeRequest, String msg, Throwable throwable) {
-        Log.e(invokeLogTag, buildMessageBody(invokeRequest, msg), throwable);
+        log.error(buildMessageBody(invokeRequest, msg), throwable);
     }
 
     public static void requestLogE(InvokeRequest invokeRequest, String msg) {
-        Log.e(invokeLogTag, buildMessageBody(invokeRequest, msg));
+        log.error(buildMessageBody(invokeRequest, msg));
     }
 
     private static String buildMessageBody(InvokeRequest invokeRequest, String msg) {

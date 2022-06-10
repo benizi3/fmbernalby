@@ -1,18 +1,14 @@
 package com.virjar.hermes.hermesagent.util;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
@@ -27,8 +23,8 @@ import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.BuildConfig;
-import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EscapeUtil;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -52,12 +48,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
@@ -69,8 +64,6 @@ import eu.chainfire.libsuperuser.Shell;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 
-import static android.content.Context.TELEPHONY_SERVICE;
-
 /**
  * Created by virjar on 2018/8/22.<br>
  */
@@ -78,8 +71,8 @@ import static android.content.Context.TELEPHONY_SERVICE;
 public class CommonUtils {
 
     public static boolean isLocalTest() {
-        return BuildConfig.DEBUG;
-        //return false;
+        //return BuildConfig.DEBUG;
+        return false;
     }
 
 
@@ -120,12 +113,25 @@ public class CommonUtils {
 
     @SuppressLint("HardwareIds")
     public static String deviceID(Context context) {
-        TelephonyManager telephonyMgr = (TelephonyManager) context.getApplicationContext().getSystemService(TELEPHONY_SERVICE);
-        if (telephonyMgr != null) {
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                return telephonyMgr.getDeviceId();
-            }
+
+
+        String m_szAndroidID = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        if (StringUtils.isNotBlank(m_szAndroidID)) {
+            return m_szAndroidID;
         }
+        try {
+            return getPesudoUniqueID(context);
+        } catch (IOException e) {
+            log.warn("gen device id failed", e);
+        }
+//这个似乎不靠谱
+//                TelephonyManager telephonyMgr = (TelephonyManager) context.getApplicationContext().getSystemService(TELEPHONY_SERVICE);
+//        if (telephonyMgr != null) {
+//            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+//                return telephonyMgr.getDeviceId();
+//            }
+//        }
         WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wm != null) {
             String mac = wm.getConnectionInfo().getMacAddress();
@@ -139,17 +145,20 @@ public class CommonUtils {
         if (m_szBTMAC != null && !StringUtils.equalsIgnoreCase("02:00:00:00:00:00", m_szBTMAC)) {
             return m_szBTMAC;
         }
-
-        String m_szAndroidID = Settings.Secure.getString(context.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-        if (StringUtils.isNotBlank(m_szAndroidID)) {
-            return m_szAndroidID;
+        log.warn("get device id failed,use a random device id generated and saved in ram memory");
+        if (randomID == null) {
+            synchronized (CommonUtils.class) {
+                if (randomID == null) {
+                    randomID = MD5(UUID.randomUUID().toString());
+                }
+            }
         }
-
-        return getPesudoUniqueID();
+        return randomID;
     }
 
-    public static String MD5(String s) {
+    private static String randomID = null;
+
+    private static String MD5(String s) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] bytes = md.digest(s.getBytes(Charsets.UTF_8));
@@ -170,25 +179,19 @@ public class CommonUtils {
         return ret.toString();
     }
 
-    private static String getPesudoUniqueID() {
-        Field[] declaredFields = Build.class.getDeclaredFields();
-        StringBuilder stringBuilder = new StringBuilder();
-        for (Field field : declaredFields) {
-            Class<?> type = field.getType();
-            if (type == String.class && Modifier.isStatic(field.getModifiers())) {
-                try {
-                    Object o = field.get(null);
-                    stringBuilder.append(o.toString());
-                } catch (IllegalAccessException e) {
-                    //ignore
-                }
+    private static String getPesudoUniqueID(Context context) throws IOException {
+        File file = new File(context.getFilesDir(), "deviceId.txt");
+        if (file.exists()) {
+            return Files.asCharSource(file, Charsets.UTF_8).readFirstLine();
+        }
+        synchronized (CommonUtils.class) {
+            if (file.exists()) {
+                return Files.asCharSource(file, Charsets.UTF_8).readFirstLine();
             }
+            String deviceId = MD5(UUID.randomUUID().toString());
+            Files.asCharSink(file, Charsets.UTF_8).write(deviceId);
+            return Files.asCharSource(file, Charsets.UTF_8).readFirstLine();
         }
-        String data = stringBuilder.toString();
-        if (StringUtils.isBlank(data)) {
-            return "unknown";
-        }
-        return MD5(data);
     }
 
     public static String pingServer(String sourcePackage) {

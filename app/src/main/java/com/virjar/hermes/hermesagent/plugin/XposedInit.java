@@ -1,14 +1,19 @@
 package com.virjar.hermes.hermesagent.plugin;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
@@ -27,6 +32,7 @@ import com.virjar.xposed_extention.XposedReflectUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -46,6 +52,22 @@ import de.robv.android.xposed.callbacks.XCallback;
 public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit {
     private static final String TAG = "XposedInit";
 
+    public static String getTrack(Throwable e) {
+        StringBuilder msg = new StringBuilder("\n=============>\n");
+        while (e != null) {
+            StackTraceElement[] ste = e.getStackTrace();
+            for (StackTraceElement stackTraceElement : ste) {
+                msg.append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append(":").append(stackTraceElement.getLineNumber()).append("\n");
+            }
+            e = e.getCause();
+            if (e != null) {
+                msg.append("cause:").append(e.getMessage()).append("\n\n");
+            }
+        }
+        msg.append("<================\n");
+        return msg.toString();
+    }
+
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         //这个进程是传说中的system_server,拥有system权限
@@ -54,7 +76,22 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
             toSystemAndPrivilegedApp(lpparam);
             grantAllContentProviderPermission(lpparam);
             grantAllPackagePermission(lpparam);
+
+            Class<?> splashScreenClazz = ReflectUtil.findClassIfExists("com.miui.server.SplashScreenServiceDelegate", lpparam.classLoader);
+            if (splashScreenClazz != null) {
+                XposedHelpers.findAndHookMethod(splashScreenClazz, "isSplashPackage", String.class, new SingletonXC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (StringUtils.equals("com.miui.securitycenter", (CharSequence) param.args[0])) {
+                            Log.i("weijia", "start securitycenter:" + getTrack(new Throwable()));
+                        }
+                    }
+                });
+            }
+
+
         }
+
 
 //        ClassLoadMonitor.addClassLoadMonitor("com.miui.powerkeeper.provider.PowerKeeperConfigureProvider", new ClassLoadMonitor.OnClassLoader() {
 //            @Override
@@ -109,8 +146,16 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         });
     }
 
+    @SuppressLint("PrivateApi")
     private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
         Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);
+        if (activityManagerServiceClass == null) {
+            try {
+                activityManagerServiceClass = XposedInit.class.getClassLoader().loadClass("com.android.server.am.ActivityManagerService");
+            } catch (ClassNotFoundException e) {
+                Log.e("weijia", "failed to load ActivityManagerService class", e);
+            }
+        }
         if (activityManagerServiceClass != null) {
             XposedReflectUtil.findAndHookOneMethod(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
                 @Override
@@ -262,22 +307,28 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     private void alertHotLoadFailedWarning() {
         LifeCycleFire.onFirstPageReady(new LifeCycleFire.OnFire<Activity>() {
             @Override
-            public void fire(Activity o) {
-                new AlertDialog.Builder(o)
-                        .setTitle("HermesAgent热发代码加载失败")
-                        .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +
-                                "有两个常见原因可能引发这个问题，请check:\n" +
-                                "1.您的Android studio开启了Instant Run，这会导致Xposed框架无法记载到正确的回调class" +
-                                "2.您安装了新代码之后，需要先打开一次HermesAgent的App，才能重启Android系统，否则Xposed会在init进程为HermesAgent的apk创建odex缓存。" +
-                                "  这会导致该文件创建者为root，进而再次热发代码的时候，普通进程没有remove老的odex文件缓存的权限，导致apk代码刷新失败 "
-                        )
-                        .setNeutralButton("我已知晓！", new DialogInterface.OnClickListener() {//添加普通按钮
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
+            public void fire(final Activity o) {
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        new AlertDialog.Builder(o)
+                                .setTitle("HermesAgent热发代码加载失败")
+                                .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +
+                                        "有两个常见原因可能引发这个问题，请check:\n" +
+                                        "1.您的Android studio开启了Instant Run，这会导致Xposed框架无法记载到正确的回调class\n" +
+                                        "2.您安装了新代码之后，需要先打开一次HermesAgent的App，才能重启Android系统，否则Xposed会在init进程为HermesAgent的apk创建odex缓存。" +
+                                        "  这会导致该文件创建者为root，进而再次热发代码的时候，普通进程没有remove老的odex文件缓存的权限，导致apk代码刷新失败 "
+                                )
+                                .setNeutralButton("我已知晓！", new DialogInterface.OnClickListener() {//添加普通按钮
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
 
-                            }
-                        })
-                        .create().show();
+                                    }
+                                })
+                                .create().show();
+                    }
+                }, 2000);
+
             }
         });
     }
@@ -349,32 +400,79 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 
     @Override
     public void initZygote(StartupParam startupParam) throws Throwable {
-        XposedReflectUtil.findAndHookOneMethod(android.content.ContentProvider.class, "enforceReadPermissionInner", new SingletonXC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (param.args.length <= 1) {
-                    return;
-                }
-                String callingPkg = APICommonUtils.safeToString(param.args[1]);
-                Log.i("weijia", callingPkg + " 申请：" + param.args[0] + " 的读取权限");
-                if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
-                    Log.i("weijia", "hermes  申请" + param.args[0] + " 的读取权限，直接放过");
-                    param.setResult(null);
-                }
+
+        Method enforceReadPermissionInnerMethod = null;
+        Method enforceWritePermissionInnerMethod = null;
+        for (Method method : ContentProvider.class.getDeclaredMethods()) {
+            if (method.getName().equals("enforceReadPermissionInner")
+                    && method.getParameterTypes().length == 3) {
+                enforceReadPermissionInnerMethod = method;
+                continue;
             }
-        });
-        XposedReflectUtil.findAndHookOneMethod(android.content.ContentProvider.class, "enforceWritePermissionInner", new SingletonXC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (param.args.length <= 1) {
-                    return;
-                }
-                String callingPkg = APICommonUtils.safeToString(param.args[1]);
-                if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
-                    Log.i("weijia", "hermes  申请" + param.args[0] + " 的写入权限，直接放过");
-                    param.setResult(null);
-                }
+            if (method.getName().equals("enforceWritePermissionInner")
+                    && method.getParameterTypes().length == 3) {
+                enforceWritePermissionInnerMethod = method;
             }
-        });
+        }
+
+        if (enforceReadPermissionInnerMethod != null) {
+            XposedBridge.hookMethod(enforceReadPermissionInnerMethod, new SingletonXC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    String callingPkg = null;
+                    Uri uri = null;
+                    for (Object p : param.args) {
+                        if (p instanceof String) {
+                            callingPkg = (String) p;
+                            continue;
+                        }
+                        if (p instanceof Uri) {
+                            uri = (Uri) p;
+                        }
+                    }
+                    if (callingPkg == null) {
+                        //系统在申请权限，会直接过
+                        return;
+                    }
+                    //if(uri == null){}
+                    Log.i("weijia", callingPkg + " 申请：" + uri + " 的读取权限");
+                    if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
+                        Log.i("weijia", "hermes  申请" + uri + " 的读取权限，直接放过");
+                        param.setResult(null);
+                    }
+                }
+            });
+
+        }
+
+        if (enforceWritePermissionInnerMethod != null) {
+            XposedBridge.hookMethod(enforceWritePermissionInnerMethod, new SingletonXC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    String callingPkg = null;
+                    Uri uri = null;
+                    for (Object p : param.args) {
+                        if (p instanceof String) {
+                            callingPkg = (String) p;
+                            continue;
+                        }
+                        if (p instanceof Uri) {
+                            uri = (Uri) p;
+                        }
+                    }
+                    if (callingPkg == null) {
+                        //系统在申请权限，会直接过
+                        return;
+                    }
+                    //if(uri == null){}
+                    Log.i("weijia", callingPkg + " 申请：" + uri + " 的写入权限");
+                    if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
+                        Log.i("weijia", "hermes  申请" + uri + " 的写入权限，直接放过");
+                        param.setResult(null);
+                    }
+                }
+            });
+
+        }
     }
 }

@@ -3,6 +3,8 @@ package com.virjar.hermes.hermesagent;
 import android.app.Application;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.google.common.base.Joiner;
 import com.raizlabs.android.dbflow.config.FlowManager;
@@ -31,6 +33,27 @@ public class HermesApplication extends Application {
         LogConfigurator.configure(this);
         FlowManager.init(this);
         fixXposedConfigFile();
+        rebootIfXposedStartupFailed();
+    }
+
+    public void rebootIfXposedStartupFailed() {
+        if (!CommonUtils.isSuAvailable()) {
+            log.warn("need root permission ");
+            return;
+        }
+        if (CommonUtils.isLocalTest()) {
+            return;
+        }
+        if (!CommonUtils.xposedStartSuccess) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    log.warn("xposed module startup failed ,reboot device");
+                    SUShell.run("reboot");
+                }
+            }, 120 * 1000);
+
+        }
     }
 
     private static String xposedModuleConfigFile = Constant.XPOSED_BASE_DIR + "conf/modules.list";

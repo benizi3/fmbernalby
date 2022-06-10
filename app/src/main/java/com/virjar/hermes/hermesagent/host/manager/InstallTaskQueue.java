@@ -136,6 +136,7 @@ public class InstallTaskQueue {
         //文件扫描，寻找满足条件的apk文件
         File targetApk = findTargetApk(context, serviceModel);
         if (targetApk != null) {
+            log.info("find a suitable target apk file， now install it");
             installTargetApk(targetApk);
             return;
         }
@@ -146,6 +147,7 @@ public class InstallTaskQueue {
             }
             doingSet.add(serviceModel.getTargetAppPackage());
         }
+        log.info("download target apk from url:{}", serviceModel.getTargetAppDownloadUrl());
         //download
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(serviceModel.getTargetAppDownloadUrl()));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
@@ -160,6 +162,7 @@ public class InstallTaskQueue {
         }
         long id = downManager.enqueue(request);
         doingTasks.put(id, serviceModel);
+        log.info("download task enqueued,task id:{}", id);
     }
 
 
@@ -174,6 +177,7 @@ public class InstallTaskQueue {
             log.warn("can not find download task model");
             return;
         }
+        log.info("download:{} success", downloadTaskMode.getTargetAppPackage());
         doingSet.remove(downloadTaskMode.getTargetAppPackage());
         DownloadManager.Query query = new DownloadManager.Query();
         query.setFilterById(id);
@@ -192,7 +196,7 @@ public class InstallTaskQueue {
             Toast.makeText(context, downloadTaskMode.getTargetAppPackage() + "download failed ,system error", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        log.info("download file path:{}", localFileName);
         File dir = new File(context.getFilesDir(), "agentApk");
         ApkMeta apkMeta = CommonUtils.getAPKMeta(new File(localFileName));
         if (apkMeta == null) {
@@ -226,8 +230,11 @@ public class InstallTaskQueue {
 
     private void installTargetApk(File apkFile) {
         //目前各种手段都无法静默越权安装，所以我们这里直接su了，反而简单一些
-        SUShell.run("pm installTargetApk -r " + apkFile.getAbsolutePath());
-        //apk 可能会复用，也就是说我们对版本进行降级，此时保持历史的apk可以快速生效
-        //FileUtils.deleteQuietly(apkFile);
+        log.info("install apk file:{}", apkFile.getAbsoluteFile());
+        File tempFile = new File("/data/local/tmp", apkFile.getName());
+        SUShell.run("cp " + apkFile.getAbsolutePath() + "  " + tempFile.getAbsolutePath());
+        SUShell.run("chmod 777 " + tempFile.getAbsolutePath());
+        SUShell.run("pm install -r " + tempFile.getAbsolutePath());
+        FileUtils.deleteQuietly(tempFile);
     }
 }

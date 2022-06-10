@@ -90,4 +90,6 @@ public interface Constant {
     String AGENT_INTERCEPTOR_PACKAGE = "com.virjar.hermes.hermesagent.plugin.interceptor";
     String HERMES_SETTING_INVOKE = "__hermes_inner_invoke";
     String HERMES_IGNORE_INTERCEPTOR_FILTER = "__hermes_ignore_interceptor_filter";
+
+    String hermesWrapperLogTag = "hermes_IPC_Invoke";
 }

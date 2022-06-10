@@ -64,32 +64,38 @@ public class LogConfigurator {
         encoder.start();
 
 
+        RollingFileAppender<ILoggingEvent> rollingFileAppender = hermesSystemLogAppender(context, log_dir, filePrefix);
+        rollingFileAppender.setEncoder(encoder);
+
+
         LogcatAppender logcatAppender = new LogcatAppender();
         logcatAppender.setContext(context);
         logcatAppender.setEncoder(encoder);
         logcatAppender.setName("logcat1");
         logcatAppender.start();
 
-        RollingFileAppender<ILoggingEvent> rollingFileAppender = hermesSystemLogAppender(context, log_dir, filePrefix);
-        rollingFileAppender.setEncoder(encoder);
-
-        // add the newly created appenders to the root logger;
-        // qualify Logger to disambiguate from org.slf4j.Logger
-        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.INFO);
-        root.addAppender(rollingFileAppender);
-        root.addAppender(logcatAppender);
-
-        // print any status messages (warnings, etc) encountered in logback config
-        //StatusPrinter.print(context);
-
         //对运行日志，单独设置规则
-        ch.qos.logback.classic.Logger wrapperLogger = (Logger) LoggerFactory.getLogger(APICommonUtils.class);
+        Logger wrapperLogger = (Logger) LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
         wrapperLogger.setLevel(Level.INFO);
         RollingFileAppender<ILoggingEvent> wrapperAppender = wrapperLogAppender(context, log_dir, filePrefix);
         wrapperAppender.setEncoder(encoder);
         wrapperLogger.addAppender(wrapperAppender);
         wrapperLogger.addAppender(logcatAppender);
+        wrapperLogger.setAdditive(false);
+        wrapperAppender.start();
+
+        // add the newly created appenders to the root logger;
+        // qualify Logger to disambiguate from org.slf4j.Logger
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+        root.addAppender(rollingFileAppender);
+        root.addAppender(logcatAppender);
+        rollingFileAppender.start();
+
+        // print any status messages (warnings, etc) encountered in logback config
+        //StatusPrinter.print(context);
+
+
     }
 
     private static RollingFileAppender<ILoggingEvent> wrapperLogAppender(LoggerContext context, String log_dir, String filePrefix) {
@@ -115,7 +121,6 @@ public class LogConfigurator {
         rollingFileAppender.setTriggeringPolicy(sizeBasedTriggeringPolicy);
 
         //rollingFileAppender.setEncoder(encoder);
-        rollingFileAppender.start();
         return rollingFileAppender;
     }
 
@@ -139,7 +144,7 @@ public class LogConfigurator {
         rollingFileAppender.setRollingPolicy(rollingPolicy);
 
         //rollingFileAppender.setEncoder(encoder);
-        rollingFileAppender.start();
+        //rollingFileAppender.start();
         return rollingFileAppender;
     }
 

@@ -12,6 +12,7 @@ import com.virjar.hermes.hermesagent.bean.ReportModel;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
+import com.virjar.hermes.hermesagent.host.http.HttpServerStartupEvent;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
@@ -51,8 +52,7 @@ public class ReportTask extends LoggerTimerTask {
         this.fontService = fontService;
     }
 
-    @Override
-    public void doRun() {
+    private void report() {
         ReportModel reportModel = new ReportModel();
         reportModel.setAgentServerIP(APICommonUtils.getLocalIp());
         reportModel.setAgentServerPort(HttpServer.getInstance().getHttpServerPort());
@@ -90,6 +90,17 @@ public class ReportTask extends LoggerTimerTask {
                     return;
                 }
                 handleServiceConfig(responseContent);
+            }
+        });
+    }
+
+    @Override
+    public void doRun() {
+        //http服务没有启动起来，就不要上报，因为这个时候服务还不是可用状态
+        HttpServer.getInstance().onHttpServerStartUp(new HttpServerStartupEvent() {
+            @Override
+            public void onHttpServerStartUp(HttpServer httpServer) {
+                report();
             }
         });
     }

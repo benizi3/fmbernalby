@@ -23,6 +23,7 @@ import com.virjar.hermes.hermesagent.host.service.PingWatchTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.SUShell;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,10 +80,12 @@ public class AgentWatchTask extends LoggerTimerTask {
         PackageManager packageManager = context.getPackageManager();
         Set<String> runningProcess = runningProcess(context);
 
-        for (ServiceModel testInstallApp : needInstallApps) {
+        Iterator<ServiceModel> iterator = needInstallApps.iterator();
+        while (iterator.hasNext()) {
+            ServiceModel testInstallApp = iterator.next();
             try {
                 PackageInfo packageInfo = packageManager.getPackageInfo(testInstallApp.getTargetAppPackage(), PackageManager.GET_META_DATA);
-                needInstallApps.remove(testInstallApp);
+                iterator.remove();
 
                 if (testInstallApp.getTargetAppVersionCode() != packageInfo.versionCode) {
                     log.info("target:{} app versionCode update, uninstall it", testInstallApp.getTargetAppPackage());
@@ -99,13 +102,14 @@ public class AgentWatchTask extends LoggerTimerTask {
                     log.warn("手机未联网");
                     continue;
                 }
-                log.warn("start app：" + testInstallApp);
+                log.warn("start app：" + testInstallApp.getTargetAppPackage());
                 Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(testInstallApp.getTargetAppPackage());
                 context.startActivity(launchIntentForPackage);
             } catch (PackageManager.NameNotFoundException e) {
                 //ignore
             }
         }
+
 
         for (ServiceModel needInstall : needInstallApps) {
             InstallTaskQueue.getInstance().installTargetApk(needInstall, context);

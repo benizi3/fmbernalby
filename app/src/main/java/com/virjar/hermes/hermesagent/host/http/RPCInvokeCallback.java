@@ -30,6 +30,8 @@ import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.util.Map;
@@ -42,10 +44,11 @@ import lombok.extern.slf4j.Slf4j;
  * Created by virjar on 2018/8/24.<br>
  * 处理外部RPC请求的handler
  */
-@Slf4j
 public class RPCInvokeCallback implements HttpServerRequestCallback {
     private FontService fontService;
     private J2Executor j2Executor;
+
+    private static final Logger log = LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
 
     RPCInvokeCallback(FontService fontService, J2Executor j2Executor) {
         this.fontService = fontService;
@@ -90,7 +93,6 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
                         try {
                             String logMessage = " startTime: " + invokeStartTimestamp + "  params:" + invokeRequest.getParamContent(false);
                             APICommonUtils.requestLogI(invokeRequest, logMessage);
-                            log.info(logMessage);
                             invokeResult = hookAgent.invoke(invokeRequest);
                             if (invokeResult == null) {
                                 APICommonUtils.requestLogW(invokeRequest, " agent return null object");
@@ -120,7 +122,6 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
                             if (invokeResult != null) {
                                 String logMessage = "invoke result: " + invokeResult.getTheData();
                                 APICommonUtils.requestLogI(invokeRequest, logMessage);
-                                log.info(logMessage);
                                 String needDeleteFile = invokeResult.needDeleteFile();
                                 if (needDeleteFile != null) {
                                     try {
