@@ -94,6 +94,7 @@ A: 这可能是hermes拆解小米神隐模式失败导致的，hermes daemon会�
 5. 内网穿透方案，考虑Android手机运行在私有网络，server在公有网络。server可以转发invoke请求到达处于私有网络下面的Android手机中
 6. 定时重启adb远程服务，（done）
 7. 小米系统，powerKeeper换一个姿势解决，后续发现，powerKeeper是通过定时任务，从数据库里面拿出配置，然后封禁网络。所以可以直接拦截powerKeeper定时任务，而不是去修改powerKeeper的数据库
+8. bug: http://www.cnblogs.com/panchanggui/p/9436348.html RFC3986规定，param中，可以使用"+"或则"%20"表示空格，所以在参数解码的时候，需要将"+"翻译成空格，目前没有做这个工作，这会导致参数传递过程发生问题
 ```
 10-11 21:16:11.449  4801  5468 D PowerKeeperConfigureProvider: appActiveTable insert 1
 10-11 21:16:11.451  4801  5468 D ActiveStateController: updateRuleForUidLocked, uid = 1001 property = 1

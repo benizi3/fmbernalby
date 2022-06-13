@@ -104,17 +104,27 @@ public class InstallTaskQueue {
     }
 
 
-    public void installWrapper(final ServiceModel serviceModel, Context context) {
+    /**
+     * install a wrapper
+     *
+     * @param serviceModel task model
+     * @param context      the android context
+     * @return true if the wrapper exist already
+     */
+    public boolean installWrapper(final ServiceModel serviceModel, Context context) {
+        log.info("get a wrapper install task:{}", serviceModel.getTargetAppPackage());
         File wrapper = findWrapper(serviceModel);
         if (wrapper != null) {
-            return;
+            log.info("find a suitable wrapper apk file,skip to install it");
+            return false;
         }
         synchronized (this) {
             if (doingSet.contains(serviceModel.getWrapperPackage())) {
-                return;
+                return true;
             }
             doingSet.add(serviceModel.getWrapperPackage());
         }
+        log.info("download wrapper apk from url:{}", serviceModel.getWrapperAppDownloadUrl());
         //download
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(serviceModel.getWrapperAppDownloadUrl()));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
@@ -129,6 +139,8 @@ public class InstallTaskQueue {
         }
         long id = downManager.enqueue(request);
         doingTasks.put(id, serviceModel);
+        log.info("download task enqueued,task id:{}", id);
+        return true;
     }
 
     public void installTargetApk(final ServiceModel serviceModel, Context context) {
@@ -187,6 +199,7 @@ public class InstallTaskQueue {
                 localFileName = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME));
                 int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
                 if (status == DownloadManager.STATUS_FAILED) {
+                    log.warn("{} download failed ", downloadTaskMode.getTargetAppPackage());
                     Toast.makeText(context, downloadTaskMode.getTargetAppPackage() + "download failed ", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -206,8 +219,15 @@ public class InstallTaskQueue {
         if (StringUtils.equals(apkMeta.getPackageName(), downloadTaskMode.getWrapperPackage())) {
             //下载的wrapper，wrapper不需要安装，移动到对wrapper目录文件夹下面即可
             try {
-                FileUtils.moveFile(new File(localFileName), new File(CommonUtils.HERMES_WRAPPER_DIR, "hermes_wrapper_app_" +
-                        apkMeta.getPackageName() + "_" + apkMeta.getVersionName() + "_" + apkMeta.getVersionCode() + ".apk"));
+                File wrapperPath = new File(CommonUtils.HERMES_WRAPPER_DIR, "hermes_wrapper_app_" +
+                        apkMeta.getPackageName() + "_" + apkMeta.getVersionName() + "_" + apkMeta.getVersionCode() + ".apk");
+                log.info("download wrapper success , now install it to path:{}", wrapperPath.getAbsoluteFile());
+                FileUtils.moveFile(new File(localFileName), wrapperPath);
+                log.info("grant access privilege for target app..");
+                //需要设置为可读写，否则其他app无法
+                SUShell.run("chmod 777 " + wrapperPath.getParentFile().getAbsolutePath());
+                SUShell.run("chmod 777 " + wrapperPath.getAbsolutePath());
+                log.info("wrapper install succe ss");
             } catch (IOException e) {
                 log.error("install wrapper failed", e);
                 //TODO eat it now
@@ -236,5 +256,6 @@ public class InstallTaskQueue {
         SUShell.run("chmod 777 " + tempFile.getAbsolutePath());
         SUShell.run("pm install -r " + tempFile.getAbsolutePath());
         FileUtils.deleteQuietly(tempFile);
+        log.info("apk install success");
     }
 }

@@ -216,8 +216,14 @@ public class CommonUtils {
 
     private static final String ACCESS_EXTERNAL_DTD = "http://javax.xml.XMLConstants/property/accessExternalDTD";
     private static final String ACCESS_EXTERNAL_SCHEMA = "http://javax.xml.XMLConstants/property/accessExternalSchema";
-    private static final String FEATURE_LOAD_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
-    private static final String FEATURE_DISABLE_DOCTYPE_DECL = "http://apache.org/xml/features/disallow-doctype-decl";
+//    private static final String FEATURE_LOAD_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
+//    private static final String FEATURE_DISABLE_DOCTYPE_DECL = "http://apache.org/xml/features/disallow-doctype-decl";
+//
+//    private static final String NAMESPACES =
+//            "http://xml.org/sax/features/namespaces";
+//
+//    private static final String VALIDATION =
+//            "http://xml.org/sax/features/validation";
 
     /**
      * @param data File to load into Document
@@ -230,8 +236,9 @@ public class CommonUtils {
             throws IOException, SAXException, ParserConfigurationException {
 
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        docFactory.setFeature(FEATURE_DISABLE_DOCTYPE_DECL, true);
-        docFactory.setFeature(FEATURE_LOAD_DTD, false);
+        //android 这里只支持NAMESPACES和VALIDATION这两个 feature
+//      docFactory.setFeature(FEATURE_DISABLE_DOCTYPE_DECL, true);
+//      docFactory.setFeature(FEATURE_LOAD_DTD, false);
 
         try {
             docFactory.setAttribute(ACCESS_EXTERNAL_DTD, " ");

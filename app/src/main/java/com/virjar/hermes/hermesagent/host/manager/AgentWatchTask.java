@@ -94,6 +94,7 @@ public class AgentWatchTask extends LoggerTimerTask {
                 }
 
                 if (runningProcess.contains(testInstallApp.getTargetAppPackage())) {
+                    log.info("target app:{} running ,but not register service, check if wrapper installed", testInstallApp.getTargetAppPackage());
                     needCheckWrapperApps.add(testInstallApp);
                     continue;
                 }
@@ -116,12 +117,16 @@ public class AgentWatchTask extends LoggerTimerTask {
         }
 
         for (ServiceModel needReInstall : needUnInstallApps) {
+            log.info("uninstall service:{}", needReInstall.getTargetAppPackage());
             SUShell.run("pm uninstall " + needReInstall.getTargetAppPackage());
             InstallTaskQueue.getInstance().installTargetApk(needReInstall, context);
         }
 
         for (ServiceModel needInstallWrapper : needCheckWrapperApps) {
-            InstallTaskQueue.getInstance().installWrapper(needInstallWrapper, context);
+            if (!InstallTaskQueue.getInstance().installWrapper(needInstallWrapper, context)) {
+                log.info("this wrapper install already, restart app again ");
+                CommonUtils.killService(needInstallWrapper.getTargetAppPackage());
+            }
         }
 
     }

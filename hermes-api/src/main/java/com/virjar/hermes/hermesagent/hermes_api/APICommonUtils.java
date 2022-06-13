@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
+import android.os.Process;
 import android.util.Log;
 
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
@@ -22,8 +23,17 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 
 public class APICommonUtils {
-    private static final Logger log = LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
+    private static final Logger log;
     private static AtomicLong fileSequence = new AtomicLong(1);
+
+    static {
+        if (Process.myPid() < Process.FIRST_APPLICATION_UID) {
+            Log.w("weijia", "you a use slf4j for system app, some bad things maybe occur,so i will redirect to logcat");
+            log = new LogCatLogger();
+        } else {
+            log = LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
+        }
+    }
 
     public static File genTempFile(Context context) {
         File cacheDir = context.getCacheDir();

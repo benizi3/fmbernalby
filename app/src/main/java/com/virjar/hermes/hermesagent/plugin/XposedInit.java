@@ -308,9 +308,13 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         LifeCycleFire.onFirstPageReady(new LifeCycleFire.OnFire<Activity>() {
             @Override
             public void fire(final Activity o) {
+
                 new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        if (o.isDestroyed()) {
+                            return;
+                        }
                         new AlertDialog.Builder(o)
                                 .setTitle("HermesAgent热发代码加载失败")
                                 .setMessage("Xposed模块热加载失败，热发代码可能不生效，\n" +

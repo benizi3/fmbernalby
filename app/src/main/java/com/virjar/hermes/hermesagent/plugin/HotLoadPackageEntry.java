@@ -205,12 +205,12 @@ public class HotLoadPackageEntry {
                 return StringUtils.endsWithIgnoreCase(name, ".apk");
             }
         })) {
-            //Log.i("weijia", "扫描插件文件:" + apkFile.getAbsolutePath());
+            //Log.i("weijia", "扫描插件文件:" + apkFilePath.getAbsolutePath());
             try (ApkFile apkFile = new ApkFile(apkFilePath)) {
                 Document androidManifestDocument = CommonUtils.loadDocument(apkFile.getManifestXml());
                 NodeList applicationNodeList = androidManifestDocument.getElementsByTagName("application");
                 if (applicationNodeList.getLength() == 0) {
-                    log.warn("the manifest xml file must has application node");
+                    Log.w("weijia", "the manifest xml file must has application node");
                     continue;
                 }
                 Element applicationItem = (Element) applicationNodeList.item(0);
@@ -232,10 +232,11 @@ public class HotLoadPackageEntry {
                     break;
                 }
                 if (StringUtils.isBlank(forTargetPackageName)) {
-                    log.warn("can not find hermes external wrapper target package config,please config it application->meta-data node");
+                    Log.w("weijia", "can not find hermes external wrapper target package config,please config it application->meta-data node");
                     continue;
                 }
                 if (!StringUtils.equals(forTargetPackageName, SharedObject.loadPackageParam.packageName)) {
+                   // Log.i("weijia", "文件不match，当前包名：" + SharedObject.loadPackageParam.packageName + " wrapper声明包名：" + forTargetPackageName);
                     continue;
                 }
 
@@ -244,7 +245,7 @@ public class HotLoadPackageEntry {
                 ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFilePath);
                 ret.addAll(transform(subClassVisitor.getSubClass()));
             } catch (Exception e) {
-                log.error("failed to load hermes-wrapper module", e);
+                Log.w("weijia", "failed to load hermes-wrapper module", e);
             }
         }
         return ret;
@@ -262,7 +263,7 @@ public class HotLoadPackageEntry {
                 try {
                     agentCallback = input.newInstance();
                 } catch (Exception e) {
-                    log.error("failed to load create plugin", e);
+                    Log.w("weijia", "failed to load create plugin", e);
                     return null;
                 }
                 return new EmbedWrapper() {
@@ -307,7 +308,7 @@ public class HotLoadPackageEntry {
                     }
 
                 } catch (InstantiationException | IllegalAccessException e) {
-                    log.error("failed to load create plugin", e);
+                    Log.w("weijia", "failed to load create plugin", e);
                 }
                 return null;
             }
