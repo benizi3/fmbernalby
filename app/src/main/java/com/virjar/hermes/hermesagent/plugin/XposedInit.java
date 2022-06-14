@@ -3,6 +3,7 @@ package com.virjar.hermes.hermesagent.plugin;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
 import android.app.Application;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -22,7 +23,6 @@ import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.models.AndroidProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
-import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
 import com.virjar.xposed_extention.LifeCycleFire;
@@ -52,45 +52,63 @@ import de.robv.android.xposed.callbacks.XCallback;
 public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit {
     private static final String TAG = "XposedInit";
 
-    public static String getTrack(Throwable e) {
-        StringBuilder msg = new StringBuilder("\n=============>\n");
-        while (e != null) {
-            StackTraceElement[] ste = e.getStackTrace();
-            for (StackTraceElement stackTraceElement : ste) {
-                msg.append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append(":").append(stackTraceElement.getLineNumber()).append("\n");
-            }
-            e = e.getCause();
-            if (e != null) {
-                msg.append("cause:").append(e.getMessage()).append("\n\n");
-            }
-        }
-        msg.append("<================\n");
-        return msg.toString();
-    }
+//    public static String getTrack(Throwable e) {
+//        StringBuilder msg = new StringBuilder("\n=============>\n");
+//        while (e != null) {
+//            StackTraceElement[] ste = e.getStackTrace();
+//            for (StackTraceElement stackTraceElement : ste) {
+//                msg.append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append(":").append(stackTraceElement.getLineNumber()).append("\n");
+//            }
+//            e = e.getCause();
+//            if (e != null) {
+//                msg.append("cause:").append(e.getMessage()).append("\n\n");
+//            }
+//        }
+//        msg.append("<================\n");
+//        return msg.toString();
+//    }
 
     @Override
-    public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
         //这个进程是传说中的system_server,拥有system权限
         if (StringUtils.equalsIgnoreCase(lpparam.processName, "android")) {
             fixMiUIStartPermissionFilter(lpparam);
-            toSystemAndPrivilegedApp(lpparam);
-            grantAllContentProviderPermission(lpparam);
+            toSystemAndPrivilegedApp();
+            grantAllContentProviderPermission();
             grantAllPackagePermission(lpparam);
 
-            Class<?> splashScreenClazz = ReflectUtil.findClassIfExists("com.miui.server.SplashScreenServiceDelegate", lpparam.classLoader);
-            if (splashScreenClazz != null) {
-                XposedHelpers.findAndHookMethod(splashScreenClazz, "isSplashPackage", String.class, new SingletonXC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        if (StringUtils.equals("com.miui.securitycenter", (CharSequence) param.args[0])) {
-                            Log.i("weijia", "start securitycenter:" + getTrack(new Throwable()));
-                        }
-                    }
-                });
-            }
+//            XposedHelpers.findAndHookMethod(Log.class, "w", String.class, String.class, new SingletonXC_MethodHook() {
+//                @Override
+//                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                    super.afterHookedMethod(param);
+//                    if (StringUtils.equalsAnyIgnoreCase((CharSequence) param.args[0], "ActivityManager")
+//                            && StringUtils.contains((CharSequence) param.args[1], "ConfirmStartActivity")) {
+//                        Log.i("weijia", "start securitycenter:" + getTrack(new Throwable()));
+//                    }
+//                }
+//            });
 
+//            Class slogClazz = Thread.currentThread().getContextClassLoader().loadClass("android.util.Slog");
+//
+//            XposedHelpers.findAndHookMethod(slogClazz, "w", String.class, String.class, new SingletonXC_MethodHook() {
+//                @Override
+//                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                    super.afterHookedMethod(param);
+//                    if (StringUtils.equalsAnyIgnoreCase((CharSequence) param.args[0], "ActivityManager")
+//                            && StringUtils.contains((CharSequence) param.args[1], "ConfirmStartActivity")) {
+//                        Log.i("weijia", "start securitycenter:" + getTrack(new Throwable()));
+//                    }
+//                }
+//            });
 
         }
+//
+//        if (lpparam.packageName.equals("com.miui.securitycenter")) {
+//            Log.i("weijia", "start securitycenter:" + lpparam.classLoader);
+//            Class<?> aClass = lpparam.classLoader.loadClass("com.miui.permcenter.r");
+//            Log.i("weijia", "app拉起设置：" + XposedHelpers.getStaticObjectField(aClass, "RI") + "     "
+//                    + XposedHelpers.getStaticObjectField(aClass, "RH"));
+//        }
 
 
 //        ClassLoadMonitor.addClassLoadMonitor("com.miui.powerkeeper.provider.PowerKeeperConfigureProvider", new ClassLoadMonitor.OnClassLoader() {
@@ -116,7 +134,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
             public void doOne(Class<?> clazz) {
                 XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
                     @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    protected void beforeHookedMethod(MethodHookParam param) {
                         hotLoadPlugin((Context) param.args[0], lpparam);
                     }
                 });
@@ -147,11 +165,18 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     }
 
     @SuppressLint("PrivateApi")
-    private void grantAllContentProviderPermission(XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", lpparam.classLoader);
+    private void grantAllContentProviderPermission() {
+        Class<?> activityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ActivityManagerService", Thread.currentThread().getContextClassLoader());
         if (activityManagerServiceClass == null) {
             try {
-                activityManagerServiceClass = XposedInit.class.getClassLoader().loadClass("com.android.server.am.ActivityManagerService");
+                activityManagerServiceClass = Context.class.getClassLoader().loadClass("com.android.server.am.ActivityManagerService");
+            } catch (ClassNotFoundException e) {
+                Log.e("weijia", "failed to load ActivityManagerService class", e);
+            }
+        }
+        if (activityManagerServiceClass == null) {
+            try {
+                activityManagerServiceClass = Class.forName("com.android.server.am.ActivityManagerService");
             } catch (ClassNotFoundException e) {
                 Log.e("weijia", "failed to load ActivityManagerService class", e);
             }
@@ -159,7 +184,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         if (activityManagerServiceClass != null) {
             XposedReflectUtil.findAndHookOneMethod(activityManagerServiceClass, "checkContentProviderPermissionLocked", new SingletonXC_MethodHook() {
                 @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                protected void beforeHookedMethod(MethodHookParam param) {
                     if (param.args.length < 2) {
                         return;
                     }
@@ -189,15 +214,15 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     /**
      * 讲hermes设置为PrivilegedApp的权限
      */
-    private void toSystemAndPrivilegedApp(XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> packageManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.pm.PackageManagerService", lpparam.classLoader);
+    private void toSystemAndPrivilegedApp() {
+        Class<?> packageManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.pm.PackageManagerService", Thread.currentThread().getContextClassLoader());
         if (packageManagerServiceClass == null) {
             Log.i("weijia", "grant hermes agent system permission failed");
             return;
         }
         XposedReflectUtil.findAndHookOneMethod(packageManagerServiceClass, "isPrivilegedApp", new SingletonXC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+            protected void beforeHookedMethod(MethodHookParam param) {
                 if (param.args.length == 0) {
                     return;
                 }
@@ -213,6 +238,19 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         });
     }
 
+    //这个class比较敏感，尽量不要调用其他工具类，否则可能连锁的触发各种class初始化反应。但是很多class环境无法在系统代码上面运行，所以一些工具类在XposedInit中单独实现
+    private static String getPackageName(Intent intent) {
+        Uri uri = intent.getData();
+        return (uri != null) ? uri.getSchemeSpecificPart() : null;
+    }
+
+    private static String safeToString(Object input) {
+        if (input == null) {
+            return null;
+        }
+        return input.toString();
+    }
+
     /**
      * 小米系统的各种权限拦截，统一拆解掉<br>
      * 小米系统拦截日志：<br>
@@ -225,18 +263,21 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
      */
     private void fixMiUIStartPermissionFilter(final XC_LoadPackage.LoadPackageParam lpparam) {
         Class<?> extraActivityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ExtraActivityManagerService", lpparam.classLoader);
+        if (extraActivityManagerServiceClass == null) {
+            extraActivityManagerServiceClass = ReflectUtil.findClassIfExists("com.android.server.am.ExtraActivityManagerService", Thread.currentThread().getContextClassLoader());
+        }
         if (extraActivityManagerServiceClass != null) {
             try {
                 XposedReflectUtil.findAndHookOneMethod(extraActivityManagerServiceClass, "isAllowedStartActivity", new SingletonXC_MethodHook() {
 
                     @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if (StringUtils.equalsIgnoreCase(APICommonUtils.safeToString(param.args[3]), BuildConfig.APPLICATION_ID)) {
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (StringUtils.equalsIgnoreCase(safeToString(param.args[3]), BuildConfig.APPLICATION_ID)) {
                             Log.i("weijia", "hermes 拉起apk的权限，强行打开");
                             param.setResult(true);
                         }
                         Object intentObject = param.args[2];
-                        if (intentObject instanceof Intent && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName((Intent) intentObject), BuildConfig.APPLICATION_ID)) {
+                        if (intentObject instanceof Intent && StringUtils.equalsIgnoreCase(getPackageName((Intent) intentObject), BuildConfig.APPLICATION_ID)) {
                             Log.i("weijia", "其他app拉起hermes的权限，强行打开");
                             param.setResult(true);
                         }
@@ -251,10 +292,13 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         //处理广播拦截  com.android.server.am.BroadcastQueueInjector
         // static  bool checkApplicationAutoStart (com.android.server.am.BroadcastQueue, com.android.server.am.ActivityManagerService, com.android.server.am.BroadcastRecord, android.content.pm.ResolveInfo);
         Class<?> broadcastQueueInjectorClass = ReflectUtil.findClassIfExists("com.android.server.am.BroadcastQueueInjector", lpparam.classLoader);
+        if (broadcastQueueInjectorClass == null) {
+            broadcastQueueInjectorClass = ReflectUtil.findClassIfExists("com.android.server.am.BroadcastQueueInjector", Thread.currentThread().getContextClassLoader());
+        }
         if (broadcastQueueInjectorClass != null) {
             XposedReflectUtil.findAndHookOneMethod(broadcastQueueInjectorClass, "checkApplicationAutoStart", new SingletonXC_MethodHook() {
                 @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                protected void beforeHookedMethod(MethodHookParam param) {
                     if (param.args.length < 2) {
                         return;
                     }
@@ -279,7 +323,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                     }
                     try {
                         Intent intent = (Intent) XposedHelpers.getObjectField(r, "intent");
-                        if (intent != null && StringUtils.equalsIgnoreCase(CommonUtils.getPackageName(intent), BuildConfig.APPLICATION_ID)) {
+                        if (intent != null && StringUtils.equalsIgnoreCase(getPackageName(intent), BuildConfig.APPLICATION_ID)) {
                             //HermesAgent触发的广播，均不拦截
                             Log.i("weijia", "HermesAgent触发的广播，均不拦截");
                             param.setResult(true);
@@ -338,7 +382,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     }
 
     private void hotLoadPlugin(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
-        ClassLoader hotClassLoader = replaceClassloader(context, lpparam);
+        ClassLoader hotClassLoader = replaceClassloader(context);
 
         Class<?> aClass;
         try {
@@ -361,7 +405,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
 
     }
 
-    private static ClassLoader replaceClassloader(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
+    private static ClassLoader replaceClassloader(Context context) {
         ClassLoader classLoader = XposedInit.class.getClassLoader();
 
         //find real apk location by package name
@@ -403,7 +447,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
     }
 
     @Override
-    public void initZygote(StartupParam startupParam) throws Throwable {
+    public void initZygote(StartupParam startupParam) {
 
         Method enforceReadPermissionInnerMethod = null;
         Method enforceWritePermissionInnerMethod = null;
@@ -422,7 +466,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         if (enforceReadPermissionInnerMethod != null) {
             XposedBridge.hookMethod(enforceReadPermissionInnerMethod, new SingletonXC_MethodHook() {
                 @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                protected void beforeHookedMethod(MethodHookParam param) {
                     String callingPkg = null;
                     Uri uri = null;
                     for (Object p : param.args) {
@@ -438,11 +482,13 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                         //系统在申请权限，会直接过
                         return;
                     }
-                    //if(uri == null){}
-                    Log.i("weijia", callingPkg + " 申请：" + uri + " 的读取权限");
                     if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
                         Log.i("weijia", "hermes  申请" + uri + " 的读取权限，直接放过");
-                        param.setResult(null);
+                        if (((Method) param.method).getReturnType() == Void.class) {
+                            param.setResult(null);
+                        } else {
+                            param.setResult(AppOpsManager.MODE_ALLOWED);
+                        }
                     }
                 }
             });
@@ -452,7 +498,7 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
         if (enforceWritePermissionInnerMethod != null) {
             XposedBridge.hookMethod(enforceWritePermissionInnerMethod, new SingletonXC_MethodHook() {
                 @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                protected void beforeHookedMethod(MethodHookParam param) {
                     String callingPkg = null;
                     Uri uri = null;
                     for (Object p : param.args) {
@@ -468,11 +514,13 @@ public class XposedInit implements IXposedHookLoadPackage, IXposedHookZygoteInit
                         //系统在申请权限，会直接过
                         return;
                     }
-                    //if(uri == null){}
-                    Log.i("weijia", callingPkg + " 申请：" + uri + " 的写入权限");
                     if (StringUtils.startsWithIgnoreCase(callingPkg, BuildConfig.APPLICATION_ID)) {
                         Log.i("weijia", "hermes  申请" + uri + " 的写入权限，直接放过");
-                        param.setResult(null);
+                        if (((Method) param.method).getReturnType() == Void.class) {
+                            param.setResult(null);
+                        } else {
+                            param.setResult(AppOpsManager.MODE_ALLOWED);
+                        }
                     }
                 }
             });

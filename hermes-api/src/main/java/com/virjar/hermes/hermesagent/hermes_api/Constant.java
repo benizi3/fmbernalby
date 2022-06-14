@@ -87,6 +87,7 @@ public interface Constant {
     String xposedBridgeApkFileName = "xposedbridge-release.apk";
 
     String MIUIPowerKeeperContentProviderURI = "content://com.miui.powerkeeper.configure/userTable";
+    String MIUIStartActivityRuleListProviderURI = "content://com.lbe.security.miui.permmgr/StartActivityRuleList";
     String AGENT_INTERCEPTOR_PACKAGE = "com.virjar.hermes.hermesagent.plugin.interceptor";
     String HERMES_SETTING_INVOKE = "__hermes_inner_invoke";
     String HERMES_IGNORE_INTERCEPTOR_FILTER = "__hermes_ignore_interceptor_filter";

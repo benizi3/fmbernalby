@@ -71,8 +71,8 @@ import okhttp3.Request;
 public class CommonUtils {
 
     public static boolean isLocalTest() {
-        //return BuildConfig.DEBUG;
-        return false;
+        return BuildConfig.DEBUG;
+        //return false;
     }
 
 
@@ -108,6 +108,11 @@ public class CommonUtils {
         String result = StringUtils.join(strings, "\r\n");
         log.info("command execute result:" + result);
         return result;
+    }
+
+    public static String getPackageName(Intent intent) {
+        Uri uri = intent.getData();
+        return (uri != null) ? uri.getSchemeSpecificPart() : null;
     }
 
 
@@ -380,11 +385,6 @@ public class CommonUtils {
         }
     }
 
-
-    public static String getPackageName(Intent intent) {
-        Uri uri = intent.getData();
-        return (uri != null) ? uri.getSchemeSpecificPart() : null;
-    }
 
     public static String genRequestID() {
         return "request_session_" + Thread.currentThread().getId() + "_" + System.currentTimeMillis();

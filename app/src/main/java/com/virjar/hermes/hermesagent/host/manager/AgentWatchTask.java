@@ -1,9 +1,13 @@
 package com.virjar.hermes.hermesagent.host.manager;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
 
@@ -13,7 +17,9 @@ import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.raizlabs.android.dbflow.sql.language.SQLite;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
@@ -46,6 +52,46 @@ public class AgentWatchTask extends LoggerTimerTask {
         this.fontService = fontService;
         this.allRemoteHookService = allRemoteHookService;
         this.context = context;
+    }
+
+    private void makeSureStartOtherAppPermissionOnMIUISecurityCenter(String packageName) {
+        if (!Build.BRAND.equalsIgnoreCase("xiaomi")) {
+            //非小米系统，不做该适配
+            return;
+        }
+        log.info("grant start other app for miui system");
+        Uri uri = Uri.parse(Constant.MIUIStartActivityRuleListProviderURI);
+        //CREATE TABLE StartActivityRuleList(_id INTEGER PRIMARY KEY AUTOINCREMENT, callerPkgName TEXT, calleePkgName TEXT, userSettings TINYINT);
+        try (Cursor cursor = context.getContentResolver().
+                query(uri, null, "callerPkgName=? and calleePkgName=?", new String[]{BuildConfig.APPLICATION_ID, packageName}, null)) {
+            if (cursor == null) {
+                log.warn("query StartActivityRuleList,get cursor failed");
+                //not happened
+                return;
+            }
+            if (cursor.moveToNext()) {
+                int id = cursor.getInt(cursor.getColumnIndex("_id"));
+                int userSettings = cursor.getInt(cursor.getColumnIndex("userSettings"));
+                if (userSettings != 0) {
+                    ContentValues contentValues = new ContentValues();
+                    contentValues.put("userSettings", 0);
+                    context.getContentResolver().update(uri,
+                            contentValues, "_id=?", new String[]{String.valueOf(id)});
+                    return;
+                }
+                log.info("start target app:{} permission setting already", packageName);
+            } else {
+                log.info("set start target app permission for package:{}", packageName);
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("callerPkgName", BuildConfig.APPLICATION_ID);
+                contentValues.put("calleePkgName", packageName);
+                contentValues.put("userSettings", 0);
+                context.getContentResolver().insert(uri, contentValues);
+            }
+        } catch (Exception e) {
+            //这个异常，暂时忽略，如果失败，则需要手动去开启后台网络权限
+            log.error("call miui system content provider failed", e);
+        }
     }
 
     @Override
@@ -103,6 +149,7 @@ public class AgentWatchTask extends LoggerTimerTask {
                     log.warn("手机未联网");
                     continue;
                 }
+                makeSureStartOtherAppPermissionOnMIUISecurityCenter(testInstallApp.getTargetAppPackage());
                 log.warn("start app：" + testInstallApp.getTargetAppPackage());
                 Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(testInstallApp.getTargetAppPackage());
                 context.startActivity(launchIntentForPackage);
