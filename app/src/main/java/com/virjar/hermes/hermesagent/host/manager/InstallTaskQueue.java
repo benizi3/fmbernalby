@@ -11,7 +11,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import net.dongliu.apk.parser.bean.ApkMeta;
 
@@ -225,8 +225,8 @@ public class InstallTaskQueue {
                 FileUtils.moveFile(new File(localFileName), wrapperPath);
                 log.info("grant access privilege for target app..");
                 //需要设置为可读写，否则其他app无法
-                SUShell.run("chmod 777 " + wrapperPath.getParentFile().getAbsolutePath());
-                SUShell.run("chmod 777 " + wrapperPath.getAbsolutePath());
+                Shell.SU.run("chmod 777 " + wrapperPath.getParentFile().getAbsolutePath());
+                Shell.SU.run("chmod 777 " + wrapperPath.getAbsolutePath());
                 log.info("wrapper install succe ss");
             } catch (IOException e) {
                 log.error("install wrapper failed", e);
@@ -252,9 +252,9 @@ public class InstallTaskQueue {
         //目前各种手段都无法静默越权安装，所以我们这里直接su了，反而简单一些
         log.info("install apk file:{}", apkFile.getAbsoluteFile());
         File tempFile = new File("/data/local/tmp", apkFile.getName());
-        SUShell.run("cp " + apkFile.getAbsolutePath() + "  " + tempFile.getAbsolutePath());
-        SUShell.run("chmod 777 " + tempFile.getAbsolutePath());
-        SUShell.run("pm install -r " + tempFile.getAbsolutePath());
+        Shell.SU.run("cp " + apkFile.getAbsolutePath() + "  " + tempFile.getAbsolutePath());
+        Shell.SU.run("chmod 777 " + tempFile.getAbsolutePath());
+        Shell.SU.run("pm install -r " + tempFile.getAbsolutePath());
         FileUtils.deleteQuietly(tempFile);
         log.info("apk install success");
     }

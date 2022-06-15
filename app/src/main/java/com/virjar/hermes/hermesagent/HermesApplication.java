@@ -11,14 +11,13 @@ import com.raizlabs.android.dbflow.config.FlowManager;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
-import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Iterator;
 import java.util.List;
 
-import eu.chainfire.libsuperuser.Shell;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -49,7 +48,7 @@ public class HermesApplication extends Application {
                 @Override
                 public void run() {
                     log.warn("xposed module startup failed ,reboot device");
-                    SUShell.run("reboot");
+                    Shell.SU.run("reboot");
                 }
             }, 120 * 1000);
 
@@ -103,6 +102,6 @@ public class HermesApplication extends Application {
         log.info("xposed installer模块地址维护有误，hermes自动修复hermes关联代码地址");
         xposedModules.add(sourcePath);
         String newConfig = Joiner.on("\\\n").join(xposedModules);
-        SUShell.run("echo \"" + newConfig + "\" > " + xposedModuleConfigFile);
+        Shell.SU.run("echo \"" + newConfig + "\" > " + xposedModuleConfigFile);
     }
 }

@@ -9,7 +9,7 @@ import android.support.annotation.Nullable;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.DaemonBinder;
 import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -67,7 +67,7 @@ public class DaemonService extends Service {
                 }
                 log.info("ping hermes http server failed,reboot devices");
 
-                SUShell.run("reboot");
+                Shell.SU.run("reboot");
             }
         }, 2000, 2 * 60 * 1000);
         return START_STICKY;

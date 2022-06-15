@@ -25,6 +25,7 @@ import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -39,7 +40,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import eu.chainfire.libsuperuser.Shell;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.Callback;

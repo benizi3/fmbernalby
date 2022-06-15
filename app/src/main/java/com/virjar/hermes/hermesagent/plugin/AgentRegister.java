@@ -18,10 +18,10 @@ import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import java.io.File;
 
-import eu.chainfire.libsuperuser.Shell;
 
 /**
  * Created by virjar on 2018/8/23.<br>

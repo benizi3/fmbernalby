@@ -18,8 +18,8 @@ import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
-import com.virjar.hermes.hermesagent.util.SUShell;
 import com.virjar.hermes.hermesagent.util.SamplerUtils;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -182,6 +182,6 @@ public class ReportTask extends LoggerTimerTask {
             return;
         }
         log.info("can not connect hermes admin,maybe network config error,now restart device");
-        SUShell.run("reboot");
+        Shell.SU.run("reboot");
     }
 }

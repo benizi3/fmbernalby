@@ -27,7 +27,7 @@ import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.service.PingWatchTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import java.util.Iterator;
 import java.util.List;
@@ -165,7 +165,7 @@ public class AgentWatchTask extends LoggerTimerTask {
 
         for (ServiceModel needReInstall : needUnInstallApps) {
             log.info("uninstall service:{}", needReInstall.getTargetAppPackage());
-            SUShell.run("pm uninstall " + needReInstall.getTargetAppPackage());
+            Shell.SU.run("pm uninstall " + needReInstall.getTargetAppPackage());
             InstallTaskQueue.getInstance().installTargetApk(needReInstall, context);
         }
 

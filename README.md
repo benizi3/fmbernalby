@@ -93,32 +93,9 @@ A: 这可能是hermes拆解小米神隐模式失败导致的，hermes daemon会�
 4. Hermes系统日志整理，目前hermes相关日志没有统一tag。无法方便排查Hermes本身的问题，需要考虑串联Hermes系统日志（done，区分业务日志和hermes系统日志，业务日志在logcat，系统日志存文件按小时拆分，12小时翻滚）
 5. 内网穿透方案，考虑Android手机运行在私有网络，server在公有网络。server可以转发invoke请求到达处于私有网络下面的Android手机中
 6. 定时重启adb远程服务，（done）
-7. 小米系统，powerKeeper换一个姿势解决，后续发现，powerKeeper是通过定时任务，从数据库里面拿出配置，然后封禁网络。所以可以直接拦截powerKeeper定时任务，而不是去修改powerKeeper的数据库
+7. 小米系统，powerKeeper换一个姿势解决，后续发现，powerKeeper是通过定时任务，从数据库里面拿出配置，然后封禁网络。所以可以直接拦截powerKeeper定时任务，而不是去修改powerKeeper的数据库(之前方案是有bug，现在修复之前的bug，且功能正常，不在尝试新方案)
 8. bug: http://www.cnblogs.com/panchanggui/p/9436348.html RFC3986规定，param中，可以使用"+"或则"%20"表示空格，所以在参数解码的时候，需要将"+"翻译成空格，目前没有做这个工作，这会导致参数传递过程发生问题
-```
-10-11 21:16:11.449  4801  5468 D PowerKeeperConfigureProvider: appActiveTable insert 1
-10-11 21:16:11.451  4801  5468 D ActiveStateController: updateRuleForUidLocked, uid = 1001 property = 1
-10-11 21:16:11.451  4801  5468 D PowerKeeperConfigureProvider: appActiveTable insert 2
-10-11 21:16:11.452  4801  5468 D ActiveStateController: updateRuleForUidLocked, uid = 1002 property = 1
-10-11 21:16:12.179  4801  5468 D PowerKeeper.KillControl: setUidState, uid = 10091 allow = true
-10-11 21:16:11.813   323  2801 D DnsProxyBlocker: add uid(10109) for Firewall
-10-11 21:16:11.813   323  2801 D DnsProxyBlocker: add uid(10110) for Firewall
-10-11 21:16:12.088  4801  5468 I PowerKeeper.KillControl: enable
-10-11 21:16:12.133  4801  5468 D PowerKeeper.KillControl: setUidState, uid = 10051 allow = true
-10-11 21:16:12.133  4801  5468 D PowerKeeper.KillControl: setUidState, uid = 10052 allow = true
-10-11 21:16:12.586  4801  5468 D PowerKeeper.FrozenApp: setUidState, uid = 10128 allow = true
-10-11 21:16:12.588  4801  5468 D PowerKeeper.FrozenApp: setUidState, uid = 10138 allow = true
-10-11 21:16:12.600  4801  5468 I PowerKeeper.Sensor: enable
-10-11 21:16:12.618  4801  5468 V PowerKeeper.Sensor: SensorController enable
-10-11 21:16:12.620  4801  5468 D PowerKeeper.Sensor: setUidState, uid = 10053 allow = true
-10-11 21:16:12.964  4801  5528 D PowerCheckerService: onBatteryChanged, mBatteryLevel = 91, status = 3, level = 91, plug = 2
-10-11 21:16:12.964  4801  5528 D PowerCheckerService: reset
-10-11 21:16:12.964  4801  5528 D PowerChecker.BaStats: setEnabledStateLocked, enable = true, reset = true
-10-11 21:16:12.964  4801  5528 D PowerChecker.BaStats: Updating network stats
-10-11 21:16:12.965  4801  5528 D PowerChecker.BaStats: update background network stats
-10-11 21:16:12.971  4801  5528 D PowerChecker.BaStats: uid 0: stats rx=617 tx=637 rxPackets=5 txPackets=10
 
-```
 
 #### 捐赠
 如果你觉得作者辛苦了，可以的话请我喝杯咖啡

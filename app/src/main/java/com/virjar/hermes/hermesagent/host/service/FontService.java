@@ -31,6 +31,7 @@ import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.DaemonBinder;
@@ -41,8 +42,7 @@ import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
 import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
-import com.virjar.hermes.hermesagent.util.SUShell;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 import com.virjar.xposed_extention.ClassScanner;
 
 import net.dongliu.apk.parser.ApkFile;
@@ -436,7 +436,7 @@ public class FontService extends Service {
                     log.warn("reboot command need root permission");
                     return;
                 }
-                SUShell.run("reboot");
+                Shell.SU.run("reboot");
             }
         }, 6 * 60 * 60 * 1000 + new Random().nextLong() % (6 * 60 * 60 * 1000), 12 * 60 * 60 * 100);
 
@@ -507,7 +507,7 @@ public class FontService extends Service {
                                 continue;
                             }
                             if (StringUtils.containsIgnoreCase(androidAppProcess.name, ":daemon")) {
-                                SUShell.run("kill -9 " + androidAppProcess.pid);
+                                Shell.SU.run("kill -9 " + androidAppProcess.pid);
                                 return;
                             }
                         }
