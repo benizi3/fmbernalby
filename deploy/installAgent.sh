@@ -59,10 +59,10 @@ offline_list=('')
 device_list_file="devices_list.txt"
 apk_location=`pwd`/../app/build/outputs/apk/release/app-release.apk
 
-device_list=`curl "http://10.8.126.249:5597/device/deviceIpList"`
+device_list=`curl "https://hermes.virjar.com/hermes/device/deviceIpList"`
 
 if [[ -z ${device_list} ]] ;then
-    device_list = `cat ${device_list_file}`
+    device_list=`cat ${device_list_file}`
     echo 'access online device list failed,use local config'
 fi
 
@@ -104,8 +104,8 @@ do
     echo "adb -s $line:4555 shell am start -n \"com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity\" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER"
     adb -s ${line}:4555 shell am start -n "com.virjar.hermes.hermesagent/com.virjar.hermes.hermesagent.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
     #adb -s $line:4555 shell am broadcast -a android.intent.action.PACKAGE_REPLACED -n de.robv.android.xposed.installer/de.robv.android.xposed.installer.receivers.PackageChangeReceiver
-    #echo 'sleep 10s ,wait for hermes http server startup'
-    #sleep 10s
+    echo 'sleep 10s ,wait for hermes http server startup'
+    sleep 10s
     #这里超时时间设置的长一些，因为hermes刚刚安装重启，可能需要一点时间http服务才会开启。hermesAgent的安装，需要重启所有slave
 
     #echo "curl --connect-timeout 10 \"http://$line:5597/reloadService\""

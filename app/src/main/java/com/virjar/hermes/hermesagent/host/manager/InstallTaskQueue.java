@@ -155,6 +155,7 @@ public class InstallTaskQueue {
 
         synchronized (this) {
             if (doingSet.contains(serviceModel.getTargetAppPackage())) {
+                log.info("the download task enqueued already,skip scheduler");
                 return;
             }
             doingSet.add(serviceModel.getTargetAppPackage());
@@ -189,7 +190,7 @@ public class InstallTaskQueue {
             log.warn("can not find download task model");
             return;
         }
-        log.info("download:{} success", downloadTaskMode.getTargetAppPackage());
+        log.info("download:{} callback", downloadTaskMode.getTargetAppPackage());
         doingSet.remove(downloadTaskMode.getTargetAppPackage());
         DownloadManager.Query query = new DownloadManager.Query();
         query.setFilterById(id);
@@ -199,7 +200,9 @@ public class InstallTaskQueue {
                 localFileName = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME));
                 int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
                 if (status == DownloadManager.STATUS_FAILED) {
-                    log.warn("{} download failed ", downloadTaskMode.getTargetAppPackage());
+                    String failedReason = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_REASON));
+
+                    log.warn("{} download failed ,reason:{}", downloadTaskMode.getTargetAppPackage(), failedReason);
                     Toast.makeText(context, downloadTaskMode.getTargetAppPackage() + "download failed ", Toast.LENGTH_SHORT).show();
                     return;
                 }

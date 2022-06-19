@@ -34,11 +34,11 @@ public interface Constant {
 
     //String serverHost = "hermesadmin.virjar.com";
     //10.8.126.249为测试服务器地址，暂时使用这个
-    String serverHost = "10.8.126.249";
+    //String serverHost = "10.8.126.249";
     int serverHttpPort = 5597;
     int serverNettyPort = 5598;
 
-    String serverBaseURL = "http://" + serverHost + ":" + serverHttpPort;
+    String serverBaseURL = "https://content.bytedance.net/hermes";
     String reportPath = "/device/report";
     String getConfigPath = "/device/deviceConfig";
     String downloadPath = "/targetApp/download";

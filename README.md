@@ -95,7 +95,38 @@ A: 这可能是hermes拆解小米神隐模式失败导致的，hermes daemon会�
 6. 定时重启adb远程服务，（done）
 7. 小米系统，powerKeeper换一个姿势解决，后续发现，powerKeeper是通过定时任务，从数据库里面拿出配置，然后封禁网络。所以可以直接拦截powerKeeper定时任务，而不是去修改powerKeeper的数据库(之前方案是有bug，现在修复之前的bug，且功能正常，不在尝试新方案)
 8. bug: http://www.cnblogs.com/panchanggui/p/9436348.html RFC3986规定，param中，可以使用"+"或则"%20"表示空格，所以在参数解码的时候，需要将"+"翻译成空格，目前没有做这个工作，这会导致参数传递过程发生问题
-
+9. watch dog,目前hermesagent相关组件能够稳定的保活，但是可能出现system_server出现假死，如：
+```
+W/BroadcastQueue(  759): android.os.DeadObjectException
+W/BroadcastQueue(  759): 	at android.os.BinderProxy.transactNative(Native Method)
+W/BroadcastQueue(  759): 	at android.os.BinderProxy.transact(Binder.java:504)
+W/BroadcastQueue(  759): 	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1128)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:506)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:620)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:874)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:654)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:186)
+W/BroadcastQueue(  759): 	at android.os.Handler.dispatchMessage(Handler.java:111)
+W/BroadcastQueue(  759): 	at android.os.Looper.loop(Looper.java:194)
+W/BroadcastQueue(  759): 	at android.os.HandlerThread.run(HandlerThread.java:61)
+W/BroadcastQueue(  759): 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+W/BroadcastQueue(  759): Failure sending broadcast Intent { act=android.intent.action.SCREEN_OFF flg=0x50000010 }
+W/BroadcastQueue(  759): android.os.DeadObjectException
+W/BroadcastQueue(  759): 	at android.os.BinderProxy.transactNative(Native Method)
+W/BroadcastQueue(  759): 	at android.os.BinderProxy.transact(Binder.java:504)
+W/BroadcastQueue(  759): 	at android.app.ApplicationThreadProxy.scheduleRegisteredReceiver(ApplicationThreadNative.java:1128)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.performReceiveLocked(BroadcastQueue.java:506)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.deliverToRegisteredReceiverLocked(BroadcastQueue.java:620)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:874)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue.processNextBroadcast(BroadcastQueue.java:654)
+W/BroadcastQueue(  759): 	at com.android.server.am.BroadcastQueue$BroadcastHandler.handleMessage(BroadcastQueue.java:186)
+W/BroadcastQueue(  759): 	at android.os.Handler.dispatchMessage(Handler.java:111)
+W/BroadcastQueue(  759): 	at android.os.Looper.loop(Looper.java:194)
+W/BroadcastQueue(  759): 	at android.os.HandlerThread.run(HandlerThread.java:61)
+W/BroadcastQueue(  759): 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+W/BroadcastQueue(  759): Failure sending broadcast Intent { act=android.intent.action.SCREEN_OFF flg=0x50000010 }
+```
+此时通过系统API相关机制来保活貌似搞不定。所以需要提供一个linux独立进程保活
 
 #### 捐赠
 如果你觉得作者辛苦了，可以的话请我喝杯咖啡

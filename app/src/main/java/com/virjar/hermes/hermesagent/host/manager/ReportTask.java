@@ -111,9 +111,9 @@ public class ReportTask extends LoggerTimerTask {
             log.error(jsonObject.getString("message"));
             return;
         }
-        Map<Long, ServiceModel> historyModelMap = Maps.newHashMap();
+        Map<String, ServiceModel> historyModelMap = Maps.newHashMap();
         for (ServiceModel serviceModel : SQLite.select().from(ServiceModel.class).queryList()) {
-            historyModelMap.put(serviceModel.getServiceId(), serviceModel);
+            historyModelMap.put(serviceModel.getTargetAppPackage(), serviceModel);
         }
 
         JSONArray serviceList = jsonObject.getJSONArray("data");
@@ -152,9 +152,11 @@ public class ReportTask extends LoggerTimerTask {
                 }
             }
             if (isNew) {
+                log.info("a new config for target app:{},save it", serviceModel.getTargetAppPackage());
                 serviceModel.save();
             } else {
-                historyModelMap.remove(serviceModel.getServiceId());
+                log.info("exist config for target app:{} ,update if ", serviceModel.getTargetAppPackage());
+                historyModelMap.remove(serviceModel.getTargetAppPackage());
                 serviceModel.update();
             }
 
@@ -164,6 +166,7 @@ public class ReportTask extends LoggerTimerTask {
         }
         //disable service，if server not push config
         for (ServiceModel serviceModel : historyModelMap.values()) {
+            log.info("the service:{} not configured for admin,so offline it", serviceModel.getTargetAppPackage());
             serviceModel.setStatus(false);
             serviceModel.update();
         }
