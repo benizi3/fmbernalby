@@ -1,1 +1,1 @@
-include ':hermes-api', ':app', ':wrapper-weishi', ':xposedbridge'
+include ':hermes-api', ':app', ':xposedbridge'
