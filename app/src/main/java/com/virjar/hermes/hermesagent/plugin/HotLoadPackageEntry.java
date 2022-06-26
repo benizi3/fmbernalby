@@ -19,8 +19,6 @@ import com.virjar.hermes.hermesagent.hermes_api.AgentCallback;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
-import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
-import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.host.manager.AgentDaemonTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.xposed_extention.ClassScanner;
@@ -101,7 +99,12 @@ public class HotLoadPackageEntry {
                         setupInternalComponent();
                     }
                 });
-                String wrapperName = agentCallback.getClass().getName();
+                String wrapperName;
+                if (agentCallback instanceof ExternalWrapper) {
+                    wrapperName = ((ExternalWrapper) agentCallback).wrapperClassName();
+                } else {
+                    wrapperName = agentCallback.getClass().getName();
+                }
                 log.info("执行回调: {}", wrapperName);
                 //挂载钩子函数
                 agentCallback.onXposedHotLoad();
@@ -236,7 +239,7 @@ public class HotLoadPackageEntry {
                     continue;
                 }
                 if (!StringUtils.equals(forTargetPackageName, SharedObject.loadPackageParam.packageName)) {
-                   // Log.i("weijia", "文件不match，当前包名：" + SharedObject.loadPackageParam.packageName + " wrapper声明包名：" + forTargetPackageName);
+                    // Log.i("weijia", "文件不match，当前包名：" + SharedObject.loadPackageParam.packageName + " wrapper声明包名：" + forTargetPackageName);
                     continue;
                 }
 
@@ -266,27 +269,7 @@ public class HotLoadPackageEntry {
                     Log.w("weijia", "failed to load create plugin", e);
                     return null;
                 }
-                return new EmbedWrapper() {
-                    @Override
-                    public String targetPackageName() {
-                        return SharedObject.loadPackageParam.packageName;
-                    }
-
-                    @Override
-                    public boolean needHook(XC_LoadPackage.LoadPackageParam loadPackageParam) {
-                        return agentCallback.needHook(loadPackageParam);
-                    }
-
-                    @Override
-                    public InvokeResult invoke(InvokeRequest invokeRequest) {
-                        return agentCallback.invoke(invokeRequest);
-                    }
-
-                    @Override
-                    public void onXposedHotLoad() {
-                        agentCallback.onXposedHotLoad();
-                    }
-                };
+                return new ExternalWrapper(agentCallback, SharedObject.loadPackageParam.packageName);
             }
         }), new Predicate<EmbedWrapper>() {
             @Override

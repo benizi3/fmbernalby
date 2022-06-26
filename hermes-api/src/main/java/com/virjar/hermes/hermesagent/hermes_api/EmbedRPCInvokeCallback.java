@@ -17,7 +17,6 @@ import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
-import com.virjar.xposed_extention.SharedObject;
 
 import org.json.JSONObject;
 
@@ -42,17 +41,18 @@ public class EmbedRPCInvokeCallback implements HttpServerRequestCallback {
     @Override
     public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
         Map<String, String> innerParam = determineInnerParam(request);
-        final String invokePackage = innerParam.get(Constant.invokePackage);
-        if (invokePackage == null) {
-            log.warn(Constant.needInvokePackageParamMessage);
-            sendJSON(response, CommonRes.failed(Constant.status_need_invoke_package_param, Constant.needInvokePackageParamMessage));
-            return;
-        }
-        if (!invokePackage.equals(SharedObject.context.getPackageName())) {
-            sendJSON(response, CommonRes.failed("the wrapper only compatible with: " + SharedObject.context.getPackageName() +
-                    " your param is :" + invokePackage));
-            return;
-        }
+        //embedHermes，放过invoke package检查，这样可以方便调试
+//        final String invokePackage = innerParam.get(Constant.invokePackage);
+//        if (invokePackage == null) {
+//            log.warn(Constant.needInvokePackageParamMessage);
+//            sendJSON(response, CommonRes.failed(Constant.status_need_invoke_package_param, Constant.needInvokePackageParamMessage));
+//            return;
+//        }
+//        if (!invokePackage.equals(SharedObject.context.getPackageName())) {
+//            sendJSON(response, CommonRes.failed("the wrapper only compatible with: " + SharedObject.context.getPackageName() +
+//                    " your param is :" + invokePackage));
+//            return;
+//        }
 
         final InvokeRequest invokeRequest = buildInvokeRequest(request, innerParam);
         if (invokeRequest == null) {
