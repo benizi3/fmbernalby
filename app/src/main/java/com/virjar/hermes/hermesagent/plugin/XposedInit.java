@@ -81,7 +81,8 @@ public class XposedInit implements IXposedHookLoadPackage {
                 XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook(XCallback.PRIORITY_HIGHEST * 2) {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
-                        hotLoadPlugin((Context) param.args[0], lpparam);
+                        // hotLoadPlugin((Context) param.args[0], lpparam);
+                        hermesStartDirect((Context) param.args[0], lpparam);
                     }
                 });
             }
@@ -327,6 +328,17 @@ public class XposedInit implements IXposedHookLoadPackage {
         });
     }
 
+    private void hermesStartDirect(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
+        HotLoadPackageEntry.entry(context, lpparam);
+    }
+
+    /**
+     * 提供热加载功能，目前hermes agent已经很稳定，不在需要使用热加载功能了，所以每当重新安装了Hermes agent，那么需要重启手机才能生效
+     *
+     * @param context 一个全局的context，一般是Application对象
+     * @param lpparam xposed相关的入参，主要是提供了宿主app的classloader，可以通过他反射获取宿主的class
+     */
+    @SuppressWarnings("unused")
     private void hotLoadPlugin(Context context, XC_LoadPackage.LoadPackageParam lpparam) {
         ClassLoader hotClassLoader = replaceClassloader(context);
 
