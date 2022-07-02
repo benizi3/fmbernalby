@@ -388,7 +388,7 @@ public class CommonUtils {
         return "request_session_" + Thread.currentThread().getId() + "_" + System.currentTimeMillis();
     }
 
-    private static boolean suAvailable = Shell.SU.available();
+    private static Boolean suAvailable;
 
     public static boolean killService(String packageName) {
         //注意不能通过kill的rpc过去，需要强杀
@@ -409,6 +409,9 @@ public class CommonUtils {
     }
 
     public static boolean isSuAvailable() {
+        if (suAvailable == null) {
+            suAvailable = Shell.SU.available();
+        }
         return suAvailable;
     }
 
