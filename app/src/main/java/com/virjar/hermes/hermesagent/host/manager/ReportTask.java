@@ -132,6 +132,17 @@ public class ReportTask extends LoggerTimerTask {
             if (serviceModel == null) {
                 serviceModel = new ServiceModel();
                 isNew = true;
+            } else {
+                if (!serviceModel.getServiceId().equals(serviceItem.getLong("serviceId"))) {
+                    ServiceModel remove = historyModelMap.remove(serviceModel.getTargetAppPackage());
+                    if (remove != null) {
+                        log.info("serviceId change,server maybe redeploy,remove old config");
+                        remove.delete();
+                        serviceModel = new ServiceModel();
+                        isNew = true;
+
+                    }
+                }
             }
             boolean needReInstallWrapper = false;
             Long wrapperVersionCode = serviceItem.getLong("wrapperVersionCode");
@@ -155,7 +166,7 @@ public class ReportTask extends LoggerTimerTask {
                 log.info("a new config for target app:{},save it", serviceModel.getTargetAppPackage());
                 serviceModel.save();
             } else {
-                log.info("exist config for target app:{} ,update if ", serviceModel.getTargetAppPackage());
+                log.info("exist config for target app:{} ,update it ", serviceModel.getTargetAppPackage());
                 historyModelMap.remove(serviceModel.getTargetAppPackage());
                 serviceModel.update();
             }

@@ -10,6 +10,9 @@ import android.os.Build;
  */
 public interface Constant {
     int httpServerPort = 5597;
+    String killHermesAgentPath = "/killAgent";
+    String getAgentVersionCodePath = "/agentVersion";
+    String hermesLogPath = "/hermesAgentLog";
     String httpServerPingPath = "/ping";
     String startAppPath = "/startApp";
     String invokePath = "/invoke";

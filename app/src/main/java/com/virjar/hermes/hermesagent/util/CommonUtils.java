@@ -392,7 +392,7 @@ public class CommonUtils {
 
     public static boolean killService(String packageName) {
         //注意不能通过kill的rpc过去，需要强杀
-        Log.e("pingWatchTask", "app: " + packageName + " 假死，强杀该app");
+        log.info("kill app:{}", packageName);
         if (!isSuAvailable()) {
             Log.w("pingWatchTask", "无法杀死targetApp，请给HermesAgent分配root权限");
             return false;
@@ -401,6 +401,7 @@ public class CommonUtils {
         List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
         for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
             if (androidAppProcess.getPackageName().equalsIgnoreCase(packageName)) {
+                log.info("kill process:{}", androidAppProcess.name);
                 Shell.SU.run("kill -9 " + androidAppProcess.pid);
                 hinted = true;
             }

@@ -419,7 +419,7 @@ public class FontService extends Service {
             public void doRun() {
                 for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
                     try {
-                        log.info("杀死targetApp");
+                        log.info("杀死targetApp:{}", entry.getKey());
                         entry.getValue().killSelf();
                     } catch (RemoteException e) {
                         //ignore
@@ -446,6 +446,7 @@ public class FontService extends Service {
             @Override
             public void doRun() {
                 lastCheckTimerCheck = System.currentTimeMillis();
+                log.info("record times last alive timestamp:{}", lastCheckTimerCheck);
             }
         }, aliveCheckDuration, aliveCheckDuration);
         lastCheckTimerCheck = System.currentTimeMillis();

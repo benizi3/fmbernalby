@@ -171,7 +171,7 @@ public class AgentWatchTask extends LoggerTimerTask {
 
         for (ServiceModel needInstallWrapper : needCheckWrapperApps) {
             if (!InstallTaskQueue.getInstance().installWrapper(needInstallWrapper, context)) {
-                log.info("this wrapper install already, restart app again ");
+                log.info("this wrapper install already for app:{}, restart app again ", needInstallWrapper.getTargetAppPackage());
                 CommonUtils.killService(needInstallWrapper.getTargetAppPackage());
             }
         }

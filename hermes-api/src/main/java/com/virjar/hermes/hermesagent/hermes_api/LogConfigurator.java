@@ -30,6 +30,18 @@ import ch.qos.logback.core.util.FileSize;
 public class LogConfigurator {
 
     public static void configure(Context context) {
+        File logDirs = logDir(context);
+        try {
+            FileUtils.forceMkdir(logDirs);
+        } catch (IOException e) {
+            Log.e("weijia", "can not create log directory", e);
+            return;
+        }
+        final String PREFIX = "log";
+        configureLogbackDirectly(logDirs.getAbsolutePath(), PREFIX);
+    }
+
+    public static File logDir(Context context) {
         String processName = context.getPackageName();
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         if (activityManager != null) {
@@ -41,15 +53,7 @@ public class LogConfigurator {
             }
         }
         //还是由于进程问题，可能同一个app有用多个子进程，需要对进程做隔离，保证他们的日志文件不冲突
-        File logDirs = new File(context.getFilesDir(), "hermesLog_" + EscapeUtil.escape(processName));
-        try {
-            FileUtils.forceMkdir(logDirs);
-        } catch (IOException e) {
-            Log.e("weijia", "can not create log directory", e);
-            return;
-        }
-        final String PREFIX = "log";
-        configureLogbackDirectly(logDirs.getAbsolutePath(), PREFIX);
+        return new File(context.getFilesDir(), "hermesLog_" + EscapeUtil.escape(processName));
     }
 
     private static void configureLogbackDirectly(String log_dir, String filePrefix) {

@@ -32,9 +32,13 @@ public class HermesApplication extends Application {
         LogConfigurator.configure(this);
         FlowManager.init(this);
         fixXposedConfigFile();
-        rebootIfXposedStartupFailed();
+        if (!CommonUtils.xposedStartSuccess) {
+            log.error("component startup failed");
+        }
+        //rebootIfXposedStartupFailed();
     }
 
+    //实践发现，这一招没有效果。。。
     public void rebootIfXposedStartupFailed() {
         if (!CommonUtils.isSuAvailable()) {
             log.warn("need root permission ");

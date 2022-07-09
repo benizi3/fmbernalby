@@ -4,35 +4,43 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Process;
 import android.support.annotation.NonNull;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.jaredrummler.android.processes.AndroidProcesses;
+import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
+import com.virjar.hermes.hermesagent.hermes_api.Constant;
+import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.host.thread.NamedThreadFactory;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
-import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.util.HttpClientUtils;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
 import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -119,6 +127,9 @@ public class HttpServer {
         bindExecuteShellCommand();
         bindRestartADBDCommand();
         bindReloadServiceCommand();
+        agentVersionCommand();
+        hermesLogCommand();
+        killAgent();
 
         try {
             httpServerPort = Constant.httpServerPort;
@@ -196,6 +207,8 @@ public class HttpServer {
                 Hashtable<String, ArrayList<Object>> actions = ReflectUtil.getFieldValue(server, "mActions");
                 StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>Hermes</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermesagent\">https://gitee.com/virjar/hermesagent</a></p>");
                 html.append("<p>服务base地址：").append(baseURL).append("</p>");
+                html.append("<p>agent版本：").append(BuildConfig.VERSION_CODE).append("</p>");
+                html.append("<p>设备ID：").append(CommonUtils.deviceID(HttpServer.this.fontService)).append("</p>");
                 for (Hashtable.Entry<String, ArrayList<Object>> entry : actions.entrySet()) {
                     html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
                     html.append("<ul>");
@@ -356,6 +369,83 @@ public class HttpServer {
                     return;
                 }
                 response.send("true");
+            }
+        });
+    }
+
+    private void agentVersionCommand() {
+        server.get(Constant.getAgentVersionCodePath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                CommonUtils.sendJSON(response, CommonRes.success(BuildConfig.VERSION_CODE));
+            }
+        });
+    }
+
+    private void hermesLogCommand() {
+        server.get(Constant.hermesLogPath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                //日志接口，允许跨域，方便HermesAdmin直接在页面调取日志而不经过hermesAdmin的服务器转发
+                response.getHeaders().set("Access-Control-Allow-Origin", "*");
+                response.getHeaders().set("Access-Control-Expose-Headers", "Server,Content-Type,Last-Modified,ETag,Accept-Ranges,Content-Length,Date,Transfer-Encoding");
+                response.getHeaders().set("Content-Type", "text/plain;charset=utf8");
+                final File logDir = LogConfigurator.logDir(HttpServer.this.fontService);
+                if (!logDir.isDirectory() || !logDir.canWrite()) {
+                    response.send("no available log");
+                    return;
+                }
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        File[] hermesLogFiles = logDir.listFiles(new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return StringUtils.startsWith(name, "loghermes_system_");
+                            }
+                        });
+                        if (hermesLogFiles == null || hermesLogFiles.length == 0) {
+                            response.send("no available log");
+                            return;
+                        }
+                        File theLastFile = null;
+                        for (File candidateFile : hermesLogFiles) {
+                            if (theLastFile == null) {
+                                theLastFile = candidateFile;
+                                continue;
+                            }
+                            if (candidateFile.lastModified() > theLastFile.lastModified()) {
+                                theLastFile = candidateFile;
+                            }
+                        }
+                        log.info("get get log content ,use local file:{}", theLastFile.getAbsolutePath());
+                        response.sendFile(theLastFile);
+                    }
+                }, response).run();
+            }
+        });
+    }
+
+    private void killAgent() {
+        server.get(Constant.killHermesAgentPath, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                CommonUtils.sendJSON(response, CommonRes.success("command accepted!"));
+                new J2ExecutorWrapper(j2Executor.getOrCreate("shell", 1, 2), new Runnable() {
+                    @Override
+                    public void run() {
+                        List<AndroidAppProcess> runningAppProcesses = AndroidProcesses.getRunningAppProcesses();
+                        for (AndroidAppProcess androidAppProcess : runningAppProcesses) {
+                            if (androidAppProcess.name.equalsIgnoreCase(BuildConfig.APPLICATION_ID + ":daemon")) {
+                                Shell.SU.run("kill -9 " + androidAppProcess.pid);
+                            }
+                        }
+                        //先杀后台，再杀前台
+                        Shell.SU.run("kill -9 " + Process.myPid());
+                    }
+                }, response).run();
+
+
             }
         });
     }
