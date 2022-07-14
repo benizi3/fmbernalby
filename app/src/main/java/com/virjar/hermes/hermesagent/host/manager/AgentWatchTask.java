@@ -103,11 +103,19 @@ public class AgentWatchTask extends LoggerTimerTask {
             watchServiceMap.put(serviceModel.getTargetAppPackage(), serviceModel);
         }
 
+        Set<ServiceModel> needCheckWrapperApps = Sets.newHashSet();
+
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
             AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
             if (agentInfo != null) {
-                log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
+                if (agentInfo.getVersionCode() > 0 && watchServiceMap.get(agentInfo.getPackageName()).getWrapperVersionCode()
+                        != agentInfo.getVersionCode()) {
+                    log.info("the wrapper version update,need reinstall wrapper:{}", agentInfo.getPackageName());
+                    needCheckWrapperApps.add(watchServiceMap.get(agentInfo.getPackageName()));
+                } else {
+                    log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
+                }
                 onlineServices.add(agentInfo.getPackageName());
                 needRestartApp.remove(watchServiceMap.get(agentInfo.getPackageName()));
             }
@@ -121,7 +129,7 @@ public class AgentWatchTask extends LoggerTimerTask {
 
         Set<ServiceModel> needInstallApps = Sets.newHashSet(needRestartApp);
         Set<ServiceModel> needUnInstallApps = Sets.newHashSet();
-        Set<ServiceModel> needCheckWrapperApps = Sets.newHashSet();
+
 
         PackageManager packageManager = context.getPackageManager();
         Set<String> runningProcess = runningProcess(context);

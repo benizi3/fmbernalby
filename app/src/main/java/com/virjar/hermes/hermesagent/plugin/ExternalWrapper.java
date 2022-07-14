@@ -15,10 +15,12 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class ExternalWrapper implements EmbedWrapper {
     private AgentCallback delegate;
     private String targetPackageName;
+    private long versionCode;
 
-    ExternalWrapper(AgentCallback delegate, String targetPackageName) {
+    ExternalWrapper(AgentCallback delegate, String targetPackageName, long versionCode) {
         this.delegate = delegate;
         this.targetPackageName = targetPackageName;
+        this.versionCode = versionCode;
     }
 
     @Override
@@ -43,5 +45,9 @@ public class ExternalWrapper implements EmbedWrapper {
 
     String wrapperClassName() {
         return delegate.getClass().getName();
+    }
+
+    long wrapperVersionCode() {
+        return versionCode;
     }
 }

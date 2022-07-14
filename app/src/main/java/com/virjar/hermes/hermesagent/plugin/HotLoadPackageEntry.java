@@ -246,7 +246,7 @@ public class HotLoadPackageEntry {
                 String packageName = apkFile.getApkMeta().getPackageName();
                 ClassScanner.SubClassVisitor<AgentCallback> subClassVisitor = new ClassScanner.SubClassVisitor(true, AgentCallback.class);
                 ClassScanner.scan(subClassVisitor, Sets.newHashSet(packageName), apkFilePath);
-                ret.addAll(transform(subClassVisitor.getSubClass()));
+                ret.addAll(transform(subClassVisitor.getSubClass(), apkFile.getApkMeta().getVersionCode()));
             } catch (Exception e) {
                 Log.w("weijia", "failed to load hermes-wrapper module", e);
             }
@@ -254,7 +254,7 @@ public class HotLoadPackageEntry {
         return ret;
     }
 
-    private static List<EmbedWrapper> transform(List<Class<? extends AgentCallback>> classList) {
+    private static List<EmbedWrapper> transform(List<Class<? extends AgentCallback>> classList, final long versionCode) {
         return Lists.newArrayList(Iterables.filter(Iterables.transform(classList, new Function<Class<? extends AgentCallback>, EmbedWrapper>() {
             @Nullable
             @Override
@@ -269,7 +269,7 @@ public class HotLoadPackageEntry {
                     Log.w("weijia", "failed to load create plugin", e);
                     return null;
                 }
-                return new ExternalWrapper(agentCallback, SharedObject.loadPackageParam.packageName);
+                return new ExternalWrapper(agentCallback, SharedObject.loadPackageParam.packageName, versionCode);
             }
         }), new Predicate<EmbedWrapper>() {
             @Override

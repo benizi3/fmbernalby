@@ -35,12 +35,16 @@ public class AgentRegister {
 
         final IHookAgentService iHookAgentService = new IHookAgentService.Stub() {
             @Override
-            public AgentInfo ping() throws RemoteException {
-                return new AgentInfo(application.getPackageName(), application.getPackageName());
+            public AgentInfo ping() {
+                AgentInfo ret = new AgentInfo(application.getPackageName(), application.getPackageName());
+                if (agentCallback instanceof ExternalWrapper) {
+                    ret.setVersionCode(((ExternalWrapper) agentCallback).wrapperVersionCode());
+                }
+                return ret;
             }
 
             @Override
-            public InvokeResult invoke(InvokeRequest param) throws RemoteException {
+            public InvokeResult invoke(InvokeRequest param) {
                 try {
                     APICommonUtils.requestLogI(param, "handle IPC invoke request");
                     InvokeResult result = InvokeInterceptorManager.handleIntercept(param);
@@ -65,7 +69,7 @@ public class AgentRegister {
             }
 
             @Override
-            public void killSelf() throws RemoteException {
+            public void killSelf() {
                 new Thread() {
                     @Override
                     public void run() {
@@ -76,7 +80,7 @@ public class AgentRegister {
             }
 
             @Override
-            public void clean(String filePath) throws RemoteException {
+            public void clean(String filePath) {
                 File file = new File(filePath);
                 if (!file.exists()) {
                     return;

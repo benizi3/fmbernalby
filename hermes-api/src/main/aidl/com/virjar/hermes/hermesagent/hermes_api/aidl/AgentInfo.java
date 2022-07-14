@@ -11,10 +11,12 @@ import android.os.Parcelable;
 public class AgentInfo implements Parcelable {
     private String packageName;
     private String serviceAlis;
+    private long versionCode = -1;
 
     protected AgentInfo(Parcel in) {
         packageName = in.readString();
         serviceAlis = in.readString();
+        versionCode = in.readLong();
     }
 
     public AgentInfo(String packageName, String serviceAlis) {
@@ -43,6 +45,7 @@ public class AgentInfo implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(packageName);
         dest.writeString(serviceAlis);
+        dest.writeLong(versionCode);
     }
 
     public String getPackageName() {
@@ -51,5 +54,13 @@ public class AgentInfo implements Parcelable {
 
     public String getServiceAlis() {
         return serviceAlis;
+    }
+
+    public void setVersionCode(long versionCode) {
+        this.versionCode = versionCode;
+    }
+
+    public long getVersionCode() {
+        return versionCode;
     }
 }
