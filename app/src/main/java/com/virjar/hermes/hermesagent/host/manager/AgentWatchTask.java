@@ -121,7 +121,7 @@ public class AgentWatchTask extends LoggerTimerTask {
             }
         }
         fontService.setOnlineServices(onlineServices);
-        if (needRestartApp.size() == 0) {
+        if (needRestartApp.size() == 0 && needCheckWrapperApps.size() == 0) {
             log.info("all wrapper online");
             return;
         }
