@@ -41,7 +41,7 @@ public interface Constant {
     int serverHttpPort = 5597;
     int serverNettyPort = 5598;
 
-    String serverBaseURL = "https://content.bytedance.net/hermes";
+    String serverBaseURL = "http://www.virjar.com:5597";
     String reportPath = "/device/report";
     String getConfigPath = "/device/deviceConfig";
     String downloadPath = "/targetApp/download";

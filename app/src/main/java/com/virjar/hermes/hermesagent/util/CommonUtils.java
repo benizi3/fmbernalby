@@ -71,8 +71,8 @@ import okhttp3.Request;
 public class CommonUtils {
 
     public static boolean isLocalTest() {
-        return BuildConfig.DEBUG;
-        //return false;
+        //return BuildConfig.DEBUG;
+        return false;
     }
 
 
