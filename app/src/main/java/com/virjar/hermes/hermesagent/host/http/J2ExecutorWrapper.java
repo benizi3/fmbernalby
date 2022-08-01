@@ -3,6 +3,7 @@ package com.virjar.hermes.hermesagent.host.http;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
+import com.virjar.hermes.hermesagent.host.manager.DynamicRateLimitManager;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 
@@ -38,6 +39,7 @@ public class J2ExecutorWrapper {
             threadPoolExecutor.execute(runnable);
         } catch (RejectedExecutionException e) {
             log.warn(Constant.rateLimitedMessage);
+            DynamicRateLimitManager.getInstance().recordSubThreadPoolFull();
             CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_rate_limited, Constant.rateLimitedMessage));
         }
     }

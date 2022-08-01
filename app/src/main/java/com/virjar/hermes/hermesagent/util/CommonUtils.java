@@ -36,7 +36,6 @@ import net.dongliu.apk.parser.bean.ApkMeta;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -47,8 +46,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -71,19 +68,9 @@ import okhttp3.Request;
 public class CommonUtils {
 
     public static boolean isLocalTest() {
-        //return BuildConfig.DEBUG;
-        return false;
+        return BuildConfig.DEBUG;
+        //return false;
     }
-
-
-    public static String getStackTrack(Throwable throwable) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(byteArrayOutputStream));
-        throwable.printStackTrace(printWriter);
-        printWriter.close();
-        return byteArrayOutputStream.toString(Charsets.UTF_8);
-    }
-
 
     public static void sendJSON(AsyncHttpServerResponse response, CommonRes commonRes) {
         response.send(Constant.jsonContentType, JSONObject.toJSONString(commonRes));
@@ -101,6 +88,32 @@ public class CommonUtils {
                 .build();
     }
 
+    public static Throwable getRootCase(Throwable throwable) {
+        Throwable cause = throwable.getCause();
+        if (cause != null) {
+            return getRootCase(cause);
+        }
+        return throwable;
+    }
+
+    public static void restartWifiModule(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager == null) {
+            log.warn("find wifiManager failed");
+            return;
+        }
+        //wifiManager.reassociate();
+        if (!wifiManager.isWifiEnabled()) {
+            log.info("wifi disabled already");
+        } else {
+            log.info("disable wifi");
+            wifiManager.setWifiEnabled(false);
+        }
+        log.info("enable wifi");
+        wifiManager.setWifiEnabled(true);
+//        wifiManager.reconnect();
+//        wifiManager.reassociate();
+    }
 
     public static String execCmd(String cmd, boolean useRoot) {
         log.info("execute command:{" + cmd + "} useRoot:" + useRoot);
@@ -307,6 +320,8 @@ public class CommonUtils {
             //check if adb running on 4555 port
             if (checkTcpAdbRunning()) {
                 log.info("the adb service already running on " + Constant.ADBD_PORT);
+                //TODO
+                //Shell.SU.run("adb root");
                 return;
             }
             if (!CommonUtils.isSuAvailable()) {
@@ -420,35 +435,6 @@ public class CommonUtils {
         return suAvailable = Shell.SU.available();
     }
 
-
-    private static ClassLoader xposedBridgeClassLoader = null;
-
-    public static ClassLoader createXposedClassLoadBridgeClassLoader(Context context) {
-        if (xposedBridgeClassLoader != null) {
-            return xposedBridgeClassLoader;
-        }
-        synchronized (CommonUtils.class) {
-            if (xposedBridgeClassLoader != null) {
-                return xposedBridgeClassLoader;
-            }
-            File xposedBridgeApkFile = new File(context.getFilesDir(), Constant.xposedBridgeApkFileName);
-            if (!xposedBridgeApkFile.exists()) {
-                releaseXposedBridgeApkFile(context, xposedBridgeApkFile);
-            }
-            xposedBridgeClassLoader = new PathClassLoader(xposedBridgeApkFile.getAbsolutePath(), CommonUtils.class.getClassLoader());
-            return xposedBridgeClassLoader;
-        }
-    }
-
-    private static void releaseXposedBridgeApkFile(Context context, File xposedBridgeApkFile) {
-        AssetManager assets = context.getAssets();
-        try (InputStream inputStream = assets.open(Constant.xposedBridgeApkFileName)) {
-            IOUtils.copy(inputStream, new FileOutputStream(xposedBridgeApkFile));
-        } catch (IOException e) {
-            Log.e("weijia", "release xposed bridge apk file failed", e);
-            throw new IllegalStateException(e);
-        }
-    }
 
     public static void sleep(long duration) {
         if (duration <= 0) {

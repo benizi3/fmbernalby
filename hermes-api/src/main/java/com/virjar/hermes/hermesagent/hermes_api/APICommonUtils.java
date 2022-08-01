@@ -1,17 +1,16 @@
 package com.virjar.hermes.hermesagent.hermes_api;
 
 import android.content.Context;
-import android.os.Process;
-import android.util.Log;
 
+import com.google.common.base.Charsets;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -23,21 +22,12 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 
 public class APICommonUtils {
-    private static final Logger log;
-    private static AtomicLong fileSequence = new AtomicLong(1);
 
-    static {
-        if (Process.myPid() < Process.FIRST_APPLICATION_UID) {
-            Log.w("weijia", "you a use slf4j for system app, some bad things maybe occur,so i will redirect to logcat");
-            log = new LogCatLogger();
-        } else {
-            log = LoggerFactory.getLogger(Constant.hermesWrapperLogTag);
-        }
-    }
+    private static AtomicLong fileSequence = new AtomicLong(1);
 
     public static File genTempFile(Context context) {
         File cacheDir = context.getCacheDir();
-        File retFile = new File(cacheDir, "hermes_exchange_" + System.currentTimeMillis()
+        File retFile = new File(cacheDir, Constant.exchangeFilePreffx + System.currentTimeMillis()
                 + "_" + fileSequence.incrementAndGet()
                 + "_" + Thread.currentThread().getId());
         try {
@@ -51,6 +41,7 @@ public class APICommonUtils {
         return retFile;
     }
 
+
     public static void makeFileRW(File file) {
         try {
             int returnCode = Runtime.getRuntime().exec("chmod 666 " + file.getAbsolutePath()).waitFor();
@@ -62,30 +53,31 @@ public class APICommonUtils {
         }
     }
 
-
+    @Deprecated
     public static void requestLogI(InvokeRequest invokeRequest, String msg) {
-        log.info(buildMessageBody(invokeRequest, msg));
+        WrapperLog.requestLogI(invokeRequest, msg);
     }
 
+    @Deprecated
     public static void requestLogW(InvokeRequest invokeRequest, String msg, Throwable throwable) {
-        log.warn(buildMessageBody(invokeRequest, msg), throwable);
+        WrapperLog.requestLogW(invokeRequest, msg, throwable);
     }
 
+    @Deprecated
     public static void requestLogW(InvokeRequest invokeRequest, String msg) {
-        log.warn(buildMessageBody(invokeRequest, msg));
+        WrapperLog.requestLogW(invokeRequest, msg);
     }
 
+    @Deprecated
     public static void requestLogE(InvokeRequest invokeRequest, String msg, Throwable throwable) {
-        log.error(buildMessageBody(invokeRequest, msg), throwable);
+        WrapperLog.requestLogE(invokeRequest, msg, throwable);
     }
 
+    @Deprecated
     public static void requestLogE(InvokeRequest invokeRequest, String msg) {
-        log.error(buildMessageBody(invokeRequest, msg));
+        WrapperLog.requestLogE(invokeRequest, msg);
     }
 
-    private static String buildMessageBody(InvokeRequest invokeRequest, String msg) {
-        return invokeRequest.getRequestID() + " " + DateTime.now().toString("yyyy-MM-dd hh:mm:ss") + " " + msg;
-    }
 
     public static String safeToString(Object input) {
         if (input == null) {
@@ -122,7 +114,7 @@ public class APICommonUtils {
                 }
             }
         } catch (Exception e) {
-            log.warn("query local ip failed", e);
+            WrapperLog.getWrapperLogger().warn("query local ip failed", e);
         }
 
 
@@ -133,10 +125,18 @@ public class APICommonUtils {
     }
 
     public static String translateSimpleExceptionMessage(Throwable exception) {
-        String message = exception.getMessage();
-        if (message == null || message.trim().length() == 0) {
-            message = exception.getClass().getName();
+        String message = exception.getClass().getName();
+        if (exception.getMessage() != null && exception.getMessage().trim().length() >= 0) {
+            message += ":" + exception.getMessage().trim();
         }
         return message;
+    }
+
+    public static String getStackTrack(Throwable throwable) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(byteArrayOutputStream));
+        throwable.printStackTrace(printWriter);
+        printWriter.close();
+        return byteArrayOutputStream.toString(Charsets.UTF_8);
     }
 }

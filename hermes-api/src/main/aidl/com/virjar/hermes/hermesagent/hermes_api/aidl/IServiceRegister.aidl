@@ -8,4 +8,7 @@ interface IServiceRegister {
     void registerHookAgent(IHookAgentService hookAgentService);
     void unRegisterHookAgent(IHookAgentService hookAgentService);
     List<String> onlineService();
+    void notifyPingDuration(long duration);
+    void notifyPingFailed();
+    double systemScore();
 }

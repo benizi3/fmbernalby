@@ -22,6 +22,8 @@ import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
+import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel;
 import com.virjar.hermes.hermesagent.host.orm.ServiceModel_Table;
 import com.virjar.hermes.hermesagent.host.service.FontService;
@@ -94,6 +96,30 @@ public class AgentWatchTask extends LoggerTimerTask {
         }
     }
 
+    private void offlineAgent(String serverName, final IHookAgentService hookAgentService) {
+        allRemoteHookService.put(serverName, new IHookAgentService.Stub() {
+            @Override
+            public AgentInfo ping() throws RemoteException {
+                return hookAgentService.ping();
+            }
+
+            @Override
+            public InvokeResult invoke(InvokeRequest param) {
+                return InvokeResult.failed(Constant.status_service_not_available, "offline from hermes admin configuration");
+            }
+
+            @Override
+            public void killSelf() throws RemoteException {
+                hookAgentService.killSelf();
+            }
+
+            @Override
+            public void clean(String filePath) throws RemoteException {
+                hookAgentService.clean(filePath);
+            }
+        });
+    }
+
     @Override
     public void doRun() {
         List<ServiceModel> needRestartApp = SQLite.select().from(ServiceModel.class).where(ServiceModel_Table.status.is(true)).queryList();
@@ -104,21 +130,29 @@ public class AgentWatchTask extends LoggerTimerTask {
         }
 
         Set<ServiceModel> needCheckWrapperApps = Sets.newHashSet();
-
         Set<String> onlineServices = Sets.newHashSet();
         for (Map.Entry<String, IHookAgentService> entry : allRemoteHookService.entrySet()) {
-            AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
-            if (agentInfo != null) {
-                if (agentInfo.getVersionCode() > 0 && watchServiceMap.get(agentInfo.getPackageName()).getWrapperVersionCode()
-                        != agentInfo.getVersionCode()) {
-                    log.info("the wrapper version update,need reinstall wrapper:{}", agentInfo.getPackageName());
-                    needCheckWrapperApps.add(watchServiceMap.get(agentInfo.getPackageName()));
-                } else {
-                    log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
-                }
-                onlineServices.add(agentInfo.getPackageName());
-                needRestartApp.remove(watchServiceMap.get(agentInfo.getPackageName()));
+            if (!watchServiceMap.containsKey(entry.getKey())) {
+                log.info("the service:{} offline on hermes admin config,so reject invoke request", entry.getKey());
+                offlineAgent(entry.getKey(), entry.getValue());
+                continue;
             }
+            AgentInfo agentInfo = handleAgentHeartBeat(entry.getKey(), entry.getValue());
+            if (agentInfo == null) {
+                log.warn("heartbeat to service:{} failed", entry.getKey());
+                continue;
+            }
+            if (agentInfo.getVersionCode() > 0
+                    && watchServiceMap.containsKey(agentInfo.getPackageName())
+                    && watchServiceMap.get(agentInfo.getPackageName()).getWrapperVersionCode()
+                    != agentInfo.getVersionCode()) {
+                log.info("the wrapper version update,need reinstall wrapper:{}", agentInfo.getPackageName());
+                needCheckWrapperApps.add(watchServiceMap.get(agentInfo.getPackageName()));
+            } else {
+                log.info("the wrapper for app:{} is online,skip restart it", agentInfo.getPackageName());
+            }
+            onlineServices.add(agentInfo.getPackageName());
+            needRestartApp.remove(watchServiceMap.get(agentInfo.getPackageName()));
         }
         fontService.setOnlineServices(onlineServices);
         if (needRestartApp.size() == 0 && needCheckWrapperApps.size() == 0) {
@@ -142,7 +176,7 @@ public class AgentWatchTask extends LoggerTimerTask {
                 iterator.remove();
 
                 if (testInstallApp.getTargetAppVersionCode() != packageInfo.versionCode) {
-                    log.info("target:{} app versionCode update, uninstall it", testInstallApp.getTargetAppPackage());
+                    log.info("target:{} app versionCode update, uninstall it,target App version code:{}  now Version Code:{}", testInstallApp.getTargetAppPackage(), testInstallApp.getTargetAppVersionCode(), packageInfo.versionCode);
                     needUnInstallApps.add(testInstallApp);
                     continue;
                 }
@@ -179,8 +213,10 @@ public class AgentWatchTask extends LoggerTimerTask {
 
         for (ServiceModel needInstallWrapper : needCheckWrapperApps) {
             if (!InstallTaskQueue.getInstance().installWrapper(needInstallWrapper, context)) {
-                log.info("this wrapper install already for app:{}, restart app again ", needInstallWrapper.getTargetAppPackage());
-                CommonUtils.killService(needInstallWrapper.getTargetAppPackage());
+                if (!allRemoteHookService.containsKey(needInstallWrapper.getTargetAppPackage())) {
+                    log.info("this wrapper install already for app:{}, restart app again ", needInstallWrapper.getTargetAppPackage());
+                    CommonUtils.killService(needInstallWrapper.getTargetAppPackage());
+                }
             }
         }
 
@@ -213,9 +249,11 @@ public class AgentWatchTask extends LoggerTimerTask {
     private AgentInfo handleAgentHeartBeat(String targetPackageName, IHookAgentService hookAgentService) {
         //ping应该很快，如果25s都不能返回，那么肯定是假死了
         PingWatchTask pingWatchTask = new PingWatchTask(System.currentTimeMillis() + 1000 * 25, targetPackageName);
+        long start = System.currentTimeMillis();
         try {
             //如果targetApp假死，那么这个调用将会阻塞，需要监控这个任务的执行时间，如果长时间ping没有响应，那么需要强杀targetApp
             pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
+
             return hookAgentService.ping();
         } catch (DeadObjectException deadObjectException) {
             log.error("remote service dead,wait for re register");
@@ -225,6 +263,7 @@ public class AgentWatchTask extends LoggerTimerTask {
         } finally {
             pingWatchTaskLinkedBlockingDeque.remove(pingWatchTask);
             pingWatchTask.isDone = true;
+            DynamicRateLimitManager.getInstance().recordPingDuration(System.currentTimeMillis() - start);
         }
         return null;
     }

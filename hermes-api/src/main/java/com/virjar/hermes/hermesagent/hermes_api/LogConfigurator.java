@@ -5,6 +5,8 @@ import android.content.Context;
 import android.os.Process;
 import android.util.Log;
 
+import com.virjar.xposed_extention.Ones;
+
 import org.apache.commons.io.FileUtils;
 import org.slf4j.LoggerFactory;
 
@@ -29,17 +31,24 @@ import ch.qos.logback.core.util.FileSize;
  */
 public class LogConfigurator {
 
-    public static void configure(Context context) {
-        File logDirs = logDir(context);
-        try {
-            FileUtils.forceMkdir(logDirs);
-        } catch (IOException e) {
-            Log.e("weijia", "can not create log directory", e);
-            return;
-        }
-        final String PREFIX = "log";
-        configureLogbackDirectly(logDirs.getAbsolutePath(), PREFIX);
+    public static void configure(final Context context) {
+        Ones.hookOnes(LogConfigurator.class, "configure", new Ones.DoOnce() {
+            @Override
+            public void doOne(Class<?> clazz) {
+                File logDirs = logDir(context);
+                try {
+                    FileUtils.forceMkdir(logDirs);
+                } catch (IOException e) {
+                    Log.e("weijia", "can not create log directory", e);
+                    return;
+                }
+                final String PREFIX = "log";
+                configureLogbackDirectly(logDirs.getAbsolutePath(), PREFIX);
+            }
+        });
+
     }
+
 
     public static File logDir(Context context) {
         String processName = context.getPackageName();

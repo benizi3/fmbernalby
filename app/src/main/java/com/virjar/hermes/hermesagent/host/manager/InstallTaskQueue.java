@@ -160,6 +160,10 @@ public class InstallTaskQueue {
             }
             doingSet.add(serviceModel.getTargetAppPackage());
         }
+        if(StringUtils.isEmpty(serviceModel.getTargetAppDownloadUrl())){
+            log.warn("download url is empty");
+            return;
+        }
         log.info("download target apk from url:{}", serviceModel.getTargetAppDownloadUrl());
         //download
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(serviceModel.getTargetAppDownloadUrl()));

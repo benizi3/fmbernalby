@@ -33,18 +33,22 @@ public class AgentDaemonTask extends LoggerTimerTask {
     @Override
     public void doRun() {
         log.info("begin agent daemon task");
+        long start = System.currentTimeMillis();
         String pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
         if (StringUtils.equalsIgnoreCase(pingResponse, Constant.rebind)) {
+            AgentRegister.notifyPingDuration(System.currentTimeMillis() - start);
             log.info("server register binder lost ,rebind");
             AgentRegister.registerToServer(agentCallback, context);
             return;
         }
 
         if (StringUtils.equalsIgnoreCase(pingResponse, "true")) {
+            AgentRegister.notifyPingDuration(System.currentTimeMillis() - start);
             retryTimes = 0;
             log.info("ping success");
             return;
         }
+        AgentRegister.notifyPingFailed();
 
         pingResponse = CommonUtils.pingServer(agentCallback.targetPackageName());
         if (StringUtils.equalsIgnoreCase(pingResponse, Constant.unknown)) {

@@ -6,9 +6,12 @@ import android.os.Parcelable;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
+import com.virjar.hermes.hermesagent.hermes_api.InvokeResultPromise;
+import com.virjar.xposed_extention.SharedObject;
 
 import org.apache.commons.io.IOUtils;
 
@@ -32,7 +35,7 @@ public class InvokeResult implements Parcelable {
     private int dataType;
     private String theData;
     private boolean useFile;
-
+    private InvokeResultPromise invokeResultPromise = null;
     private static final String TAG = "BinderRPC";
 
     public InvokeResult(Parcel in) {
@@ -44,10 +47,34 @@ public class InvokeResult implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        insurePromise();
         dest.writeInt(status);
         dest.writeInt(dataType);
         dest.writeString(theData);
         dest.writeByte((byte) (useFile ? 1 : 0));
+    }
+
+    private void insurePromise() {
+        if (invokeResultPromise != null) {
+            dataType = invokeResultPromise.resultType();
+            theData = invokeResultPromise.body();
+        }
+        boolean useFile = theData.length() > 4096;
+        if (!useFile) {
+            return;
+        }
+
+        File file = APICommonUtils.genTempFile(SharedObject.context);
+        try {
+            BufferedWriter bufferedWriter = Files.newWriter(file, Charsets.UTF_8);
+            bufferedWriter.write(theData);
+            bufferedWriter.close();
+
+            this.useFile = true;
+            this.theData = file.getAbsolutePath();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -68,14 +95,50 @@ public class InvokeResult implements Parcelable {
     };
 
 
-    public static InvokeResult success(Object body, Context context) {
+    public static InvokeResult success(final Object body, Context context) {
         if (body instanceof JSONObject) {
-            return success(((JSONObject) body).toJSONString(), context, dataTypeJson);
+            return new InvokeResult(statusOK, new InvokeResultPromise() {
+                @Override
+                public int resultType() {
+                    return dataTypeString;
+                }
+
+                @Override
+                public String body() {
+                    return ((JSONObject) body).toJSONString();
+                }
+            });
+        }
+        if (body instanceof org.json.JSONObject || body instanceof org.json.JSONArray) {
+            return new InvokeResult(statusOK, new InvokeResultPromise() {
+                @Override
+                public int resultType() {
+                    return dataTypeJson;
+                }
+
+                @Override
+                public String body() {
+                    return body.toString();
+                }
+            });
         }
         if (body instanceof String) {
             return success((String) body, context, dataTypeString);
         }
-        return success(com.alibaba.fastjson.JSONObject.toJSONString(body), context, dataTypeJson);
+        if (body instanceof InvokeResultPromise) {
+            return new InvokeResult(statusOK, (InvokeResultPromise) body);
+        }
+        return new InvokeResult(statusOK, new InvokeResultPromise() {
+            @Override
+            public int resultType() {
+                return dataTypeJson;
+            }
+
+            @Override
+            public String body() {
+                return JSONObject.toJSONString(body, SerializerFeature.WriteNonStringKeyAsString, SerializerFeature.DisableCircularReferenceDetect);
+            }
+        });
     }
 
 
@@ -95,12 +158,15 @@ public class InvokeResult implements Parcelable {
         }
     }
 
-
-    public static InvokeResult failed(String message) {
+    public static InvokeResult failed(int errorCode, String message) {
         if (message.length() > 4096) {
             message = message.substring(0, 4096);
         }
-        return new InvokeResult(statusFailed, dataTypeString, message, false);
+        return new InvokeResult(errorCode, dataTypeString, message, false);
+    }
+
+    public static InvokeResult failed(String message) {
+        return failed(statusFailed, message);
     }
 
 
@@ -111,11 +177,19 @@ public class InvokeResult implements Parcelable {
         this.useFile = useFile;
     }
 
+    public InvokeResult(int status, InvokeResultPromise invokeResultPromise) {
+        this.status = status;
+        this.invokeResultPromise = invokeResultPromise;
+    }
+
     public int getStatus() {
         return status;
     }
 
     public int getDataType() {
+        if (invokeResultPromise != null) {
+            return invokeResultPromise.resultType();
+        }
         return dataType;
     }
 
@@ -127,6 +201,9 @@ public class InvokeResult implements Parcelable {
      * @hidden 请不要直接调用函数
      */
     public String getTheData(boolean changeState) {
+        if (invokeResultPromise != null) {
+            return invokeResultPromise.body();
+        }
         if (!useFile) {
             return theData;
         }

@@ -18,8 +18,10 @@ import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.Map;
 
@@ -95,6 +97,10 @@ public class EmbedRPCInvokeCallback implements HttpServerRequestCallback {
                         String logMessage = "invoke result: " + invokeResult.getTheData();
                         APICommonUtils.requestLogI(invokeRequest, logMessage);
                         log.info(logMessage);
+                        String s = invokeResult.needDeleteFile();
+                        if (s != null) {
+                            FileUtils.deleteQuietly(new File(s));
+                        }
                     }
                 }
             }

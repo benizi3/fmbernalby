@@ -14,7 +14,6 @@ public interface AgentCallback {
 
     /**
      * 即使知道目标package，也可能该包名存在多个子进程，仍然需要对进程信息进行判定，最终决定那个进程注入代码
-     *
      * @param loadPackageParam xposed的入口参数
      * @return 是否需要在这里注入
      */

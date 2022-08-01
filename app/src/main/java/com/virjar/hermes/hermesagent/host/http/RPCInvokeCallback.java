@@ -23,22 +23,23 @@ import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeRequest;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.InvokeResult;
+import com.virjar.hermes.hermesagent.host.manager.DynamicRateLimitManager;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
+import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by virjar on 2018/8/24.<br>
@@ -64,6 +65,11 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
                     CommonUtils.deviceID(fontService) + " ,ip:" + APICommonUtils.getLocalIp() + "}"));
             return;
         }
+        if (DynamicRateLimitManager.getInstance().limited()) {
+            log.warn("rate limited by DynamicRateLimitManager");
+            CommonUtils.sendJSON(response, CommonRes.failed(Constant.status_rate_limited, "rate limited by DynamicRateLimitManager"));
+            return;
+        }
         Map<String, String> innerParam = determineInnerParam(request);
         final String invokePackage = innerParam.get(Constant.invokePackage);
         if (StringUtils.isBlank(invokePackage)) {
@@ -84,8 +90,14 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
             CommonUtils.sendJSON(response, CommonRes.failed("unknown request data format"));
             return;
         }
-        new J2ExecutorWrapper(j2Executor.getOrCreate(invokePackage, 2, 4),
+        new J2ExecutorWrapper(j2Executor.getOrCreate(invokePackage, 5, 5),
                 new Runnable() {
+
+                    private void fastJsonSuccess(String jsonBody) {
+                        //直接使用拼接的方式组成这输出报文，避免一次序列化和反序列化动作，因为很多时候抓取的报文很大，这样比较消耗计算资源。我们这里已经明确了数据内容是一个json，不在需要进行格式约束
+                        response.send(Constant.jsonContentType, "{\"status\": " + InvokeResult.statusOK + ",\"data\": " + jsonBody + "}");
+                    }
+
                     @Override
                     public void run() {
                         InvokeResult invokeResult = null;
@@ -104,8 +116,10 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
                                 CommonUtils.sendJSON(response, CommonRes.failed(invokeResult.getStatus(), invokeResult.getTheData()));
                                 return;
                             }
+                            DynamicRateLimitManager.getInstance().recordInvokeSuccess();
                             if (invokeResult.getDataType() == InvokeResult.dataTypeJson) {
-                                CommonUtils.sendJSON(response, CommonRes.success(JSON.parse(invokeResult.getTheData())));
+                                //CommonUtils.sendJSON(response, CommonRes.success(JSON.parse(invokeResult.getTheData())));
+                                fastJsonSuccess(invokeResult.getTheData());
                             } else {
                                 CommonUtils.sendJSON(response, CommonRes.success(invokeResult.getTheData()));
                             }
@@ -131,6 +145,12 @@ public class RPCInvokeCallback implements HttpServerRequestCallback {
                                     } catch (RemoteException e) {
                                         APICommonUtils.requestLogW(invokeRequest, "remove temp file failed", e);
                                     }
+//                                    finally {
+//                                        File file = new File(needDeleteFile);
+//                                        if (file.exists() && file.isFile()) {
+//                                            Shell.SU.run("rm -f " + file.getAbsolutePath());
+//                                        }
+//                                    }
                                 }
                             }
                         }

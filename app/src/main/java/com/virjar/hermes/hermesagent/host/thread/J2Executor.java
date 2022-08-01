@@ -1,6 +1,7 @@
 package com.virjar.hermes.hermesagent.host.thread;
 
 import com.google.common.collect.Maps;
+import com.virjar.hermes.hermesagent.host.manager.DynamicRateLimitManager;
 import com.virjar.hermes.hermesagent.util.ReflectUtil;
 
 import java.util.Map;
@@ -67,8 +68,9 @@ public class J2Executor {
                 @Override
                 public boolean consume(Runnable runnable) {
                     if (parentBlockingQueue.size() > 0 || parentThreadPoolExecutor
-                            .getActiveCount() >= parentThreadPoolExecutor.getCorePoolSize()) {
+                            .getActiveCount() >= parentThreadPoolExecutor.getCorePoolSize() - 1) {
                         log.warn("parent thread pool full,task maybe busy");
+                        DynamicRateLimitManager.getInstance().recordParentTreadPoolFull();
                         return false;
                     }
                     RejectedMonitorRunnable rejectedMonitorRunnable = new RejectedMonitorRunnable(runnable);
@@ -92,7 +94,7 @@ public class J2Executor {
             threadPoolExecutor = new ThreadPoolExecutor(
                     coreSize, maxSize,
                     10, TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<Runnable>(2), new NamedThreadFactory("httpServer-" + key)
+                    new ArrayBlockingQueue<Runnable>(1), new NamedThreadFactory("httpServer-" + key)
             );
             registrySubThreadPoolExecutor(key, threadPoolExecutor);
         }

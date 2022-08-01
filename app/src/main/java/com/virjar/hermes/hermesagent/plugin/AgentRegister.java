@@ -22,14 +22,44 @@ import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 
 import java.io.File;
 
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 
 /**
  * Created by virjar on 2018/8/23.<br>
  * 将扫描得到的agent，注册到master的注册中心去，完成hermesAgent和targetApp的连接
  */
 
+@Slf4j
 public class AgentRegister {
     private static final String TAG = "agent_register";
+
+    private static IServiceRegister serviceRegister = null;
+
+    public static void notifyPingDuration(long duration) {
+        IServiceRegister serviceRegisterCopy = serviceRegister;
+        if (serviceRegisterCopy == null) {
+            return;
+        }
+        try {
+            serviceRegisterCopy.notifyPingDuration(duration);
+        } catch (RemoteException e) {
+            log.error("notify ping duration to master process failed", e);
+        }
+    }
+
+    public static void notifyPingFailed() {
+        IServiceRegister serviceRegisterCopy = serviceRegister;
+        if (serviceRegisterCopy == null) {
+            return;
+        }
+        try {
+            serviceRegisterCopy.notifyPingFailed();
+        } catch (RemoteException e) {
+            log.error("notify ping duration to master process failed", e);
+        }
+    }
 
     public static void registerToServer(final AgentCallback agentCallback, final Context application) {
 
@@ -101,6 +131,7 @@ public class AgentRegister {
                     return;
                 }
                 mService = IServiceRegister.Stub.asInterface(service);
+                serviceRegister = mService;
                 try {
                     // mService.registerCallback("weishi", mCallback);
                     mService.registerHookAgent(iHookAgentService);

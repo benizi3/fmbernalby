@@ -71,7 +71,11 @@ public class XposedInit implements IXposedHookLoadPackage {
         grantContentProviderPermissionForHermesWithAllApp();
         // skip if system app
         //对应系统app来说，就不要加载插件逻辑了，否则大量app都会进行文件扫描
-        if (Process.myUid() < Process.FIRST_APPLICATION_UID) {
+        if (Process.myUid() < Process.FIRST_APPLICATION_UID && !StringUtils.equalsAnyIgnoreCase(lpparam.processName,"com.android.browser")) {
+            return;
+        }
+        if (!lpparam.isFirstApplication) {
+            //一个进程，只应该加载一次
             return;
         }
 

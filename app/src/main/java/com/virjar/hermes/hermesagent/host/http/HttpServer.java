@@ -23,6 +23,7 @@ import com.virjar.hermes.hermesagent.hermes_api.CommonRes;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
 import com.virjar.hermes.hermesagent.hermes_api.LogConfigurator;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
+import com.virjar.hermes.hermesagent.host.manager.DynamicRateLimitManager;
 import com.virjar.hermes.hermesagent.host.manager.StartAppTask;
 import com.virjar.hermes.hermesagent.host.service.FontService;
 import com.virjar.hermes.hermesagent.host.thread.J2Executor;
@@ -39,7 +40,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,12 +113,12 @@ public class HttpServer {
         server = new AsyncHttpServer();
         mAsyncServer = new AsyncServer(Constant.httpServerLooperThreadName);
         j2Executor = new J2Executor(
-                new ThreadPoolExecutor(10, 10, 0L,
-                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(10), new NamedThreadFactory("httpServer-public-pool"))
+                new ThreadPoolExecutor(20, 20, 0L,
+                        TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(1), new NamedThreadFactory("httpServer-public-pool"))
         );
         httpServerRequestCallback = new RPCInvokeCallback(fontService, j2Executor);
         log.info("register http request handler");
-        bindRootCommand();
+        bindIndexCommand();
         bindPingCommand();
         bindStartAppCommand(context);
         bindInvokeCommand();
@@ -127,9 +127,9 @@ public class HttpServer {
         bindExecuteShellCommand();
         bindRestartADBDCommand();
         bindReloadServiceCommand();
-        agentVersionCommand();
-        hermesLogCommand();
-        killAgent();
+        bindAgentVersionCommand();
+        bindHermesLogCommand();
+        bindKillAgentCommand();
 
         try {
             httpServerPort = Constant.httpServerPort;
@@ -153,6 +153,10 @@ public class HttpServer {
         } else {
             startupEventSet.add(httpServerStartupEvent);
         }
+    }
+
+    public void restartServer(Context context) {
+        startServerInternal(context);
     }
 
     public void startServer(final Context context) {
@@ -199,17 +203,29 @@ public class HttpServer {
         j2Executor = null;
     }
 
-    private void bindRootCommand() {
+    private void bindIndexCommand() {
         server.get("/", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String baseURL = CommonUtils.localServerBaseURL();
-                Hashtable<String, ArrayList<Object>> actions = ReflectUtil.getFieldValue(server, "mActions");
-                StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>Hermes</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermesagent\">https://gitee.com/virjar/hermesagent</a></p>");
+                //这是因为async内部的api变化很大，感觉会有一次不兼容的升级
+                ArrayList<Object> routes = ReflectUtil.getFieldValue(server, "routes");
+                Map<String, ArrayList<Object>> actions = Maps.newHashMap();
+                for (Object route : routes) {
+                    String method = ReflectUtil.getFieldValue(route, "method");
+                    ArrayList<Object> urlList = actions.get(method);
+                    if (urlList == null) {
+                        urlList = Lists.newArrayList();
+                        actions.put(method, urlList);
+                    }
+                    urlList.add(route);
+                }
+                StringBuilder html = new StringBuilder("<html><head><meta charset=\"UTF-8\"><title>Hermes</title></head><body><p>HermesAgent ，项目地址：<a href=\"https://gitee.com/virjar/hermes\">https://gitee.com/virjar/hermes</a></p>");
                 html.append("<p>服务base地址：").append(baseURL).append("</p>");
                 html.append("<p>agent版本：").append(BuildConfig.VERSION_CODE).append("</p>");
+                html.append("<p>系统状态评分：").append(DynamicRateLimitManager.getInstance().getLimitScore() * 100).append("</p>");
                 html.append("<p>设备ID：").append(CommonUtils.deviceID(HttpServer.this.fontService)).append("</p>");
-                for (Hashtable.Entry<String, ArrayList<Object>> entry : actions.entrySet()) {
+                for (Map.Entry<String, ArrayList<Object>> entry : actions.entrySet()) {
                     html.append("<p>httpMethod:").append(entry.getKey()).append("</p>");
                     html.append("<ul>");
                     for (Object object : entry.getValue()) {
@@ -373,16 +389,16 @@ public class HttpServer {
         });
     }
 
-    private void agentVersionCommand() {
+    private void bindAgentVersionCommand() {
         server.get(Constant.getAgentVersionCodePath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                CommonUtils.sendJSON(response, CommonRes.success(BuildConfig.VERSION_CODE));
+                CommonUtils.sendPlainText(response, String.valueOf(BuildConfig.VERSION_CODE));
             }
         });
     }
 
-    private void hermesLogCommand() {
+    private void bindHermesLogCommand() {
         server.get(Constant.hermesLogPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
@@ -426,7 +442,7 @@ public class HttpServer {
         });
     }
 
-    private void killAgent() {
+    private void bindKillAgentCommand() {
         server.get(Constant.killHermesAgentPath, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {

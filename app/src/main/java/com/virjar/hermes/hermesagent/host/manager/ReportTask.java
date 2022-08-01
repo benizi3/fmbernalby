@@ -3,6 +3,7 @@ package com.virjar.hermes.hermesagent.host.manager;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.system.ErrnoException;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -24,6 +25,7 @@ import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
@@ -45,14 +47,14 @@ public class ReportTask extends LoggerTimerTask {
 
     private static final MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
 
-    private int failedTimes = 0;
+    private static int failedTimes = 0;
 
     public ReportTask(Context context, FontService fontService) {
         this.context = context;
         this.fontService = fontService;
     }
 
-    private void report() {
+    public void report() {
         ReportModel reportModel = new ReportModel();
         reportModel.setAgentServerIP(APICommonUtils.getLocalIp());
         reportModel.setAgentServerPort(HttpServer.getInstance().getHttpServerPort());
@@ -62,6 +64,8 @@ public class ReportTask extends LoggerTimerTask {
         reportModel.setMac(CommonUtils.deviceID(context));
         reportModel.setBrand(Build.BRAND);
         reportModel.setSystemVersion(Build.VERSION.SDK);
+        DynamicRateLimitManager.getInstance().recordCPUUsage(reportModel.getCpuLoader());
+        DynamicRateLimitManager.getInstance().recordMemoryUsage(reportModel.getMemoryInfo());
 
         String reportContent = JSONObject.toJSONString(reportModel);
         log.info("device report request,url:{} body:{}", Constant.serverBaseURL + Constant.reportPath, reportContent);
@@ -74,6 +78,7 @@ public class ReportTask extends LoggerTimerTask {
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 failedTimes++;
                 log.error("report failed ", e);
+                judgeIfAndRestartWifi(e);
                 rebootIfNeed();
             }
 
@@ -92,6 +97,26 @@ public class ReportTask extends LoggerTimerTask {
                 handleServiceConfig(responseContent);
             }
         });
+    }
+
+    private void judgeIfAndRestartWifi(Exception e) {
+        if (failedTimes % 3 == 0) {
+            CommonUtils.restartWifiModule(context);
+            if (failedTimes >= 6) {
+                HttpServer.getInstance().restartServer(context);
+            }
+        }
+        if (e instanceof UnknownHostException) {
+            log.error("网络配置紊乱，重启Wi-Fi配置");
+            CommonUtils.restartWifiModule(context);
+            HttpServer.getInstance().restartServer(context);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (CommonUtils.getRootCase(e) instanceof ErrnoException) {
+                log.error("网络配置紊乱，重启Wi-Fi配置");
+                CommonUtils.restartWifiModule(context);
+                HttpServer.getInstance().restartServer(context);
+            }
+        }
     }
 
     @Override
@@ -192,7 +217,8 @@ public class ReportTask extends LoggerTimerTask {
     }
 
     private void rebootIfNeed() {
-        if (failedTimes < 15) {
+        //30秒 * 10 = 5分钟
+        if (failedTimes < 10) {
             return;
         }
         log.info("can not connect hermes admin,maybe network config error,now restart device");

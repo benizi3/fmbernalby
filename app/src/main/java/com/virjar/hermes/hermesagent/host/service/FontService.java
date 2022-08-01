@@ -7,7 +7,6 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -18,43 +17,28 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.jaredrummler.android.processes.AndroidProcesses;
 import com.jaredrummler.android.processes.models.AndroidAppProcess;
 import com.virjar.hermes.hermesagent.BuildConfig;
 import com.virjar.hermes.hermesagent.MainActivity;
 import com.virjar.hermes.hermesagent.R;
-import com.virjar.hermes.hermesagent.hermes_api.APICommonUtils;
 import com.virjar.hermes.hermesagent.hermes_api.Constant;
-import com.virjar.hermes.hermesagent.hermes_api.EmbedWrapper;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.AgentInfo;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.DaemonBinder;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IHookAgentService;
 import com.virjar.hermes.hermesagent.hermes_api.aidl.IServiceRegister;
 import com.virjar.hermes.hermesagent.host.http.HttpServer;
 import com.virjar.hermes.hermesagent.host.manager.AgentWatchTask;
+import com.virjar.hermes.hermesagent.host.manager.DynamicRateLimitManager;
 import com.virjar.hermes.hermesagent.host.manager.LoggerTimerTask;
 import com.virjar.hermes.hermesagent.host.manager.ReportTask;
 import com.virjar.hermes.hermesagent.util.CommonUtils;
 import com.virjar.hermes.hermesagent.util.libsuperuser.Shell;
-import com.virjar.xposed_extention.ClassScanner;
-
-import net.dongliu.apk.parser.ApkFile;
 
 import org.apache.commons.lang3.StringUtils;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import java.io.File;
-import java.io.FilenameFilter;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -81,96 +65,8 @@ public class FontService extends Service {
     private static final long timerCheckThreashHold = aliveCheckDuration * 4;
     private Set<String> onlineServices = null;
 
-    private Set<String> allCallback = null;
-
     private DaemonBinder daemonBinder = null;
-
-    @SuppressWarnings("unchecked")
-    private void scanCallBack() {
-        String sourceDir;
-        try {
-            sourceDir = getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, PackageManager.GET_META_DATA).applicationInfo.sourceDir;
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new IllegalStateException(e);
-            //not happen
-        }
-        ClassScanner.SubClassVisitor<EmbedWrapper> subClassVisitor = new ClassScanner.SubClassVisitor(true, EmbedWrapper.class);
-        //这里欺骗了xposed
-        ClassScanner.scan(subClassVisitor, Sets.newHashSet(Constant.appHookSupperPackage), new File(sourceDir), CommonUtils.createXposedClassLoadBridgeClassLoader(this));
-
-        allCallback = transformAgentNames(subClassVisitor);
-        log.info("scan all embed wrapper class:{}", JSONObject.toJSONString(allCallback));
-        File modulesDir = new File(CommonUtils.HERMES_WRAPPER_DIR);
-        if (!modulesDir.exists() || !modulesDir.canRead()) {
-            //Log.w("weijia", "hermesModules 文件为空，无外置HermesWrapper");
-            log.info("hermesModules 文件为空，无外置HermesWrapper");
-            return;
-        }
-
-        for (File apkFilePath : modulesDir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return StringUtils.endsWithIgnoreCase(name, ".apk");
-            }
-        })) {
-            log.info("scan external wrapper,read file:{}", apkFilePath.getAbsolutePath());
-            try (ApkFile apkFile = new ApkFile(apkFilePath)) {
-                Document androidManifestDocument = CommonUtils.loadDocument(apkFile.getManifestXml());
-                NodeList applicationNodeList = androidManifestDocument.getElementsByTagName("application");
-                if (applicationNodeList.getLength() == 0) {
-                    log.warn("the manifest xml file must has application node");
-                    continue;
-                }
-                Element applicationItem = (Element) applicationNodeList.item(0);
-                NodeList childNodes = applicationItem.getChildNodes();
-                String forTargetPackageName = null;
-                for (int i = 0; i < childNodes.getLength(); i++) {
-                    Node item = childNodes.item(i);
-                    if (!(item instanceof Element)) {
-                        continue;
-                    }
-                    Element metaItem = (Element) item;
-                    if (!StringUtils.equals(metaItem.getTagName(), "meta-data")) {
-                        continue;
-                    }
-                    if (!StringUtils.equals(metaItem.getAttribute("android:name"), APICommonUtils.HERMES_EXTERNAL_WRAPPER_FLAG_KEY)) {
-                        continue;
-                    }
-                    forTargetPackageName = metaItem.getAttribute("android:value");
-                    break;
-                }
-                if (StringUtils.isNotBlank(forTargetPackageName)) {
-                    allCallback.add(forTargetPackageName);
-                }
-            } catch (Exception e) {
-                log.error("failed to load hermes-wrapper module", e);
-            }
-        }
-
-    }
-
-    private Set<String> transformAgentNames(ClassScanner.SubClassVisitor<? extends EmbedWrapper> subClassVisitor) {
-        return Sets.newHashSet(Iterables.filter(Lists.transform(subClassVisitor.getSubClass(), new Function<Class<? extends EmbedWrapper>, String>() {
-            @javax.annotation.Nullable
-            @Override
-            public String apply(@javax.annotation.Nullable Class<? extends EmbedWrapper> input) {
-                if (input == null) {
-                    return null;
-                }
-                try {
-                    return input.newInstance().targetPackageName();
-                } catch (InstantiationException | IllegalAccessException e) {
-                    log.error("failed to load create plugin", e);
-                }
-                return null;
-            }
-        }), new Predicate<String>() {
-            @Override
-            public boolean apply(@javax.annotation.Nullable String input) {
-                return StringUtils.isNotBlank(input);
-            }
-        }));
-    }
+    private ReportTask reportTask = null;
 
 
     public void setOnlineServices(Set<String> onlineServices) {
@@ -278,6 +174,10 @@ public class FontService extends Service {
             log.info("service :{} register success", agentInfo.getPackageName());
             mCallbacks.register(hookAgentService);
             allRemoteHookService.putIfAbsent(agentInfo.getServiceAlis(), hookAgentService);
+            if (reportTask != null) {
+                //本地测试模式下，不存在reportTask
+                reportTask.report();
+            }
         }
 
         @Override
@@ -287,8 +187,23 @@ public class FontService extends Service {
         }
 
         @Override
-        public List<String> onlineService() throws RemoteException {
+        public List<String> onlineService() {
             return Lists.newArrayList(onlineAgentServices());
+        }
+
+        @Override
+        public void notifyPingDuration(long duration) throws RemoteException {
+            DynamicRateLimitManager.getInstance().recordPingDuration(duration);
+        }
+
+        @Override
+        public void notifyPingFailed() throws RemoteException {
+            DynamicRateLimitManager.getInstance().recordPingFailed();
+        }
+
+        @Override
+        public double systemScore() throws RemoteException {
+            return DynamicRateLimitManager.getInstance().getLimitScore();
         }
     };
 
@@ -338,15 +253,15 @@ public class FontService extends Service {
                 .setSmallIcon(R.mipmap.ic_launcher) // 设置状态栏内的小图标
                 .setContentText("群控系统") // 设置上下文内容
                 .setWhen(System.currentTimeMillis()); // 设置该通知发生的时间
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder.setChannelId(BuildConfig.APPLICATION_ID);
+        }
 
         Notification notification = builder.build(); // 获取构建好的Notification
         notification.defaults = Notification.DEFAULT_SOUND; //设置为默认的声音
         startForeground(110, notification);// 开始前台服务
 
         log.info("start hermes font service");
-        if (allCallback == null) {
-            scanCallBack();
-        }
 
         //确保HermesAgent后台联网正常
         makeSureMIUINetworkPermissionOnBackground(BuildConfig.APPLICATION_ID);
@@ -463,7 +378,9 @@ public class FontService extends Service {
                 try {
                     //如果targetApp假死，那么这个调用将会阻塞，需要监控这个任务的执行时间，如果长时间ping没有响应，那么需要强杀targetApp
                     pingWatchTaskLinkedBlockingDeque.offer(pingWatchTask);
+                    long start = System.currentTimeMillis();
                     daemonBinderCopy.ping();
+                    DynamicRateLimitManager.getInstance().recordPingDuration(System.currentTimeMillis() - start);
                 } catch (DeadObjectException deadObjectException) {
                     log.error("remote service dead,wait for re register");
                     daemonBinder = null;
@@ -481,8 +398,9 @@ public class FontService extends Service {
         if (!CommonUtils.isLocalTest()) {
             //向服务器上报服务信息,正式版本才进行上报，测试版本上报可能使得线上服务打到测试apk上面来
             //重启之后，马上进行上报
-            timer.scheduleAtFixedRate(new ReportTask(this, this),
-                    1, 60000);
+            reportTask = new ReportTask(this, this);
+            timer.scheduleAtFixedRate(reportTask,
+                    1, 30000);
             //监控所有agent状态
             timer.scheduleAtFixedRate(new AgentWatchTask(this, allRemoteHookService, this), 1000, 30000);
         }

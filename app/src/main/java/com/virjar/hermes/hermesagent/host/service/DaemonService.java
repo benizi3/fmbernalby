@@ -43,6 +43,7 @@ public class DaemonService extends Service {
                     log.warn("xposed startup failed,daemon task will not work");
                     return;
                 }
+                long startHeartBeat = System.currentTimeMillis();
                 if (StringUtils.equalsIgnoreCase(CommonUtils.pingServer(null), "true")) {
                     log.info("heartbeat test success");
                     return;
@@ -69,7 +70,7 @@ public class DaemonService extends Service {
 
                 Shell.SU.run("reboot");
             }
-        }, 2000, 2 * 60 * 1000);
+        }, 2000, 45 * 1000);
         return START_STICKY;
     }
 

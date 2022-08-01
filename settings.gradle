@@ -1,1 +1,1 @@
-include ':hermes-api', ':app', ':xposedbridge'
+include ':hermes-api', ':app',':AndroidAsync'

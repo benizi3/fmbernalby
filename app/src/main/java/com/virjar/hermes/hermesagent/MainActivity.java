@@ -102,9 +102,12 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             text += "\n\n在线服务列表:\n"
                                     + Joiner.on("\n").join(mService.onlineService());
+                            text += "\n\n系统状态评分：" + (int) (mService.systemScore() * 100);
                         } catch (RemoteException e) {
                             text += "获取服务列表失败";
                         }
+
+
                     }
                 } else {
                     text = "xposed中，未正常启动HermesAgent模块";
